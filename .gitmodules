@@ -1,0 +1,3 @@
+[submodule "sculptlib"]
+	path = sculptlib
+	url = ../sculptlib.git

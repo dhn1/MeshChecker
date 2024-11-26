@@ -1,0 +1,101 @@
+cmake_minimum_required(VERSION 3.14)
+
+project (meshChecker LANGUAGES CXX VERSION 0.0.0)
+
+
+find_program(CCACHE_FOUND ccache)
+if(CCACHE_FOUND)
+    message (STATUS "Using ccache")
+    set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
+    set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
+endif(CCACHE_FOUND)
+
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Gui)
+find_package(PkgConfig REQUIRED)
+
+
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    option(ENABLE_SANITIZER "Enable sanitizer" ON)
+else()
+    option(ENABLE_SANITIZER "Enable sanitizer" OFF)
+endif()
+if (ENABLE_SANITIZER AND CMAKE_BUILD_TYPE STREQUAL "Debug")
+    message (STATUS "Adress sanitizer enabled")
+    add_compile_options(-fsanitize=address -fsanitize=leak -fno-omit-frame-pointer)
+    add_link_options(-fsanitize=address -fsanitize=leak -lresolv)
+    #set (CMAKE_CXX_FLAGS "-O0 -ggdb3")
+endif()
+
+message (STATUS "CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE}")
+if (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+    # So valgrind can read our symbols
+    set (CMAKE_CXX_FLAGS "-gdwarf-4")
+endif ()
+
+message (STATUS "CMAKE_CXX_COMPILER_ID ${CMAKE_CXX_COMPILER_ID}")
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    #add_compile_options (-Weverything -Wno-c++98-compat -Wno-c++98-compat-pedantic)
+    add_compile_options (-Wall -Wextra-semi -Wextra-semi-stmt -Wmissing-variable-declarations)
+    add_compile_options (-Wmissing-prototypes -Wimplicit-float-conversion)
+    add_compile_options (-Wdouble-promotion -Wimplicit-int-float-conversion -Wunused-parameter -Wnewline-eof)
+    #add_compile_options (-Wpadded  -Wshadow)
+    add_compile_options (-Werror=return-type)
+    add_compile_options (-ffp-contract=fast)
+else()
+    #add_compile_options (-Weverything -Wno-c++98-compat -Wno-c++98-compat-pedantic)
+    add_compile_options (-Wall -Wextra-semi -Wmissing-declarations)
+    add_compile_options (-Wfloat-conversion)
+    add_compile_options (-Wdouble-promotion -Wunused-parameter)
+    #add_compile_options (-Wpadded -Wshadow)
+    add_compile_options (-Werror=return-type)
+endif()
+
+add_compile_options (-gsplit-dwarf)
+
+find_program (LLD "lld")
+if (LLD)
+    add_link_options ("-fuse-ld=lld")
+endif ()
+
+set (INSTALL_LIB OFF)
+add_subdirectory (sculptlib)
+
+add_executable (${PROJECT_NAME}
+    main.cpp
+    MeshChecker.h MeshChecker.cpp
+    MeshCheckerOutput.h MeshCheckerOutput.cpp
+    )
+
+set_target_properties (${PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+target_link_libraries (${PROJECT_NAME}
+        Qt${QT_VERSION_MAJOR}::Core
+        Qt${QT_VERSION_MAJOR}::Gui
+        SculptLib)
+
+set_property (SOURCE main.cpp PROPERTY COMPILE_DEFINITIONS VERSION="${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}")
+
+# Install app
+install (
+    TARGETS ${PROJECT_NAME}
+    CONFIGURATIONS Release
+    RUNTIME
+    DESTINATION /usr/bin)
+
+#cpack stuff
+include(InstallRequiredSystemLibraries)
+
+#set (CPACK_PACKAGE_NAME "${PROJECT_NAME}")
+set (CPACK_PACKAGE_DESCRIPTION_SUMMARY "${PROJECT_NAME} - 3d triangular mesh checker")
+set (CPACK_PACKAGE_VENDOR "David Netherwood")
+set (CPACK_PACKAGE_VERSION_MAJOR "${PROJECT_VERSION_MAJOR}")
+set (CPACK_PACKAGE_VERSION_MINOR "${PROJECT_VERSION_MINOR}")
+set (CPACK_PACKAGE_VERSION_PATCH "${PROJECT_VERSION_PATCH}")
+set (CPACK_PACKAGE_CONTACT "david_netherwood@hotmail.com")
+#set (CPACK_PACKAGE_EXECUTABLES ${PROJECT_NAME} "${PROJECT_NAME}")
+set (CPACK_GENERATOR "DEB")
+set (CPACK_DEBIAN_PACKAGE_DEPENDS "libqt6gui6, libqt6core6, libqt6concurrent6, libqt6xml6, libzip4,  libqt6svg6, sculptlib")
+#set (CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/license.txt")
+
+
+include(CPack)

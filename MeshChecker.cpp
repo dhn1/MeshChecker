@@ -1,0 +1,307 @@
+#include "MeshChecker.h"
+
+#include "Constants.h"
+#include "HalfEdges/HalfEdges.h"
+#include "Mesh.h"
+#include "Polygon2DList.h"
+
+MeshChecker::MeshChecker (const MeshPtr& mesh) : m_mesh (mesh)
+{
+    m_edges = HalfEdges::create (mesh);
+}
+
+MeshChecker::~MeshChecker ()
+{
+}
+
+bool MeshChecker::check ()
+{
+    bool ret = true;
+    if (m_checks & ShowInfo)
+    {
+        showInfo ();
+    }
+    if (m_checks & CheckHoles)
+    {
+        ret &= checkOpenEdges ();
+    }
+    if (m_checks & CheckDuplicateTriangles)
+    {
+        ret &= checkDuplicateTriangles ();
+    }
+    if (m_checks & CheckShortEdges)
+    {
+        ret &= checkShortEdges ();
+    }
+
+    if (m_checks & CheckReversedTriangles)
+    {
+        ret &= checkReversedTriangles ();
+    }
+    
+    if (CheckDuplicateVertices)
+    {
+        ret &= checkDuplicateVertices ();
+    }
+    return ret;
+}
+
+bool MeshChecker::checkOpenEdges ()
+{
+    auto holes = m_edges->holes ();
+    if (holes.isEmpty ())
+    {
+        report (QStringLiteral ("No open edges"));
+        return true;
+    }
+
+    int idx = -1;
+    for (const auto& hole : holes)
+    {
+        idx++;
+        auto area = hole.area ();
+        if (area > 0.00000001)
+        {
+            verbose (QStringLiteral ("Hole: (") + QString::number (area) + "sq)");
+            if (m_checks & DrawHoles)
+            {
+                hole.snapshot (QStringLiteral ("%1.png").arg (idx));
+            }
+        }
+        else
+        {
+            verbose (QStringLiteral ("Tear:"));
+        }
+        verbose (hole.toString (1));
+        // for (const auto& v : hole)
+        // {
+
+        //     QString str;
+        //     str = QStringLiteral ("  %1 %2, %3, %4").arg (v->id ()).arg (v->m_x).arg (v->m_y).arg (v->m_z);
+        //     if (!v->annotation ().isEmpty ())
+        //     {
+        //         str += " \"" + v->annotation () + "\"";
+        //     }
+        //     verbose (hole.toString str);
+        // }
+    }
+    report (QStringLiteral ("%1 Open holes found").arg (holes.count ()));
+
+    return true;
+}
+
+bool MeshChecker::checkDuplicateTriangles ()
+{
+    bool reported = false;
+    auto ok = true;
+    auto ts = m_mesh->triangles ();
+    auto count = ts.count ();
+    for (auto i = 0; i < count; i++)
+    {
+        for (auto j = i + 1; j < count; j++)
+        {
+            int matches = 0;
+            for (int e1 = 0; e1 < 3; e1++)
+            {
+                for (int e2 = 0; e2 < 3; e2++)
+                {
+                    if (ts.at (i)->vertexAt (e1) == ts.at (j)->vertexAt (e2) || ts.at (i)->vertexAt (e1)->equal (ts.at (j)->vertexAt (e2), 0.0001))
+                    {
+                        matches++;
+                    }
+                }
+            }
+            if (matches >= 3)
+            {
+                if (!reported)
+                {
+                    report (QStringLiteral ("Duplicate triangles found"));
+                    reported = true;
+                }
+                ok = false;
+                const auto& t1 = ts.at(i);
+                const auto& t2 = ts.at(j);
+                if (!t1->annotation().isEmpty() && !t2->annotation().isEmpty())
+                {
+                    verbose (QStringLiteral ("  T: \"%1\" %2 and T: \"%3\" %4").arg(t1->annotation()).arg (t1->id ()).arg(t2->annotation()).arg (t2->id ()));
+                }
+                else if (!t1->annotation().isEmpty() && t2->annotation().isEmpty())
+                {
+                    verbose (QStringLiteral ("  T: \"%1\" %2 and T: %3").arg(t1->annotation()).arg (t1->id ()).arg (t2->id ()));
+                }
+                else if (t1->annotation().isEmpty() && !t2->annotation().isEmpty())
+                {
+                    verbose (QStringLiteral ("  T: %1 and T: \"%2\" %3").arg (t1->id ()).arg(t2->annotation()).arg (t2->id ()));
+                }
+                else
+                {
+                    verbose (QStringLiteral ("  T: %1 and T: %2").arg (t1->id ()).arg (t2->id ()));
+                }
+            }
+        }
+    }
+    if (ok)
+    {
+        report (QStringLiteral ("No duplicate triangles"));
+    }
+    return ok;
+}
+
+bool MeshChecker::checkShortEdges ()
+{
+    bool ok = true;
+     int foundShortEdge = 0;
+    int foundNullEdge = 0;
+    double smallest2 = INF;
+    for (const auto& edge : m_edges->halfEdgeList ())
+    {
+        if (edge->v1 () == edge->v2 ())
+        {
+            foundNullEdge++;
+            ok = false;
+            verbose ("Null edge (repeating vertex): " + edge->v1 ()->toString ());
+        }
+        auto mag2 = edge->magnitude2 ();
+        if (mag2 <= Constants::minEdge2)
+        {
+            foundShortEdge++;
+            verbose ("Short edge between vertex: " + edge->v1 ()->toString () + " and " + edge->v2 ()->toString ());
+        }
+        if (mag2 < smallest2)
+        {
+            smallest2 = mag2;
+        }
+    }
+    if (smallest2 < INF)
+    {
+        verbose (QStringLiteral ("Shortest edge value: %1").arg (sqrt (smallest2)));
+    }
+    if (foundNullEdge)
+    {
+        report (QStringLiteral ("%1 null edges found (connected by same vertex)").arg (foundNullEdge));
+    }
+    else
+    {
+        report (QStringLiteral ("No null edges"));
+    }
+    if (foundShortEdge)
+    {
+        report (QStringLiteral ("%1 short edges found").arg (foundShortEdge));
+    }
+    else
+    {
+        report (QStringLiteral ("No short edges"));
+    }
+
+    return ok;
+}
+
+bool MeshChecker::checkReversedTriangles ()
+{
+    EdgeByVeticesHash hash;
+    for (const auto& edge : m_edges->halfEdgeList())
+    {
+        if (!edge->testFlag (HalfEdge::Delete))
+        {
+            hash.insert (HalfEdgeKey (edge->v1 (), edge->v2 (), false), edge);
+        }
+    }
+    int badCount = 0;
+    QList<TrianglePtr> badTriangleCandidates;
+
+    for (const auto& e : m_edges->halfEdgeList())
+    {
+        // any other half edge with same direction
+        auto range = hash.equal_range (HalfEdgeKey (e->v1 (), e->v2 (), false));
+        auto d = std::distance (range.first, range.second);
+        if (d > 1)
+        {
+            // We have two half edges going the same direction!
+            auto it = range.first;
+            while (it != range.second)
+            {
+                badTriangleCandidates << (*it)->m_triangle;
+                it++;
+            }
+        }
+    }
+
+    std::sort (badTriangleCandidates.begin(), badTriangleCandidates.end(), [] (const TrianglePtr& a, const TrianglePtr& b) {
+        return a->id () < b->id ();
+    });
+
+    for (int i = 0 ; i < badTriangleCandidates.size() ; )
+    {
+        const auto& t = badTriangleCandidates.at(i);
+        int count = 0;
+        while (i < badTriangleCandidates.size ()  && badTriangleCandidates.at (i)->id () == t->id ())
+        {
+            count++;
+            i++;
+        }
+        if (count >= 6)
+        {
+            badCount++;
+            if (!t->annotation().isEmpty())
+            {
+                verbose (QStringLiteral ("Reversed triangle: \"%1\" ID %2 ").arg(t->annotation()).arg(t->id()));
+            }
+            else
+            {
+                verbose (QStringLiteral ("Reversed triangle: ID %2 ").arg (t->id ()));
+            }
+        }
+    }
+    if (badCount)
+    {
+        report (QStringLiteral ("%1 reversed triangles").arg(badCount));
+        return false;
+    }
+    else
+    {
+        report (QStringLiteral ("No reversed triangles"));
+    }
+    return true;
+}
+
+void MeshChecker::showInfo ()
+{
+    auto vcount = m_mesh->vertexList ().count ();
+    auto edges = HalfEdges::create (m_mesh);
+    auto ecount = edges->halfEdgeList ().count ();
+
+    report (QStringLiteral ("%1 triangles, %2 vertices, %3 half edges (%4 edges)").arg (m_mesh->tcount ()).arg (vcount).arg (ecount).arg (ecount / 2));
+}
+
+bool MeshChecker::checkDuplicateVertices ()
+{
+    auto vs = m_mesh->vertexList ();
+    std::sort (vs.begin(), vs.end());
+    auto it = std::adjacent_find (vs.begin (), vs.end ());
+    if (it != vs.end ())
+    {
+        auto ref = *it;
+        int badCount = 0;
+        while (it != vs.end () && *(*it) == *ref)
+        {
+            const auto& v = *it;
+            if (!v->annotation().isEmpty())
+            {
+                verbose (QStringLiteral ("Duplicate vertex: \"%1\" id: %1").arg (v->annotation ()).arg ((*it)->id ()));
+            }
+            else
+            {
+                verbose (QStringLiteral ("Duplicate vertex, id %1").arg ((*it)->id ()));
+            }
+            it++;
+            badCount++;
+        }
+        if (badCount)
+        {
+            report (QStringLiteral ("%1 duplicate vertices").arg (badCount));
+            return false;
+        }
+    }
+    report ("No duplicate vertices");
+    return true;
+}
