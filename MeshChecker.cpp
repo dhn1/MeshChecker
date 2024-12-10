@@ -72,18 +72,7 @@ bool MeshChecker::checkOpenEdges ()
         {
             verbose (QStringLiteral ("Tear:"));
         }
-        verbose (hole.toString (1));
-        // for (const auto& v : hole)
-        // {
-
-        //     QString str;
-        //     str = QStringLiteral ("  %1 %2, %3, %4").arg (v->id ()).arg (v->m_x).arg (v->m_y).arg (v->m_z);
-        //     if (!v->annotation ().isEmpty ())
-        //     {
-        //         str += " \"" + v->annotation () + "\"";
-        //     }
-        //     verbose (hole.toString str);
-        // }
+        verbose (hole.toString (2));
     }
     report (QStringLiteral ("%1 Open holes found").arg (holes.count ()));
 

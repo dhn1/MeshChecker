@@ -22,6 +22,10 @@ static bool  processFile (const QString& path)
     {
         qDebug ().nospace ().noquote () << "Unable to open: \"" <<path << "\"\n";
     }
+    if (!quiet)
+    {
+        qDebug().noquote().nospace() << path;
+    }
     MeshCheckerOutput checker (mesh);
     checker.setVerboseReport (verbose);
     checker.setQuiet (quiet);
@@ -31,9 +35,9 @@ static bool  processFile (const QString& path)
     }
     auto ret = checker.check ();
     errors &= ret;
-    if (!ret)
+    if (!ret && quiet)
     {
-        qDebug().nospace().noquote() << "Errors: " << path;
+        qDebug().nospace().noquote() << "found errors in: " << path;
     }
     return ret;
 }
@@ -41,7 +45,10 @@ static bool  processFile (const QString& path)
 static void files (const QString& path)
 {
     QFileInfo const inf (path);
-
+    if (!inf.exists())
+    {
+        qDebug().nospace().noquote() << path << " does not exist";
+    }
     if (inf.isFile() && suffixes.contains(inf.suffix()))
     {
         processFile (path);

@@ -16,6 +16,29 @@ void MeshCheckerOutput::setQuiet (bool newQuiet)
     m_quiet = newQuiet;
 }
 
+void MeshCheckerOutput::report (const QString &str)
+{
+    if (!m_quiet)
+    {
+        qDebug ().nospace ().noquote () << "   " << str;
+    }
+}
+
+void MeshCheckerOutput::verbose (const QString &str)
+{
+    if (m_verboseReport)
+    {
+        if (str.startsWith("  "))
+        {
+            qDebug ().nospace ().noquote () << str;
+        }
+        else
+        {
+            qDebug ().nospace ().noquote () << "   " << str;
+        }
+    }
+}
+
 bool MeshCheckerOutput::verboseReport () const
 {
     return m_verboseReport;

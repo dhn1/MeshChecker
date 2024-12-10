@@ -21,20 +21,8 @@ public:
     void setQuiet (bool newQuiet);
 
 protected:
-    void report (const QString& str) override
-    {
-        if (!m_quiet)
-        {
-            qDebug ().nospace ().noquote () << str;
-        }
-    }
-    void verbose (const QString& str) override
-    {
-        if (m_verboseReport)
-        {
-            qDebug ().nospace ().noquote () << str;
-        }
-    }
+    void report (const QString& str) override;
+    void verbose (const QString& str) override;
 
 private:
     void setVerbose (bool newVerbose);
