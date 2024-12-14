@@ -73,10 +73,10 @@ int main (int argc, char** argv)
     QCoreApplication::setOrganizationName (QStringLiteral ("Netherwood Industries"));
 
     QCommandLineParser parser;
-    parser.setApplicationDescription (QStringLiteral ("Check mesh for errors."));
+    parser.setApplicationDescription (QStringLiteral ("Check mesh for errors.\nNB, for 3mf files, only checks the main model (there can be more). Use 3mfsplitter app to work around this limit."));
     parser.addHelpOption ();
     parser.addVersionOption ();
-    parser.addPositionalArgument (QStringLiteral ("mesh"), QStringLiteral ("3D file file to view (STL, 3MF or OBJ"));
+    parser.addPositionalArgument (QStringLiteral ("mesh"), QStringLiteral ("3D file file to view (STL, 3MF or OBJ)"));
     parser.addOption (QCommandLineOption (QStringLiteral ("verbose"), QStringLiteral ("Show details of errors")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("drawholes") << QStringLiteral ("d"), QStringLiteral ("Generate images of holes")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("quiet") << QStringLiteral ("q"), QStringLiteral ("Only print names of incorrect files")));
