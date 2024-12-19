@@ -1,3 +1,4 @@
-[submodule "sculptlib"]
-	path = sculptlib
-	url = ../sculptlib.git
+[submodule "libSculpt"]
+	path = libSculpt
+	url = ../libsculpt.git
+	branch = trunk

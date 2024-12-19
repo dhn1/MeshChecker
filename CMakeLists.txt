@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.14)
 
-project (meshChecker LANGUAGES CXX VERSION 0.0.1)
+project (meshChecker LANGUAGES CXX VERSION 0.0.2)
 
 
 find_program(CCACHE_FOUND ccache)
@@ -52,6 +52,7 @@ else()
 endif()
 
 add_compile_options (-gsplit-dwarf)
+add_link_options($<$<CONFIG:RELEASE>:-s>)
 
 find_program (LLD "lld")
 if (LLD)
@@ -59,7 +60,8 @@ if (LLD)
 endif ()
 
 set (INSTALL_LIB OFF)
-add_subdirectory (sculptlib)
+
+add_subdirectory (libSculpt)
 
 add_executable (${PROJECT_NAME}
     main.cpp
@@ -73,7 +75,7 @@ set_target_properties (${PROJECT_NAME} PROPERTIES
 target_link_libraries (${PROJECT_NAME}
         Qt${QT_VERSION_MAJOR}::Core
         Qt${QT_VERSION_MAJOR}::Gui
-        SculptLib)
+        libSculpt)
 
 set_property (SOURCE main.cpp PROPERTY COMPILE_DEFINITIONS VERSION="${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}")
 
