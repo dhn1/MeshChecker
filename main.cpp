@@ -8,28 +8,29 @@
 #include "Document.h"
 #include "MeshCheckerOutput.h"
 
-static QStringList suffixes {"nethers", "stl", "obj", "3mf"};
+static QStringList suffixes{"nethers", "stl", "obj", "3mf"};
 
 static bool drawHoles = false;
 static bool verbose = false;
 static bool errors = false;
 static bool quiet = false;
 
-static bool  processFile (const QString& path)
+static bool processFile (const QString& path)
 {
+    Triangle::resetID ();
     auto mesh = Document::readMesh (path);
     if (!mesh)
     {
-        qDebug ().nospace ().noquote () << "Unable to open: \"" <<path << "\"\n";
+        qDebug ().nospace ().noquote () << "Unable to open: \"" << path << "\"\n";
     }
     if (!quiet)
     {
-        qDebug().noquote().nospace() << path;
+        qDebug ().noquote ().nospace () << path;
     }
     MeshCheckerOutput checker (mesh);
     checker.setVerboseReport (verbose);
     checker.setQuiet (quiet);
-     if (drawHoles)
+    if (drawHoles)
     {
         checker.setCheckFlag (MeshChecker::DrawHoles);
     }
@@ -37,7 +38,7 @@ static bool  processFile (const QString& path)
     errors &= ret;
     if (!ret && quiet)
     {
-        qDebug().nospace().noquote() << "found errors in: " << path;
+        qDebug ().nospace ().noquote () << "found errors in: " << path;
     }
     return ret;
 }
@@ -45,15 +46,15 @@ static bool  processFile (const QString& path)
 static void files (const QString& path)
 {
     QFileInfo const inf (path);
-    if (!inf.exists())
+    if (!inf.exists ())
     {
-        qDebug().nospace().noquote() << path << " does not exist";
+        qDebug ().nospace ().noquote () << path << " does not exist";
     }
-    if (inf.isFile() && suffixes.contains(inf.suffix()))
+    if (inf.isFile () && suffixes.contains (inf.suffix ()))
     {
         processFile (path);
     }
-    else if (inf.isDir())
+    else if (inf.isDir ())
     {
         QDir const d (path);
         auto entries = d.entryInfoList (QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot);

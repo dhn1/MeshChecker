@@ -23,7 +23,7 @@ bool MeshChecker::check ()
     }
     if (m_checks & CheckHoles)
     {
-        ret &= checkOpenEdges ();
+        ret &= checkHoles ();
     }
     if (m_checks & CheckDuplicateTriangles)
     {
@@ -43,10 +43,59 @@ bool MeshChecker::check ()
     {
         ret &= checkDuplicateVertices ();
     }
+
+    ret &= checkOpenEdges ();
+
     return ret;
 }
 
 bool MeshChecker::checkOpenEdges ()
+{
+    TriangleList suspects;
+    for (const auto& e : m_edges->halfEdgeList())
+    {
+        if (!e->m_pair && !e->testFlag (HalfEdge::Delete))
+        {
+            suspects.push_back (e->m_triangle);
+        }
+    }
+    auto cnt = suspects.count ();
+
+    auto cmpId = [] (const TrianglePtr& a, const TrianglePtr& b) -> bool {
+        return a->id () < b->id ();
+    };
+    auto cmpArea = [] (const TrianglePtr& a, const TrianglePtr& b) -> bool {
+        return a->area2 () > b->area2 ();
+    };
+
+    std::sort (suspects.begin (), suspects.end (), cmpId);
+    auto dups = std::unique (suspects.begin (), suspects.end ());
+    suspects.erase (dups, suspects.end ());
+    std::sort (suspects.begin (), suspects.end (), cmpArea);
+
+    QString str = "Suspect triangles:";
+    int c = 0;
+    for (const auto& t : suspects)
+    {
+        if (c++ % 10 == 0)
+        {
+            str += "\n    ";
+        }
+        if (t->annotation ().isEmpty ())
+        {
+            str += QString::number (t->id ()) + " ";
+        }
+        else
+        {
+            str += QString::number (t->id ()) + " (" + t->annotation () + ") ";
+        }
+    }
+    verbose(str);
+    report (QStringLiteral ("%1 Open edges found").arg (cnt));
+    return cnt == 0 ? true : false;
+}
+
+bool MeshChecker::checkHoles ()
 {
     auto holes = m_edges->holes ();
     if (holes.isEmpty ())

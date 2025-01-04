@@ -33,12 +33,13 @@ private:
     uint m_checks = Default;
     EdgesPtr m_edges;
 
-    bool checkOpenEdges ();
+    bool checkHoles ();
     bool checkDuplicateTriangles ();
     bool checkShortEdges ();
     void showInfo ();
     bool checkReversedTriangles();
     bool checkDuplicateVertices ();
+    bool checkOpenEdges ();
 };
 
 #endif  // MESHCHECKER_H
