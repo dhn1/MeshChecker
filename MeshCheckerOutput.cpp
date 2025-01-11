@@ -20,7 +20,7 @@ void MeshCheckerOutput::report (const QString &str)
 {
     if (!m_quiet)
     {
-        qDebug ().nospace ().noquote () << "   " << str;
+        qDebug ().nospace ().noquote () << "  " << str;
     }
 }
 
@@ -34,7 +34,7 @@ void MeshCheckerOutput::verbose (const QString &str)
         }
         else
         {
-            qDebug ().nospace ().noquote () << "   " << str;
+            qDebug ().nospace ().noquote () << "  " << str;
         }
     }
 }
