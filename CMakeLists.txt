@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.14)
 
-project (meshChecker LANGUAGES CXX VERSION 0.0.5)
+project (MeshChecker LANGUAGES CXX VERSION 0.0.6)
 
 
 find_program(CCACHE_FOUND ccache)
@@ -54,9 +54,16 @@ endif()
 add_compile_options (-gsplit-dwarf)
 add_link_options($<$<CONFIG:RELEASE>:-s>)
 
-find_program (LLD "lld")
-if (LLD)
-    add_link_options ("-fuse-ld=lld")
+find_program (MOLD "mold")
+if (MOLD)
+    add_link_options ("-fuse-ld=mold")
+    message (STATUS "Using mold linker")
+else ()
+    find_program (LLD "lld")
+    if (LLD)
+        add_link_options ("-fuse-ld=lld")
+        message (STATUS "Using lld linker")
+    endif ()
 endif ()
 
 set (INSTALL_LIB OFF)
@@ -102,20 +109,3 @@ set (CPACK_DEBIAN_PACKAGE_DEPENDS "libqt6gui6, libqt6core6, libqt6concurrent6, l
 #set (CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/license.txt")
 
 include(CPack)
-
-if (CMAKE_BUILD_TYPE STREQUAL "Release")
-    set (debFilename "${CPACK_PACKAGE_NAME}-${PROJECT_VERSION}-Linux.deb")
-    add_custom_target (publish
-        DEPENDS all package
-        COMMAND debsigs --sign=origin -k E7F88E4AF3F1A7B1 ${debFilename}
-        COMMAND reprepro -b ~/debs/package includedeb noble ${debFilename}
-        COMMAND bash -c  ~/debs/publish.sh
-    )
-
-    add_custom_command (TARGET "${PROJECT_NAME}" POST_BUILD
-        COMMAND echo "cd ${CMAKE_BINARY_DIR}" > publish.sh
-        COMMAND echo "cmake --build .  --target all publish" >> publish.sh
-        COMMAND chmod +x publish.sh
-        COMMAND echo "To publish, run ${CMAKE_BINARY_DIR}/publish.sh"
-    )
-endif()
