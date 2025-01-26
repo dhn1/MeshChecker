@@ -1,9 +1,13 @@
 #include "MeshChecker.h"
 
-#include "Constants.h"
-#include "HalfEdges/HalfEdges.h"
-#include "Mesh.h"
-#include "Polygon2DList.h"
+#include <ColourFactory.h>
+#include <Constants.h>
+#include <DocumentNethers.h>
+#include <HalfEdges/HalfEdges.h>
+#include <Mesh.h>
+#include <Polygon2DList.h>
+#include <SegmentList.h>
+#include <TriangleOctTree/TriangleOctTree.h>
 
 MeshChecker::MeshChecker (const MeshPtr& mesh) : m_mesh (mesh)
 {
@@ -45,6 +49,8 @@ bool MeshChecker::check ()
     }
 
     ret &= checkOpenEdges ();
+
+    ret &= overlapCheck ();
 
     return ret;
 }
@@ -342,4 +348,93 @@ bool MeshChecker::checkDuplicateVertices ()
     }
     report ("No duplicate vertices");
     return true;
+}
+
+bool MeshChecker::overlapCheck ()
+{
+    SegmentList segs;
+
+    TriangleOctTree ttree (m_mesh->box ());
+    ttree.add (m_mesh);
+
+    for (const auto& t : qAsConst (m_mesh->triangles ()))
+    {
+        if (!t->testFlag (Triangle::Delete | Triangle::PreDelete))
+        {
+            for (int e = 0; e < 3; e++)
+            {
+                auto seg = Segment::create (HalfEdge (t, e));
+                segs.push_back (seg);
+            }
+        }
+    }
+    // Remove reversed duplicates (half edges)
+    for (int i = 0; i < segs.count (); i++)
+    {
+        for (int j = i + 1; j < segs.count (); j++)
+        {
+            if (segs.at (i)->start () == segs.at (j)->end () && segs.at (i)->end () == segs.at (j)->start ())
+            {
+                segs.removeAt (j);
+                j--;
+            }
+        }
+    }
+
+    auto vname = [] (const VertexPtr& v) -> QString {
+        if (v->annotation ().isEmpty ())
+        {
+            return QStringLiteral ("%1").arg (v->id ());
+        }
+        return v->annotation ();
+    };
+
+    int badCount = 0;
+    for (int i = 0; i < segs.count (); i++)
+    {
+        auto& seg1 = segs.at (i);  //Segment::create (HalfEdge (t, i));
+        for (int j = i + 1; j < segs.count (); j++)
+        {
+            auto& seg2 = segs.at (j);
+
+            auto res = intersectionOfLines3DMk2 (seg1, seg2);
+            if (res.intersection1 && !res.tJunct)
+            {
+                badCount++;
+#if 0
+                DocumentNethers doc;
+                doc.add (seg1);
+                doc.add (seg2);
+                doc.add (Dot (res.intersection1, ColourFactory::instance ()->colour (1, 0, 1)));
+                if (res.intersection2)
+                {
+                    doc.add (Dot (res.intersection2, ColourFactory::instance ()->colour (1, 0, 1)));
+                }
+                doc.write("/tmp/3d/intersectSegs.nethers");
+
+
+                qDebug().noquote().nospace() << seg1->toCode("seg1");
+                qDebug().noquote().nospace() << seg2->toCode("seg2");
+#endif
+                verbose (QStringLiteral ("Intersecting edges: %1 -> %2 and %3 -> %4").arg(vname(seg1->start())).arg(vname(seg1->end())).arg(vname(seg2->start())).arg(vname(seg2->end())));
+#if 0
+                if (res.intersection1)
+                {
+                    qDebug().nospace().noquote() << res.intersection1->toString();
+                }
+                if (res.intersection2)
+                {
+                    qDebug().nospace().noquote()  << res.intersection2->toString();
+                }
+                qDebug() << res.tJunct;
+                // Whoops!
+                qDebug ().noquote ().nospace () << "overlap1 " << seg1->start ()->annotation () << " -> " << seg1->end ()->annotation () << " and " << seg2->start ()->annotation () << " -> " << seg2->end ()->annotation ();
+#endif
+            }
+        }
+    }
+
+    report (QStringLiteral ("%1 overlapping halfEdges.").arg(badCount));
+
+    return badCount ? false : true;
 }

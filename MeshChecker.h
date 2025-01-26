@@ -40,6 +40,7 @@ private:
     bool checkReversedTriangles();
     bool checkDuplicateVertices ();
     bool checkOpenEdges ();
+    bool overlapCheck ();
 };
 
 #endif  // MESHCHECKER_H
