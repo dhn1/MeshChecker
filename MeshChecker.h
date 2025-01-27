@@ -1,9 +1,10 @@
 #ifndef MESHCHECKER_H
 #define MESHCHECKER_H
 
-#include <QString>
+#include <TriangleOctTree/TriangleOctTree.h>
+#include <Types.h>
 
-#include "Types.h"
+#include <QString>
 
 class MeshChecker
 {
@@ -24,6 +25,7 @@ public:
     bool check ();
     void setCheckFlag (uint flag) { m_checks |= flag; }
 
+
 protected:
     virtual void report (const QString& str) = 0;
     virtual void verbose (const QString& str) = 0;
@@ -32,6 +34,7 @@ private:
     MeshPtr m_mesh;
     uint m_checks = Default;
     EdgesPtr m_edges;
+    TriangleOctTree m_ttree;
 
     bool checkHoles ();
     bool checkDuplicateTriangles ();
@@ -41,6 +44,7 @@ private:
     bool checkDuplicateVertices ();
     bool checkOpenEdges ();
     bool overlapCheck ();
+    bool checkOverappingTriangles ();
 };
 
 #endif  // MESHCHECKER_H

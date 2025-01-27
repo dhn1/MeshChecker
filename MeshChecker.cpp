@@ -9,9 +9,20 @@
 #include <SegmentList.h>
 #include <TriangleOctTree/TriangleOctTree.h>
 
-MeshChecker::MeshChecker (const MeshPtr& mesh) : m_mesh (mesh)
+#include "Plane.h"
+
+static auto tname = [] (const TrianglePtr& t) -> QString {
+    if (t->annotation ().isEmpty ())
+    {
+        return QStringLiteral ("%1").arg (t->id ());
+    }
+    return t->annotation ();
+};
+
+MeshChecker::MeshChecker (const MeshPtr& mesh) : m_mesh (mesh), m_ttree (mesh->box ())
 {
     m_edges = HalfEdges::create (mesh);
+    m_ttree.add (m_mesh);
 }
 
 MeshChecker::~MeshChecker ()
@@ -42,15 +53,15 @@ bool MeshChecker::check ()
     {
         ret &= checkReversedTriangles ();
     }
-    
+
     if (CheckDuplicateVertices)
     {
         ret &= checkDuplicateVertices ();
     }
 
     ret &= checkOpenEdges ();
-
     ret &= overlapCheck ();
+    ret &= checkOverappingTriangles ();
 
     return ret;
 }
@@ -58,7 +69,7 @@ bool MeshChecker::check ()
 bool MeshChecker::checkOpenEdges ()
 {
     TriangleList suspects;
-    for (const auto& e : m_edges->halfEdgeList())
+    for (const auto& e : m_edges->halfEdgeList ())
     {
         if (!e->m_pair && !e->testFlag (HalfEdge::Delete))
         {
@@ -96,7 +107,7 @@ bool MeshChecker::checkOpenEdges ()
             str += QString::number (t->id ()) + " (" + t->annotation () + ") ";
         }
     }
-    verbose(str);
+    verbose (str);
     report (QStringLiteral ("%1 Open edges found").arg (cnt));
     return cnt == 0 ? true : false;
 }
@@ -163,19 +174,19 @@ bool MeshChecker::checkDuplicateTriangles ()
                     reported = true;
                 }
                 ok = false;
-                const auto& t1 = ts.at(i);
-                const auto& t2 = ts.at(j);
-                if (!t1->annotation().isEmpty() && !t2->annotation().isEmpty())
+                const auto& t1 = ts.at (i);
+                const auto& t2 = ts.at (j);
+                if (!t1->annotation ().isEmpty () && !t2->annotation ().isEmpty ())
                 {
-                    verbose (QStringLiteral ("  T: \"%1\" %2 and T: \"%3\" %4").arg(t1->annotation()).arg (t1->id ()).arg(t2->annotation()).arg (t2->id ()));
+                    verbose (QStringLiteral ("  T: \"%1\" %2 and T: \"%3\" %4").arg (t1->annotation ()).arg (t1->id ()).arg (t2->annotation ()).arg (t2->id ()));
                 }
-                else if (!t1->annotation().isEmpty() && t2->annotation().isEmpty())
+                else if (!t1->annotation ().isEmpty () && t2->annotation ().isEmpty ())
                 {
-                    verbose (QStringLiteral ("  T: \"%1\" %2 and T: %3").arg(t1->annotation()).arg (t1->id ()).arg (t2->id ()));
+                    verbose (QStringLiteral ("  T: \"%1\" %2 and T: %3").arg (t1->annotation ()).arg (t1->id ()).arg (t2->id ()));
                 }
-                else if (t1->annotation().isEmpty() && !t2->annotation().isEmpty())
+                else if (t1->annotation ().isEmpty () && !t2->annotation ().isEmpty ())
                 {
-                    verbose (QStringLiteral ("  T: %1 and T: \"%2\" %3").arg (t1->id ()).arg(t2->annotation()).arg (t2->id ()));
+                    verbose (QStringLiteral ("  T: %1 and T: \"%2\" %3").arg (t1->id ()).arg (t2->annotation ()).arg (t2->id ()));
                 }
                 else
                 {
@@ -194,7 +205,7 @@ bool MeshChecker::checkDuplicateTriangles ()
 bool MeshChecker::checkShortEdges ()
 {
     bool ok = true;
-     int foundShortEdge = 0;
+    int foundShortEdge = 0;
     int foundNullEdge = 0;
     double smallest2 = INF;
     for (const auto& edge : m_edges->halfEdgeList ())
@@ -243,7 +254,7 @@ bool MeshChecker::checkShortEdges ()
 bool MeshChecker::checkReversedTriangles ()
 {
     EdgeByVeticesHash hash;
-    for (const auto& edge : m_edges->halfEdgeList())
+    for (const auto& edge : m_edges->halfEdgeList ())
     {
         if (!edge->testFlag (HalfEdge::Delete))
         {
@@ -253,7 +264,7 @@ bool MeshChecker::checkReversedTriangles ()
     int badCount = 0;
     QList<TrianglePtr> badTriangleCandidates;
 
-    for (const auto& e : m_edges->halfEdgeList())
+    for (const auto& e : m_edges->halfEdgeList ())
     {
         // any other half edge with same direction
         auto range = hash.equal_range (HalfEdgeKey (e->v1 (), e->v2 (), false));
@@ -270,15 +281,15 @@ bool MeshChecker::checkReversedTriangles ()
         }
     }
 
-    std::sort (badTriangleCandidates.begin(), badTriangleCandidates.end(), [] (const TrianglePtr& a, const TrianglePtr& b) {
+    std::sort (badTriangleCandidates.begin (), badTriangleCandidates.end (), [] (const TrianglePtr& a, const TrianglePtr& b) {
         return a->id () < b->id ();
     });
 
-    for (int i = 0 ; i < badTriangleCandidates.size() ; )
+    for (int i = 0; i < badTriangleCandidates.size ();)
     {
-        const auto& t = badTriangleCandidates.at(i);
+        const auto& t = badTriangleCandidates.at (i);
         int count = 0;
-        while (i < badTriangleCandidates.size ()  && badTriangleCandidates.at (i)->id () == t->id ())
+        while (i < badTriangleCandidates.size () && badTriangleCandidates.at (i)->id () == t->id ())
         {
             count++;
             i++;
@@ -286,9 +297,9 @@ bool MeshChecker::checkReversedTriangles ()
         if (count >= 6)
         {
             badCount++;
-            if (!t->annotation().isEmpty())
+            if (!t->annotation ().isEmpty ())
             {
-                verbose (QStringLiteral ("Reversed triangle: \"%1\" ID %2 ").arg(t->annotation()).arg(t->id()));
+                verbose (QStringLiteral ("Reversed triangle: \"%1\" ID %2 ").arg (t->annotation ()).arg (t->id ()));
             }
             else
             {
@@ -298,7 +309,7 @@ bool MeshChecker::checkReversedTriangles ()
     }
     if (badCount)
     {
-        report (QStringLiteral ("%1 reversed triangles").arg(badCount));
+        report (QStringLiteral ("%1 reversed triangles").arg (badCount));
         return false;
     }
     else
@@ -320,7 +331,7 @@ void MeshChecker::showInfo ()
 bool MeshChecker::checkDuplicateVertices ()
 {
     auto vs = m_mesh->vertexList ();
-    std::sort (vs.begin(), vs.end());
+    std::sort (vs.begin (), vs.end ());
     auto it = std::adjacent_find (vs.begin (), vs.end ());
     if (it != vs.end ())
     {
@@ -329,7 +340,7 @@ bool MeshChecker::checkDuplicateVertices ()
         while (it != vs.end () && *(*it) == *ref)
         {
             const auto& v = *it;
-            if (!v->annotation().isEmpty())
+            if (!v->annotation ().isEmpty ())
             {
                 verbose (QStringLiteral ("Duplicate vertex: \"%1\" id: %1").arg (v->annotation ()).arg ((*it)->id ()));
             }
@@ -353,9 +364,6 @@ bool MeshChecker::checkDuplicateVertices ()
 bool MeshChecker::overlapCheck ()
 {
     SegmentList segs;
-
-    TriangleOctTree ttree (m_mesh->box ());
-    ttree.add (m_mesh);
 
     for (const auto& t : qAsConst (m_mesh->triangles ()))
     {
@@ -416,7 +424,7 @@ bool MeshChecker::overlapCheck ()
                 qDebug().noquote().nospace() << seg1->toCode("seg1");
                 qDebug().noquote().nospace() << seg2->toCode("seg2");
 #endif
-                verbose (QStringLiteral ("Intersecting edges: %1 -> %2 and %3 -> %4").arg(vname(seg1->start())).arg(vname(seg1->end())).arg(vname(seg2->start())).arg(vname(seg2->end())));
+                verbose (QStringLiteral ("Intersecting edges: %1 -> %2 and %3 -> %4").arg (vname (seg1->start ())).arg (vname (seg1->end ())).arg (vname (seg2->start ())).arg (vname (seg2->end ())));
 #if 0
                 if (res.intersection1)
                 {
@@ -434,7 +442,69 @@ bool MeshChecker::overlapCheck ()
         }
     }
 
-    report (QStringLiteral ("%1 overlapping halfEdges.").arg(badCount));
+    report (QStringLiteral ("%1 overlapping halfEdges.").arg (badCount));
 
     return badCount ? false : true;
+}
+
+bool MeshChecker::checkOverappingTriangles ()
+{
+    int badCount = 0;
+    for (const auto& t : qAsConst (m_mesh->triangles ()))
+    {
+        auto box = t->box ();
+        auto plane = t->plane ();
+        auto candidates = m_ttree.find (box);
+        m_mesh->unsetFlag (Triangle::Tagged);
+
+        for (const auto& c : qAsConst(candidates))
+        {
+            if (!c->testFlag (Triangle::Tagged) && c->box ().intersects (box) && c != t)
+            {
+                auto p = c->plane ();
+
+                auto segOfIntersection = plane.intersection (p);
+
+                bool intersect = false;
+
+                if (!segOfIntersection.isValid ())
+                {
+                    if (plane.equal (p))
+                    {
+                        // Coplanar Ts
+                        // does the T's half edges intersect the segOfIntersection
+                        intersect = intersectionOfLines3DMk2 (HalfEdge (c, 0), HalfEdge (t, 0)).intersect () ||
+                                    intersectionOfLines3DMk2 (HalfEdge (c, 0), HalfEdge (t, 1)).intersect () ||
+                                    intersectionOfLines3DMk2 (HalfEdge (c, 0), HalfEdge (t, 2)).intersect () ||
+                                    intersectionOfLines3DMk2 (HalfEdge (c, 1), HalfEdge (t, 0)).intersect () ||
+                                    intersectionOfLines3DMk2 (HalfEdge (c, 1), HalfEdge (t, 1)).intersect () ||
+                                    intersectionOfLines3DMk2 (HalfEdge (c, 1), HalfEdge (t, 2)).intersect () ||
+                                    intersectionOfLines3DMk2 (HalfEdge (c, 2), HalfEdge (t, 0)).intersect () ||
+                                    intersectionOfLines3DMk2 (HalfEdge (c, 2), HalfEdge (t, 1)).intersect () ||
+                                    intersectionOfLines3DMk2 (HalfEdge (c, 2), HalfEdge (t, 2)).intersect ();
+                        //intersect = false;
+                    }
+                }
+                else
+                {
+                    // does the T's half edges intersect the segOfIntersection
+                    // intersect = intersectionOfLines3DMk2 (segOfIntersection, HalfEdge (t, 0)).intersect () ||
+                    //             intersectionOfLines3DMk2 (segOfIntersection, HalfEdge (t, 1)).intersect () ||
+                    //             intersectionOfLines3DMk2 (segOfIntersection, HalfEdge (t, 2)).intersect ();
+                }
+
+                if (intersect)
+                {
+                    verbose (QStringLiteral ("Intersecting Ts: %1 and %2").arg (tname (t)).arg (tname (c)));
+                    badCount++;
+                }
+            }
+        }
+    }
+    if (badCount)
+    {
+        report (QStringLiteral ("%1 intersecting triangles, out of %2.").arg (badCount).arg (m_mesh->count ()));
+        return false;
+    }
+    return true;
 }
