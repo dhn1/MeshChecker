@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.14)
 
-project (MeshChecker LANGUAGES CXX VERSION 0.0.10)
+project (MeshChecker LANGUAGES CXX VERSION 0.0.11)
 
 
 find_program(CCACHE_FOUND ccache)
