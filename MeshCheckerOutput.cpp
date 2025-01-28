@@ -1,6 +1,8 @@
 
 #include "MeshCheckerOutput.h"
 
+#include "globals.h"
+
 void MeshCheckerOutput::setVerbose (bool newVerbose)
 {
     m_verboseReport = newVerbose;
@@ -16,25 +18,25 @@ void MeshCheckerOutput::setQuiet (bool newQuiet)
     m_quiet = newQuiet;
 }
 
-void MeshCheckerOutput::report (const QString &str)
+void MeshCheckerOutput::report (const QString& str)
 {
     if (!m_quiet)
     {
-        qDebug ().nospace ().noquote () << "  " << str;
+        out << "  " << str << '\n';
     }
 }
 
-void MeshCheckerOutput::verbose (const QString &str)
+void MeshCheckerOutput::verbose (const QString& str)
 {
     if (m_verboseReport)
     {
-        if (str.startsWith("  "))
+        if (str.startsWith (QStringLiteral ("  ")))
         {
-            qDebug ().nospace ().noquote () << str;
+            out << str << '\n';
         }
         else
         {
-            qDebug ().nospace ().noquote () << "  " << str;
+            out << "  " << str << '\n';
         }
     }
 }

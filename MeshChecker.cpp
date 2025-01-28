@@ -54,15 +54,25 @@ bool MeshChecker::check ()
         ret &= checkReversedTriangles ();
     }
 
-    if (CheckDuplicateVertices)
+    if (m_checks & CheckDuplicateVertices)
     {
         ret &= checkDuplicateVertices ();
     }
 
-    ret &= checkOpenEdges ();
-    ret &= overlapCheck ();
-    ret &= checkOverappingTriangles ();
+    if (m_checks & CheckOpenEdges)
+    {
+        ret &= checkOpenEdges ();
+    }
 
+    if (m_checks & CheckHalfEdgeOverlap)
+    {
+        ret &= checkHalfEdgeOverlap ();
+    }
+
+    if (m_checks & CheckTriangleOverlap)
+    {
+        ret &= checkTriangleOverlap ();
+    }
     return ret;
 }
 
@@ -358,7 +368,7 @@ bool MeshChecker::checkDuplicateVertices ()
     return true;
 }
 
-bool MeshChecker::overlapCheck ()
+bool MeshChecker::checkHalfEdgeOverlap ()
 {
     SegmentList segs;
 
@@ -439,7 +449,7 @@ bool MeshChecker::overlapCheck ()
     return badCount == 0;
 }
 
-bool MeshChecker::checkOverappingTriangles ()
+bool MeshChecker::checkTriangleOverlap ()
 {
     int badCount = 0;
     for (const auto& t : qAsConst (m_mesh->triangles ()))
@@ -463,6 +473,7 @@ bool MeshChecker::checkOverappingTriangles ()
                     auto res = intersectionOfLines3DMk2 (he1, he2);
                     return res.type == IntersectionOfLines3DMk2Result::Cross;
                 };
+
                 if (!segOfIntersection.isValid ())
                 {
                     if (plane.equal (p))

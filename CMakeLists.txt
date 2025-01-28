@@ -74,6 +74,7 @@ add_executable (${PROJECT_NAME}
     main.cpp
     MeshChecker.h MeshChecker.cpp
     MeshCheckerOutput.h MeshCheckerOutput.cpp
+    globals.h
     )
 
 set_target_properties (${PROJECT_NAME} PROPERTIES
