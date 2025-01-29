@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.14)
 
-project (MeshChecker LANGUAGES CXX VERSION 0.0.11)
-
+project (MeshChecker LANGUAGES CXX VERSION 0.0.12)
 
 find_program(CCACHE_FOUND ccache)
 if(CCACHE_FOUND)
@@ -39,7 +38,8 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     add_compile_options (-Wall -Wextra-semi -Wextra-semi-stmt -Wmissing-variable-declarations)
     add_compile_options (-Wmissing-prototypes -Wimplicit-float-conversion)
     add_compile_options (-Wdouble-promotion -Wimplicit-int-float-conversion -Wunused-parameter -Wnewline-eof)
-    #add_compile_options (-Wpadded  -Wshadow)
+    #add_compile_options (-Wshadow)
+    #add_compile_options (-Wpadded)
     add_compile_options (-Werror=return-type)
     add_compile_options (-ffp-contract=fast)
 else()
