@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.14)
 
-project (MeshChecker LANGUAGES CXX VERSION 0.0.12)
+project (MeshChecker LANGUAGES CXX VERSION 0.0.13)
 
 find_program(CCACHE_FOUND ccache)
 if(CCACHE_FOUND)
@@ -87,9 +87,23 @@ target_link_libraries (${PROJECT_NAME}
 
 set_property (SOURCE main.cpp PROPERTY COMPILE_DEFINITIONS VERSION="${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}")
 
+add_executable (HoleSplitter
+    HoleSplitter.cpp
+)
+
+set_target_properties (HoleSplitter PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
+target_link_libraries (HoleSplitter
+        Qt${QT_VERSION_MAJOR}::Core
+        Qt${QT_VERSION_MAJOR}::Gui
+        libSculpt)
+
+set_property (SOURCE HoleSplitter.cpp PROPERTY COMPILE_DEFINITIONS VERSION="${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}")
+
 # Install app
 install (
-    TARGETS ${PROJECT_NAME}
+    TARGETS ${PROJECT_NAME} HoleSplitter
     CONFIGURATIONS Release
     RUNTIME
     DESTINATION /usr/bin)

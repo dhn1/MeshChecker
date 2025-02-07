@@ -23,6 +23,7 @@ void MeshCheckerOutput::report (const QString& str)
     if (!m_quiet)
     {
         out << "  " << str << '\n';
+        out.flush ();
     }
 }
 
@@ -38,6 +39,7 @@ void MeshCheckerOutput::verbose (const QString& str)
         {
             out << "  " << str << '\n';
         }
+        out.flush ();
     }
 }
 
