@@ -4,6 +4,7 @@
 #include <TriangleOctTree/TriangleOctTree.h>
 #include <Types.h>
 
+#include <QFuture>
 #include <QString>
 
 class MeshChecker
@@ -13,7 +14,6 @@ public:
         CheckNothing = 0,
         CheckHoles = 1,
         CheckDuplicateTriangles = 2,
-        DrawHoles = 4,
         CheckShortEdges = 8,
         ShowInfo = 16,
         CheckReversedTriangles = 32,
@@ -22,34 +22,37 @@ public:
         CheckHalfEdgeOverlap = 256,
         CheckTriangleOverlap = 512,
 
+        quiet = 2 << 16,
+        verbose = 2 << 17,
+
         Default = CheckHoles | CheckDuplicateTriangles | CheckShortEdges | ShowInfo | CheckReversedTriangles | CheckDuplicateVertices | CheckOpenEdges | CheckHalfEdgeOverlap | CheckTriangleOverlap,
         All = CheckHoles | CheckDuplicateTriangles | CheckShortEdges | ShowInfo | CheckReversedTriangles | CheckDuplicateVertices | CheckOpenEdges | CheckHalfEdgeOverlap | CheckTriangleOverlap,
     };
     MeshChecker (const MeshPtr& mesh);
     virtual ~MeshChecker ();
     bool check ();
-    void setCheckFlag (uint flag) { m_checks |= flag; }
     void setCheckFlags (uint flags) { m_checks = flags; }
-
-protected:
-    virtual void report (const QString& str) = 0;
-    virtual void verbose (const QString& str) = 0;
 
 private:
     MeshPtr m_mesh;
     uint m_checks = Default;
-    EdgesPtr m_edges;
-    TriangleOctTree m_ttree;
 
-    bool checkHoles ();
-    bool checkDuplicateTriangles ();
-    bool checkShortEdges ();
-    void showInfo ();
-    bool checkReversedTriangles();
-    bool checkDuplicateVertices ();
-    bool checkOpenEdges ();
-    bool checkHalfEdgeOverlap ();
-    bool checkTriangleOverlap ();
+    EdgesPtr getEdges ();
+    EdgesPtr m_edgesPtr;
+
+    QFuture<EdgesPtr> m_edgesFuture;
+    QFuture<TriangleOctTree*> m_octtreeFuture;
+
+    QPair<bool, QString> checkHoles ();
+    QPair<bool, QString> checkDuplicateTriangles ();
+    QPair<bool, QString> checkShortEdges ();
+    QPair<bool, QString> showInfo ();
+    QPair<bool, QString> checkReversedTriangles ();
+    QPair<bool, QString> checkDuplicateVertices ();
+    QPair<bool, QString> checkOpenEdges ();
+    QPair<bool, QString> checkHalfEdgeOverlap ();
+    QPair<bool, QString> checkTriangleOverlap ();
+    QString vname (const VertexPtr& v);
 };
 
 #endif  // MESHCHECKER_H

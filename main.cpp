@@ -7,16 +7,12 @@
 #include <QGuiApplication>
 
 #include "Document.h"
-#include "MeshCheckerOutput.h"
-
+#include "MeshChecker.h"
 #include "globals.h"
 
 static QStringList suffixes{"nethers", "stl", "obj", "3mf"};
 
-static bool drawHoles = false;
-static bool verbose = false;
 static bool errors = false;
-static bool quiet = false;
 static int flags = MeshChecker::CheckNothing;
 QTextStream out (stdout);
 
@@ -27,24 +23,22 @@ static bool processFile (const QString& path)
     if (!mesh)
     {
         qDebug ().nospace ().noquote () << "Unable to open: \"" << path << "\"\n";
+        return false;
     }
-    if (!quiet)
+    if (!(flags & MeshChecker::quiet))
     {
-        qDebug ().noquote ().nospace () << path;
+        out << path << '\n';
     }
-    MeshCheckerOutput checker (mesh);
+    MeshChecker checker (mesh);
+
     checker.setCheckFlags (flags);
-    checker.setVerboseReport (verbose);
-    checker.setQuiet (quiet);
-    if (drawHoles)
-    {
-        checker.setCheckFlag (MeshChecker::DrawHoles);
-    }
+
     auto ret = checker.check ();
     errors &= ret;
-    if (!ret && quiet)
-    {
-        qDebug ().nospace ().noquote () << "found errors in: " << path;
+    if (!(flags & MeshChecker::quiet))
+     {
+        out << "found errors in: " << path << "\n";
+        out.flush ();
     }
     return ret;
 }
@@ -85,9 +79,8 @@ int main (int argc, char** argv)
     parser.addVersionOption ();
     parser.addPositionalArgument (QStringLiteral ("mesh"), QStringLiteral ("3D file to examine (STL, 3MF or OBJ)"));
     parser.addOption (QCommandLineOption (QStringLiteral ("verbose"), QStringLiteral ("Show details of errors")));
-    parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("drawholes") << QStringLiteral ("d"), QStringLiteral ("Generate images of holes")));
-    parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("ShowInfo"), QStringLiteral ("Show basic stats")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("quiet") << QStringLiteral ("q"), QStringLiteral ("Only print names of incorrect files")));
+    parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("ShowInfo"), QStringLiteral ("Show basic stats")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("CheckHoles"), QStringLiteral ("check for holes")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("CheckDuplicateTriangles"), QStringLiteral ("check for duplicate triangles")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("CheckShortEdges"), QStringLiteral ("check for short edges")));
@@ -155,9 +148,15 @@ int main (int argc, char** argv)
         qDebug ().nospace ().noquote () << "Missing argument";
         parser.showHelp (100);
     }
-    verbose = parser.isSet (QStringLiteral ("verbose"));
-    drawHoles = parser.isSet (QStringLiteral ("drawholes"));
-    quiet = parser.isSet (QStringLiteral ("quiet"));
+
+    if (parser.isSet (QStringLiteral ("verbose")))
+    {
+        flags |= MeshChecker::verbose;
+    }
+    if (parser.isSet (QStringLiteral ("quiet")))
+    {
+        flags |= MeshChecker::quiet;
+    }
 
     QElapsedTimer et;
     et.start ();

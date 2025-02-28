@@ -8,7 +8,6 @@
 #include <QGuiApplication>
 
 #include "Document.h"
-#include "MeshCheckerOutput.h"
 #include "globals.h"
 
 static bool verbose = false;

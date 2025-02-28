@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.14)
 
-project (MeshChecker LANGUAGES CXX VERSION 0.0.13)
+project (MeshChecker LANGUAGES CXX VERSION 0.1.0)
 
 find_program(CCACHE_FOUND ccache)
 if(CCACHE_FOUND)
@@ -10,9 +10,8 @@ if(CCACHE_FOUND)
 endif(CCACHE_FOUND)
 
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Gui)
 find_package(PkgConfig REQUIRED)
-
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Gui Concurrent)
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     option(ENABLE_SANITIZER "Enable sanitizer" ON)
@@ -73,7 +72,6 @@ add_subdirectory (libSculpt)
 add_executable (${PROJECT_NAME}
     main.cpp
     MeshChecker.h MeshChecker.cpp
-    MeshCheckerOutput.h MeshCheckerOutput.cpp
     globals.h
     )
 
@@ -83,6 +81,7 @@ set_target_properties (${PROJECT_NAME} PROPERTIES
 target_link_libraries (${PROJECT_NAME}
         Qt${QT_VERSION_MAJOR}::Core
         Qt${QT_VERSION_MAJOR}::Gui
+        Qt${QT_VERSION_MAJOR}::Concurrent
         libSculpt)
 
 set_property (SOURCE main.cpp PROPERTY COMPILE_DEFINITIONS VERSION="${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}")
@@ -119,7 +118,7 @@ set (CPACK_PACKAGE_VERSION_MINOR "${PROJECT_VERSION_MINOR}")
 set (CPACK_PACKAGE_VERSION_PATCH "${PROJECT_VERSION_PATCH}")
 set (CPACK_PACKAGE_CONTACT "david_netherwood@hotmail.com")
 set (CPACK_GENERATOR "DEB")
-set (CPACK_DEBIAN_PACKAGE_DEPENDS "libqt6gui6, libqt6core6, libqt6concurrent6, libqt6xml6, libzip4,  libqt6svg6, ${SCULPTLIB_DEP_NAME}")
+set (CPACK_DEBIAN_PACKAGE_DEPENDS "libqt6gui6, libqt6core6, libqt6concurrent6, libqt6xml6, libzip4,  libqt6svg6, ${SCULPTLIB_DEP_NAME} (>= 0.3.1)")
 set (CPACK_PACKAGE_FILE_NAME ${PROJECT_NAME})
 
 include(CPack)
