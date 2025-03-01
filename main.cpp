@@ -12,7 +12,7 @@
 
 static QStringList suffixes{"nethers", "stl", "obj", "3mf"};
 
-static bool errors = false;
+static bool ok = false;
 static int flags = MeshChecker::CheckNothing;
 QTextStream out (stdout);
 
@@ -34,8 +34,8 @@ static bool processFile (const QString& path)
     checker.setCheckFlags (flags);
 
     auto ret = checker.check ();
-    errors &= ret;
-    if (!(flags & MeshChecker::quiet))
+    ok &= ret;
+    if (!ret && !(flags & MeshChecker::quiet))
      {
         out << "found errors in: " << path << "\n";
         out.flush ();
@@ -163,5 +163,5 @@ int main (int argc, char** argv)
     files (parser.positionalArguments ().at (0));
     QLocale const locale;
     out << "Took " << locale.toString ((double)et.nsecsElapsed() / 1000000000.0) << " seconds" << '\n';
-    return (errors ? 100 : 0);
+    return (ok ? 0 : 100);
 }

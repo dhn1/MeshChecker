@@ -39,6 +39,7 @@ MeshChecker::~MeshChecker ()
 {
     m_octtreeFuture.waitForFinished ();
     m_edgesFuture.waitForFinished ();
+    delete m_octtreeFuture.result();
 }
 
 bool MeshChecker::check ()
@@ -557,7 +558,7 @@ QPair<bool, QString> MeshChecker::checkHalfEdgeOverlap ()
     }
 #else
     int badCount = 0;
-    const auto ttree = *m_octtreeFuture.result ();
+    const auto& ttree = *m_octtreeFuture.result ();
     //QSet <QPair<SegmentPtr, SegmentPtr>> reported;
     for (const auto& t : qAsConst (m_mesh->triangles ()))
     {
