@@ -25,7 +25,7 @@ public:
         quiet = 2 << 16,
         verbose = 2 << 17,
 
-        Default = CheckHoles | CheckDuplicateTriangles | CheckShortEdges | ShowInfo | CheckReversedTriangles | CheckDuplicateVertices | CheckOpenEdges | CheckHalfEdgeOverlap | CheckTriangleOverlap,
+        Default = CheckHoles | CheckDuplicateTriangles | CheckShortEdges | ShowInfo | CheckReversedTriangles | CheckDuplicateVertices | CheckOpenEdges | CheckTriangleOverlap,
         All = CheckHoles | CheckDuplicateTriangles | CheckShortEdges | ShowInfo | CheckReversedTriangles | CheckDuplicateVertices | CheckOpenEdges | CheckHalfEdgeOverlap | CheckTriangleOverlap,
     };
     MeshChecker (const MeshPtr& mesh);
@@ -53,6 +53,7 @@ private:
     QPair<bool, QString> checkHalfEdgeOverlap ();
     QPair<bool, QString> checkTriangleOverlap ();
     QString vname (const VertexPtr& v);
+    QString tname (const TrianglePtr& t);
 };
 
 #endif  // MESHCHECKER_H

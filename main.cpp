@@ -12,7 +12,7 @@
 
 static QStringList suffixes{"nethers", "stl", "obj", "3mf"};
 
-static bool ok = false;
+static bool ok = true;
 static int flags = MeshChecker::CheckNothing;
 QTextStream out (stdout);
 
@@ -35,7 +35,7 @@ static bool processFile (const QString& path)
 
     auto ret = checker.check ();
     ok &= ret;
-    if (!ret && !(flags & MeshChecker::quiet))
+    if (!(flags & MeshChecker::quiet) && !ret)
      {
         out << "found errors in: " << path << "\n";
         out.flush ();
