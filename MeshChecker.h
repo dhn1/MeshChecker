@@ -11,23 +11,26 @@ class MeshChecker
 {
 public:
     enum Checks {
-        CheckNothing = 0,
-        CheckHoles = 1,
-        CheckDuplicateTriangles = 2,
-        CheckShortEdges = 8,
-        ShowInfo = 16,
-        CheckReversedTriangles = 32,
-        CheckDuplicateVertices = 64,
-        CheckOpenEdges = 128,
-        CheckHalfEdgeOverlap = 256,
-        CheckTriangleOverlap = 512,
+        CheckNothing                = 0,
+        CheckHoles                  = 1 << 0,
+        CheckDuplicateTriangles     = 1 << 2,
+        CheckShortEdges             = 1 << 3,
+        ShowInfo                    = 1 << 4,
+        CheckReversedTriangles      = 1 << 5,
+        CheckDuplicateVertices      = 1 << 6,
+        CheckOpenEdges              = 1 << 7,
+        CheckHalfEdgeOverlap        = 1 << 8,
+        CheckTriangleOverlap        = 1 << 9,
+        CheckUnviableTriangles      = 1 << 10,
+        CheckOverusedEdges          = 1 << 11,
 
-        quiet = 2 << 16,
-        verbose = 2 << 17,
+        quiet                       = 1 << 16,
+        verbose                     = 2 << 17,
 
-        Default = CheckHoles | CheckDuplicateTriangles | CheckShortEdges | ShowInfo | CheckReversedTriangles | CheckDuplicateVertices | CheckOpenEdges | CheckTriangleOverlap,
-        All = CheckHoles | CheckDuplicateTriangles | CheckShortEdges | ShowInfo | CheckReversedTriangles | CheckDuplicateVertices | CheckOpenEdges | CheckHalfEdgeOverlap | CheckTriangleOverlap,
+        Default = CheckHoles | CheckDuplicateTriangles | CheckShortEdges | ShowInfo | CheckReversedTriangles | CheckDuplicateVertices | CheckOpenEdges | CheckTriangleOverlap | CheckUnviableTriangles | CheckOverusedEdges,
+        All = CheckHoles | CheckDuplicateTriangles | CheckShortEdges | ShowInfo | CheckReversedTriangles | CheckDuplicateVertices | CheckOpenEdges | CheckHalfEdgeOverlap | CheckTriangleOverlap | CheckUnviableTriangles | CheckOverusedEdges,
     };
+
     MeshChecker (const MeshPtr& mesh);
     virtual ~MeshChecker ();
     bool check ();
@@ -52,8 +55,8 @@ private:
     QPair<bool, QString> checkOpenEdges ();
     QPair<bool, QString> checkHalfEdgeOverlap ();
     QPair<bool, QString> checkTriangleOverlap ();
-    QString vname (const VertexPtr& v);
-    QString tname (const TrianglePtr& t);
+    QPair<bool, QString> checkUnviableTriangles ();
+    QPair<bool, QString> checkOverusedEdges ();
 };
 
 #endif  // MESHCHECKER_H
