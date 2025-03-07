@@ -208,6 +208,7 @@ QPair<bool, QString> MeshChecker::checkDuplicateTriangles ()
     auto count = ts.count ();
     const auto& ttree = m_octtreeFuture.result ();
     QString r;
+    int badCount = 0;
 
     for (auto i = 0; i < count; i++)
     {
@@ -233,21 +234,17 @@ QPair<bool, QString> MeshChecker::checkDuplicateTriangles ()
             }
             if (matches >= 3)
             {
-                if (ok)
-                {
-                    r += QStringLiteral ("  Duplicate triangles found\n");
-                }
-                ok = false;
-
                 r += QStringLiteral ("    T: %1 and T: %2\n").arg (t->name()).arg (tt->name());
+                badCount++;
             }
         }
     }
-    if (ok)
+    if (!badCount)
     {
         r += QStringLiteral ("  No duplicate triangles\n");
         return {true, r};
     }
+    r.push_front (QStringLiteral ("    %1 duplicate triangles\n").arg (badCount / 2));
     return {false, r};
 }
 
@@ -262,6 +259,11 @@ QPair<bool, QString> MeshChecker::checkShortEdges ()
 
     for (const auto& edge : qAsConst (getEdges ()->halfEdgeList ()))
     {
+        if (edge->testFlag(HalfEdge::Delete))
+        {
+            continue;
+        }
+
         if (edge->v1 () == edge->v2 ())
         {
             foundNullEdge++;
