@@ -203,7 +203,6 @@ QPair<bool, QString> MeshChecker::checkHoles ()
 
 QPair<bool, QString> MeshChecker::checkDuplicateTriangles ()
 {
-    bool ok = true;
     const auto& ts = m_mesh->triangles ();
     auto count = ts.count ();
     const auto& ttree = m_octtreeFuture.result ();
@@ -434,7 +433,7 @@ QPair<bool, QString> MeshChecker::showInfo ()
             auto edges = HalfEdges::create (comp);
             auto ecount = edges->halfEdgeList ().count ();
 
-            ret += QStringLiteral ("   comp %5: %1 triangles, %2 vertices, %3 half edges (%4 edges)\n").arg (locale.toString (comp->tcount ())).arg (locale.toString (vcount)).arg (locale.toString (ecount)).arg (locale.toString (ecount / 2)).arg (idx++);
+            ret += QStringLiteral ("    comp %5: %1 triangles, %2 vertices, %3 half edges (%4 edges)\n").arg (locale.toString (comp->tcount ())).arg (locale.toString (vcount)).arg (locale.toString (ecount)).arg (locale.toString (ecount / 2)).arg (idx++);
         }
     }
     return {true, ret};
@@ -444,7 +443,7 @@ QPair<bool, QString> MeshChecker::checkDuplicateVertices ()
 {
     QString ret;
     int badCount = 0;
-    OctTree tree (getEdges ()->box ());
+    OctTree tree (m_mesh->box ());
     auto vs = m_mesh->vertexList ();
     for (const auto& v : std::as_const (vs))
     {
@@ -711,7 +710,7 @@ QPair<bool, QString> MeshChecker::checkUnviableTriangles ()
     int badCount = 0;
     for (const auto& t : *m_mesh)
     {
-        if (!t->isViableTriangle ())
+        if (!t->isViable ())
         {
             ret += QStringLiteral ("    T: %1\n").arg(t->name ());
             badCount++;
