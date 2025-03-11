@@ -167,7 +167,7 @@ QPair<bool, QString> MeshChecker::checkOpenEdges ()
     {
         if (!e->testFlag (HalfEdge::Delete))
         {
-            str += QStringLiteral ("    T: %1, Edge: %2 -> %3\n").arg (e->m_triangle->name()).arg (e->v1 ()->name()).arg (e->v2 ()->name ());
+            str += QStringLiteral ("    T: %1, Edge: %2 -> %3\n").arg (e->triangle ()->name()).arg (e->v1 ()->name()).arg (e->v2 ()->name ());
             badCount++;
         }
     }
@@ -273,13 +273,13 @@ QPair<bool, QString> MeshChecker::checkShortEdges ()
         if (mag2 <= Constants::minEdge2)
         {
             foundShortEdge++;
-            if (edge->m_pair)
+            if (edge->pair ())
             {
-                ret += "    Short edge " + QString::number (sqrt (mag2)) + "mm. Between vertex: " + edge->v1 ()->name () + " and " + edge->v2 ()->name () + ". Ts " + edge->m_triangle->name () + " and " + edge->m_pair->m_triangle->name () + " \n";
+                ret += "    Short edge " + QString::number (sqrt (mag2)) + "mm. Between vertex: " + edge->v1 ()->name () + " and " + edge->v2 ()->name () + ". Ts " + edge->triangle ()->name () + " and " + edge->pair ()->triangle ()->name () + " \n";
             }
             else
             {
-                ret += "    Short edge " + QString::number (sqrt (mag2)) + "mm. Between vertex: " + edge->v1 ()->name() + " and " + edge->v2 ()->name() + ". Ts " + edge->m_triangle->name() + " and None\n";
+                ret += "    Short edge " + QString::number (sqrt (mag2)) + "mm. Between vertex: " + edge->v1 ()->name() + " and " + edge->v2 ()->name() + ". Ts " + edge->triangle ()->name() + " and None\n";
             }
         }
         if (mag2 < smallest2)
@@ -331,7 +331,7 @@ QPair<bool, QString> MeshChecker::checkReversedTriangles ()
         {
             if (values.at (0)->v1 () == values.at (1)->v1 ())
             {
-                 reversedTriangles << e->m_triangle;
+                 reversedTriangles << e->triangle ();
             }
         }
     }
@@ -365,8 +365,7 @@ QPair<bool, QString> MeshChecker::checkOverusedEdges ()
 {
     QString ret;
     int badCount = 0;
-    QList<HalfEdgePtr> overusedEdges;
-    const auto hash = getEdges ()->edgeByEdge ();
+     const auto& edgeByEdge = getEdges ()->edgeByEdge ();
     for (const auto& e : qAsConst (getEdges ()->halfEdgeList ()))
     {
         if (e->testFlag (HalfEdge::Delete))
@@ -374,34 +373,21 @@ QPair<bool, QString> MeshChecker::checkOverusedEdges ()
             continue;
         }
 
-        auto values = hash.values ({e});
+        auto values = edgeByEdge.values ({e});
+        values.removeIf([] (const HalfEdgePtr& a) ->bool { return a->testFlag(HalfEdge::Delete);});
         Q_ASSERT (values.count () != 0);
         if (values.count () > 2)
         {
-            overusedEdges += values;
-        }
-    }
-    std::sort (overusedEdges.begin (), overusedEdges.end (), [] (const HalfEdgePtr& a, const HalfEdgePtr& b) -> bool {
-        return a->id () < b->id ();
-    });
-
-    HalfEdgePtr last;
-    for (const auto& e : std::as_const (overusedEdges))
-    {
-        if (!last || last != e)
-        {
-            last = e;
+            ret.push_back (QStringLiteral ("    edge: %1 -> %2, T: %3\n").arg (e->v1 ()->name ()).arg (e->v2 ()->name ()).arg (e->triangle ()->name ()));
             badCount++;
-            ret += QStringLiteral ("    edge: %1 -> %2 used by:\n").arg (e->v1 ()->name ()).arg (e->v2 ()->name ());
         }
-        ret += QStringLiteral ("      t: %1\n").arg (e->m_triangle->name ());
     }
     if (badCount)
     {
-        ret.push_front (QStringLiteral ("  %1 overused edges triangles\n").arg (badCount));
+        ret.push_front (QStringLiteral ("  %1 overused half edges\n").arg (badCount));
         return {false, ret};
     }
-    ret += QStringLiteral ("  No overused edges\n");
+    ret += QStringLiteral ("  No overused half edges\n");
     return {true, ret};
 }
 
