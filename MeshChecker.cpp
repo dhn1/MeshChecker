@@ -243,7 +243,7 @@ QPair<bool, QString> MeshChecker::checkDuplicateTriangles ()
         r += QStringLiteral ("  No duplicate triangles\n");
         return {true, r};
     }
-    r.push_front (QStringLiteral ("    %1 duplicate triangles\n").arg (badCount / 2));
+    r.push_front (QStringLiteral ("  %1 duplicate triangles\n").arg (badCount / 2));
     return {false, r};
 }
 
