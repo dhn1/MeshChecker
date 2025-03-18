@@ -10,14 +10,18 @@
 #include <SegmentList.h>
 #include <TriangleOctTree/TriangleOctTree.h>
 
+#include <QMutex>
+#include <QMutexLocker>
 #include <QtConcurrent>
 
 #include "globals.h"
 
+static QMutex flagMutex;  // Used to controll acces to triangle flags
+
 MeshChecker::MeshChecker (const MeshPtr& mesh) : m_mesh (mesh)
 {
     m_edgesFuture = QtConcurrent::run ([this] {
-        return HalfEdges::create (m_mesh, HalfEdges::Options::OpenEdgesList);
+        return HalfEdges::create (m_mesh);
     });
 
     m_octtreeFuture = QtConcurrent::run ([this] {
@@ -31,17 +35,17 @@ MeshChecker::~MeshChecker ()
 {
     m_octtreeFuture.waitForFinished ();
     m_edgesFuture.waitForFinished ();
-    delete m_octtreeFuture.result();
+    delete m_octtreeFuture.result ();
 }
 
-bool MeshChecker::check ()
+bool MeshChecker::checkMultiThreaded ()
 {
     QList<QFuture<QPair<bool, QString>>> futures;
 
-    if (m_checks & ShowInfo)
+    if (m_checks & CheckInfo)
     {
         auto res = QtConcurrent::run ([this] {
-            return showInfo ();
+            return checkInfo ();
         });
         futures.push_back (res);
     }
@@ -126,9 +130,9 @@ bool MeshChecker::check ()
     bool ret = true;
     for (const auto& f : futures)
     {
-        if (!(m_checks & quiet))
+        if (!(m_checks & Quiet))
         {
-            if (m_checks & verbose)
+            if (m_checks & Verbose)
             {
                 out << f.result ().second;
             }
@@ -144,6 +148,86 @@ bool MeshChecker::check ()
     m_edgesFuture.waitForFinished ();
 
     QThread::usleep (20);  // TODO: remove?
+    return ret;
+}
+
+bool MeshChecker::check ()
+{
+    bool ret = true;
+
+    if (m_checks & CheckInfo)
+    {
+        auto res = checkInfo ();
+        ret &= res.first;
+        out << res.second;
+    }
+    if (m_checks & CheckHoles)
+    {
+        auto res = checkHoles ();
+        ret &= res.first;
+        out << res.second;
+    }
+    if (m_checks & CheckDuplicateTriangles)
+    {
+        auto res = checkDuplicateTriangles ();
+        ret &= res.first;
+        out << res.second;
+    }
+    if (m_checks & CheckShortEdges)
+    {
+        auto res = checkShortEdges ();
+        ret &= res.first;
+        out << res.second;
+    }
+
+    if (m_checks & CheckReversedTriangles)
+    {
+        auto res = checkReversedTriangles ();
+        ret &= res.first;
+        out << res.second;
+    }
+
+    if (m_checks & CheckDuplicateVertices)
+    {
+        auto res = checkDuplicateVertices ();
+        ret &= res.first;
+        out << res.second;
+    }
+
+    if (m_checks & CheckOpenEdges)
+    {
+        auto res = checkOpenEdges ();
+        ret &= res.first;
+        out << res.second;
+    }
+
+    if (m_checks & CheckHalfEdgeOverlap)
+    {
+        auto res = checkHalfEdgeOverlap ();
+        ret &= res.first;
+        out << res.second;
+    }
+
+    if (m_checks & CheckTriangleOverlap)
+    {
+        auto res = checkTriangleOverlap ();
+        ret &= res.first;
+        out << res.second;
+    }
+
+    if (m_checks & CheckUnviableTriangles)
+    {
+        auto res = checkUnviableTriangles ();
+        ret &= res.first;
+        out << res.second;
+    }
+
+    if (m_checks & CheckOverusedEdges)
+    {
+        auto res = checkOverusedEdges ();
+        ret &= res.first;
+        out << res.second;
+    }
     return ret;
 }
 
@@ -163,11 +247,12 @@ QPair<bool, QString> MeshChecker::checkOpenEdges ()
     TriangleList suspects;
     auto edges = getEdges ();
     int badCount = 0;
-    for (const auto& e : qAsConst (edges->openEdgeList ()))
+
+    for (const auto& e : m_mesh->openEdges ())
     {
         if (!e->testFlag (HalfEdge::Delete))
         {
-            str += QStringLiteral ("    T: %1, Edge: %2 -> %3\n").arg (e->triangle ()->name()).arg (e->v1 ()->name()).arg (e->v2 ()->name ());
+            str += QStringLiteral ("    T: %1, Edge: %2 -> %3\n").arg (e->triangle ()->name ()).arg (e->v1 ()->name ()).arg (e->v2 ()->name ());
             badCount++;
         }
     }
@@ -182,6 +267,8 @@ QPair<bool, QString> MeshChecker::checkOpenEdges ()
 
 QPair<bool, QString> MeshChecker::checkHoles ()
 {
+    QMutexLocker locker (&flagMutex);
+
     auto holes = getEdges ()->holes ();
     if (holes.isEmpty ())
     {
@@ -233,7 +320,7 @@ QPair<bool, QString> MeshChecker::checkDuplicateTriangles ()
             }
             if (matches >= 3)
             {
-                r += QStringLiteral ("    T: %1 and T: %2\n").arg (t->name()).arg (tt->name());
+                r += QStringLiteral ("    T: %1 and T: %2\n").arg (t->name ()).arg (tt->name ());
                 badCount++;
             }
         }
@@ -256,37 +343,43 @@ QPair<bool, QString> MeshChecker::checkShortEdges ()
     int foundNullEdge = 0;
     double smallest2 = INF;
 
-    for (const auto& edge : qAsConst (getEdges ()->halfEdgeList ()))
+    for (const auto& t : *m_mesh)
     {
-        if (edge->testFlag(HalfEdge::Delete))
+        for (int ee = 0; ee < 3; ee++)
         {
-            continue;
-        }
+            const auto& edge = t->halfEdge (ee);
+            if (edge->testFlag (HalfEdge::Delete))
+            {
+                continue;
+            }
 
-        if (edge->v1 () == edge->v2 ())
-        {
-            foundNullEdge++;
-            ok = false;
-            ret += "    Null edge (repeating vertex): " + edge->v1 ()->toString () + "\n";
-        }
-        auto mag2 = edge->magnitude2 ();
-        if (mag2 <= Constants::minEdge2)
-        {
-            foundShortEdge++;
-            if (edge->pair ())
+            if (edge->v1 () == edge->v2 ())
             {
-                ret += "    Short edge " + QString::number (sqrt (mag2)) + "mm. Between vertex: " + edge->v1 ()->name () + " and " + edge->v2 ()->name () + ". Ts " + edge->triangle ()->name () + " and " + edge->pair ()->triangle ()->name () + " \n";
+                foundNullEdge++;
+                ok = false;
+                ret += "    Null edge (repeating vertex): " + edge->v1 ()->toString () + "\n";
             }
-            else
+            auto mag2 = edge->magnitude2 ();
+            if (mag2 <= Constants::minEdge2)
             {
-                ret += "    Short edge " + QString::number (sqrt (mag2)) + "mm. Between vertex: " + edge->v1 ()->name() + " and " + edge->v2 ()->name() + ". Ts " + edge->triangle ()->name() + " and None\n";
+                foundShortEdge++;
+                if (edge->pair ())
+                {
+                    ret +=
+                        "    Short edge " + QString::number (sqrt (mag2)) + "mm. Between vertex: " + edge->v1 ()->name () + " and " + edge->v2 ()->name () + ". Ts " + edge->triangle ()->name () + " and " + edge->pair ()->triangle ()->name () + " \n";
+                }
+                else
+                {
+                    ret += "    Short edge " + QString::number (sqrt (mag2)) + "mm. Between vertex: " + edge->v1 ()->name () + " and " + edge->v2 ()->name () + ". Ts " + edge->triangle ()->name () + " and None\n";
+                }
             }
-        }
-        if (mag2 < smallest2)
-        {
-            smallest2 = mag2;
+            if (mag2 < smallest2)
+            {
+                smallest2 = mag2;
+            }
         }
     }
+
     if (smallest2 < INF)
     {
         ret += QStringLiteral ("  Shortest edge value: %1\n").arg (sqrt (smallest2));
@@ -307,7 +400,6 @@ QPair<bool, QString> MeshChecker::checkShortEdges ()
     {
         ret.push_front (QStringLiteral ("  No null edges\n"));
     }
-
     return {ok, ret};
 }
 
@@ -315,23 +407,31 @@ QPair<bool, QString> MeshChecker::checkReversedTriangles ()
 {
     QString ret;
 
+    QMutexLocker locker (&flagMutex);
+
     QList<TrianglePtr> reversedTriangles;
     const auto hash = getEdges ()->edgeByEdge ();
-    for (const auto& e : qAsConst (getEdges ()->halfEdgeList ()))
+
+    for (const auto& t : *m_mesh)
     {
-        if (e->testFlag(HalfEdge::Delete))
+        for (int ee = 0; ee < 3; ee++)
         {
-            continue;
-        }
+            auto const & e = t->halfEdge (ee);
 
-        auto values = hash.values ({e});
-        //Q_ASSERT (values.count () == 1 || values.count() == 2);
-
-        if (values.count() == 2)
-        {
-            if (values.at (0)->v1 () == values.at (1)->v1 ())
+            if (e->testFlag (HalfEdge::Delete))
             {
-                 reversedTriangles << e->triangle ();
+                continue;
+            }
+
+            auto values = hash.values ({e});
+            //Q_ASSERT (values.count () == 1 || values.count() == 2);
+
+            if (values.count () == 2)
+            {
+                if (values.at (0)->v1 () == values.at (1)->v1 ())
+                {
+                    reversedTriangles << e->triangle ();
+                }
             }
         }
     }
@@ -347,7 +447,7 @@ QPair<bool, QString> MeshChecker::checkReversedTriangles ()
         auto count = reversedTriangles.count (t);
         if (count == 3)
         {
-            ret += QStringLiteral ("    triangle: %1\n").arg(t->name ());
+            ret += QStringLiteral ("    triangle: %1\n").arg (t->name ());
             badCount++;
         }
         i += count;
@@ -365,21 +465,28 @@ QPair<bool, QString> MeshChecker::checkOverusedEdges ()
 {
     QString ret;
     int badCount = 0;
-     const auto& edgeByEdge = getEdges ()->edgeByEdge ();
-    for (const auto& e : qAsConst (getEdges ()->halfEdgeList ()))
-    {
-        if (e->testFlag (HalfEdge::Delete))
-        {
-            continue;
-        }
+    const auto& edgeByEdge = getEdges ()->edgeByEdge ();
 
-        auto values = edgeByEdge.values ({e});
-        values.removeIf([] (const HalfEdgePtr& a) ->bool { return a->testFlag(HalfEdge::Delete);});
-        Q_ASSERT (values.count () != 0);
-        if (values.count () > 2)
+    for (const auto& t : *m_mesh)
+    {
+        for (int ee = 0; ee < 3; ee++)
         {
-            ret.push_back (QStringLiteral ("    edge: %1 -> %2, T: %3\n").arg (e->v1 ()->name ()).arg (e->v2 ()->name ()).arg (e->triangle ()->name ()));
-            badCount++;
+            const auto& e = t->halfEdge (ee);
+            if (e->testFlag (HalfEdge::Delete))
+            {
+                continue;
+            }
+
+            auto values = edgeByEdge.values ({e});
+            values.removeIf ([] (const HalfEdgePtr& a) -> bool {
+                return a->testFlag (HalfEdge::Delete);
+            });
+            Q_ASSERT (values.count () != 0);
+            if (values.count () > 2)
+            {
+                ret.push_back (QStringLiteral ("    edge: %1 -> %2, T: %3\n").arg (e->v1 ()->name ()).arg (e->v2 ()->name ()).arg (e->triangle ()->name ()));
+                badCount++;
+            }
         }
     }
     if (badCount)
@@ -391,13 +498,15 @@ QPair<bool, QString> MeshChecker::checkOverusedEdges ()
     return {true, ret};
 }
 
-QPair<bool, QString> MeshChecker::showInfo ()
+QPair<bool, QString> MeshChecker::checkInfo ()
 {
     const QLocale locale;
     QString ret;
     auto vcount = m_mesh->vertexList ().count ();
     auto edges = getEdges ();
-    auto ecount = edges->halfEdgeList ().count ();
+    auto ecount = m_mesh->halfEdgeList ().count ();
+
+    QMutexLocker locker (&flagMutex);
 
     const auto comps = m_mesh->splitComponents (edges);
     if (comps.count () < 2)
@@ -417,9 +526,14 @@ QPair<bool, QString> MeshChecker::showInfo ()
         {
             auto vcount = comp->vertexList ().count ();
             auto edges = HalfEdges::create (comp);
-            auto ecount = edges->halfEdgeList ().count ();
+            auto ecount = m_mesh->halfEdgeList ().count ();
 
-            ret += QStringLiteral ("    comp %5: %1 triangles, %2 vertices, %3 half edges (%4 edges)\n").arg (locale.toString (comp->tcount ())).arg (locale.toString (vcount)).arg (locale.toString (ecount)).arg (locale.toString (ecount / 2)).arg (idx++);
+            ret += QStringLiteral ("    comp %5: %1 triangles, %2 vertices, %3 half edges (%4 edges)\n")
+                       .arg (locale.toString (comp->tcount ()))
+                       .arg (locale.toString (vcount))
+                       .arg (locale.toString (ecount))
+                       .arg (locale.toString (ecount / 2))
+                       .arg (idx++);
         }
     }
     return {true, ret};
@@ -427,6 +541,7 @@ QPair<bool, QString> MeshChecker::showInfo ()
 
 QPair<bool, QString> MeshChecker::checkDuplicateVertices ()
 {
+    QMutexLocker locker (&flagMutex);
     QString ret;
     int badCount = 0;
     OctTree tree (m_mesh->box ());
@@ -437,7 +552,7 @@ QPair<bool, QString> MeshChecker::checkDuplicateVertices ()
         if (res != v)
         {
             badCount++;
-            ret += QStringLiteral ("  Duplicate vertices: %1 and %2").arg (v->name()).arg(res->name());
+            ret += QStringLiteral ("  Duplicate vertices: %1 and %2").arg (v->name ()).arg (res->name ());
         }
     }
     if (badCount)
@@ -557,7 +672,7 @@ QPair<bool, QString> MeshChecker::checkHalfEdgeOverlap ()
                         //     continue;
                         // }
                         badCount++;
-                        ret.push_back (QStringLiteral ("    Intersecting edges: %1 -> %2 and %3 -> %4\n").arg (segs[ee]->start ()->name()).arg (segs[ee]->end ()->name()).arg (seg->start ()->name()).arg (seg->end ()->name()));
+                        ret.push_back (QStringLiteral ("    Intersecting edges: %1 -> %2 and %3 -> %4\n").arg (segs[ee]->start ()->name ()).arg (segs[ee]->end ()->name ()).arg (seg->start ()->name ()).arg (seg->end ()->name ()));
                         //reported.insert ({seg, segs[e]});
                         break;
                     }
@@ -577,6 +692,8 @@ QPair<bool, QString> MeshChecker::checkTriangleOverlap ()
     QList<double> tts;
     QList<double> cts;
     const auto& ttree = *m_octtreeFuture.result ();
+    QMutexLocker locker (&flagMutex);
+
     for (const auto& t : qAsConst (m_mesh->triangles ()))
     {
         auto box = t->box ();
@@ -606,15 +723,8 @@ QPair<bool, QString> MeshChecker::checkTriangleOverlap ()
                     {
                         // Coplanar Ts
                         // does the T's half edges intersect the segOfIntersection
-                        intersect = test (HalfEdge (c, 0), HalfEdge (t, 0)) ||
-                                    test (HalfEdge (c, 0), HalfEdge (t, 1)) ||
-                                    test (HalfEdge (c, 0), HalfEdge (t, 2)) ||
-                                    test (HalfEdge (c, 1), HalfEdge (t, 0)) ||
-                                    test (HalfEdge (c, 1), HalfEdge (t, 1)) ||
-                                    test (HalfEdge (c, 1), HalfEdge (t, 2)) ||
-                                    test (HalfEdge (c, 2), HalfEdge (t, 0)) ||
-                                    test (HalfEdge (c, 2), HalfEdge (t, 1)) ||
-                                    test (HalfEdge (c, 2), HalfEdge (t, 2));
+                        intersect = test (HalfEdge (c, 0), HalfEdge (t, 0)) || test (HalfEdge (c, 0), HalfEdge (t, 1)) || test (HalfEdge (c, 0), HalfEdge (t, 2)) || test (HalfEdge (c, 1), HalfEdge (t, 0)) || test (HalfEdge (c, 1), HalfEdge (t, 1)) ||
+                                    test (HalfEdge (c, 1), HalfEdge (t, 2)) || test (HalfEdge (c, 2), HalfEdge (t, 0)) || test (HalfEdge (c, 2), HalfEdge (t, 1)) || test (HalfEdge (c, 2), HalfEdge (t, 2));
                     }
                 }
                 else
@@ -670,7 +780,7 @@ QPair<bool, QString> MeshChecker::checkTriangleOverlap ()
                         qDebug ().noquote ().nospace () << segOfIntersection.toCode ("segmentOfIntersection");
                     }
 #endif
-                    ret.push_back (QStringLiteral ("    Intersecting Ts: %1 and %2\n").arg (t->name()).arg (c->name()));
+                    ret.push_back (QStringLiteral ("    Intersecting Ts: %1 and %2\n").arg (t->name ()).arg (c->name ()));
                     badCount++;
                 }
                 t->setFlag (Triangle::Tagged);
@@ -698,14 +808,14 @@ QPair<bool, QString> MeshChecker::checkUnviableTriangles ()
     {
         if (!t->isViable ())
         {
-            ret += QStringLiteral ("    T: %1\n").arg(t->name ());
+            ret += QStringLiteral ("    T: %1\n").arg (t->name ());
             badCount++;
         }
     }
     if (!badCount)
     {
-        return { true, "  No unviable triangles\n"};
+        return {true, "  No unviable triangles\n"};
     }
     ret.push_front (QStringLiteral ("  %1 unviable (small or flat) triangles\n").arg (badCount));
-    return { false, ret};
+    return {false, ret};
 }

@@ -15,7 +15,7 @@ public:
         CheckHoles                  = 1 << 0,
         CheckDuplicateTriangles     = 1 << 2,
         CheckShortEdges             = 1 << 3,
-        ShowInfo                    = 1 << 4,
+        CheckInfo                   = 1 << 4,
         CheckReversedTriangles      = 1 << 5,
         CheckDuplicateVertices      = 1 << 6,
         CheckOpenEdges              = 1 << 7,
@@ -24,16 +24,18 @@ public:
         CheckUnviableTriangles      = 1 << 10,
         CheckOverusedEdges          = 1 << 11,
 
-        quiet                       = 1 << 16,
-        verbose                     = 2 << 17,
+        Quiet                       = 1 << 16,
+        Verbose                     = 1 << 17,
+        MultiThread                 = 1 << 18,
 
-        Default = CheckHoles | CheckDuplicateTriangles | CheckShortEdges | ShowInfo | CheckReversedTriangles | CheckDuplicateVertices | CheckOpenEdges | CheckTriangleOverlap | CheckUnviableTriangles | CheckOverusedEdges,
-        All = CheckHoles | CheckDuplicateTriangles | CheckShortEdges | ShowInfo | CheckReversedTriangles | CheckDuplicateVertices | CheckOpenEdges | CheckHalfEdgeOverlap | CheckTriangleOverlap | CheckUnviableTriangles | CheckOverusedEdges,
+        Default = CheckHoles | CheckDuplicateTriangles | CheckShortEdges | CheckInfo | CheckReversedTriangles | CheckDuplicateVertices | CheckOpenEdges | CheckTriangleOverlap | CheckUnviableTriangles | CheckOverusedEdges,
+        All = CheckHoles | CheckDuplicateTriangles | CheckShortEdges | CheckInfo | CheckReversedTriangles | CheckDuplicateVertices | CheckOpenEdges | CheckHalfEdgeOverlap | CheckTriangleOverlap | CheckUnviableTriangles | CheckOverusedEdges,
     };
 
     MeshChecker (const MeshPtr& mesh);
     virtual ~MeshChecker ();
     bool check ();
+    bool checkMultiThreaded ();
     void setCheckFlags (uint flags) { m_checks = flags; }
 
 private:
@@ -49,7 +51,7 @@ private:
     QPair<bool, QString> checkHoles ();
     QPair<bool, QString> checkDuplicateTriangles ();
     QPair<bool, QString> checkShortEdges ();
-    QPair<bool, QString> showInfo ();
+    QPair<bool, QString> checkInfo ();
     QPair<bool, QString> checkReversedTriangles ();
     QPair<bool, QString> checkDuplicateVertices ();
     QPair<bool, QString> checkOpenEdges ();

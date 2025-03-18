@@ -25,7 +25,7 @@ static bool processFile (const QString& path)
         qDebug ().nospace ().noquote () << "Unable to open: \"" << path << "\"\n";
         return false;
     }
-    if (!(flags & MeshChecker::quiet))
+    if (!(flags & MeshChecker::Quiet))
     {
         out << path << '\n';
     }
@@ -33,10 +33,18 @@ static bool processFile (const QString& path)
 
     checker.setCheckFlags (flags);
 
-    auto ret = checker.check ();
+    bool ret;
+    if (flags & MeshChecker::MultiThread)
+    {
+        ret = checker.checkMultiThreaded ();
+    }
+    else
+    {
+        ret = checker.check ();
+    }
     ok &= ret;
-    if (!(flags & MeshChecker::quiet) && !ret)
-     {
+    if (!(flags & MeshChecker::Quiet) && !ret)
+    {
         out << "found errors in: " << path << "\n";
         out.flush ();
     }
@@ -58,7 +66,7 @@ static void files (const QString& path)
     {
         QDir const d (path);
         auto entries = d.entryInfoList (QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot);
-        for (const auto& e : entries)
+        for (const auto& e : std::as_const (entries))
         {
             files (e.absoluteFilePath ());
         }
@@ -79,6 +87,7 @@ int main (int argc, char** argv)
     parser.addVersionOption ();
     parser.addPositionalArgument (QStringLiteral ("mesh"), QStringLiteral ("3D file to examine (STL, 3MF or OBJ)"));
     parser.addOption (QCommandLineOption (QStringLiteral ("verbose"), QStringLiteral ("Show details of errors")));
+    parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("multi-thread") << QStringLiteral ("mt"), QStringLiteral ("Multi threaded execution (experimental)")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("quiet") << QStringLiteral ("q"), QStringLiteral ("Only print names of incorrect files")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("ShowInfo"), QStringLiteral ("Show basic stats")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("CheckHoles"), QStringLiteral ("check for holes")));
@@ -107,7 +116,7 @@ int main (int argc, char** argv)
     }
     if (parser.isSet (QByteArrayLiteral ("ShowInfo")))
     {
-        flags |= MeshChecker::ShowInfo;
+        flags |= MeshChecker::CheckInfo;
     }
     if (parser.isSet (QStringLiteral ("CheckReversedTriangles")))
     {
@@ -135,12 +144,24 @@ int main (int argc, char** argv)
     }
     if (parser.isSet (QStringLiteral ("ShowInfo")))
     {
-        flags |= MeshChecker::ShowInfo;
+        flags |= MeshChecker::CheckInfo;
     }
-
     if (flags == 0)
     {
         flags = MeshChecker::Default;
+    }
+
+    if (parser.isSet ("mt"))
+    {
+        flags |= MeshChecker::MultiThread;
+    }
+    if (parser.isSet (QStringLiteral ("verbose")))
+    {
+        flags |= MeshChecker::Verbose;
+    }
+    if (parser.isSet (QStringLiteral ("quiet")))
+    {
+        flags |= MeshChecker::Quiet;
     }
 
     if (parser.positionalArguments ().isEmpty ())
@@ -149,19 +170,10 @@ int main (int argc, char** argv)
         parser.showHelp (100);
     }
 
-    if (parser.isSet (QStringLiteral ("verbose")))
-    {
-        flags |= MeshChecker::verbose;
-    }
-    if (parser.isSet (QStringLiteral ("quiet")))
-    {
-        flags |= MeshChecker::quiet;
-    }
-
     QElapsedTimer et;
     et.start ();
     files (parser.positionalArguments ().at (0));
     QLocale const locale;
-    out << "Took " << locale.toString ((double)et.nsecsElapsed() / 1000000000.0) << " seconds" << '\n';
+    out << "Took " << locale.toString ((double)et.nsecsElapsed () / 1000000000.0) << " seconds" << '\n';
     return (ok ? 0 : 100);
 }
