@@ -174,6 +174,6 @@ int main (int argc, char** argv)
     et.start ();
     files (parser.positionalArguments ().at (0));
     QLocale const locale;
-    out << "Took " << locale.toString ((double)et.nsecsElapsed () / 1000000000.0) << " seconds" << '\n';
+    out << "\nTook " << locale.toString ((double)et.nsecsElapsed () / 1000000000.0) << " seconds" << '\n';
     return (ok ? 0 : 100);
 }
