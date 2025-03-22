@@ -290,15 +290,14 @@ QPair<bool, QString> MeshChecker::checkHoles ()
 
 QPair<bool, QString> MeshChecker::checkDuplicateTriangles ()
 {
-    const auto& ts = m_mesh->triangles ();
-    auto count = ts.count ();
+    auto count = m_mesh->count ();
     const auto& ttree = m_octtreeFuture.result ();
     QString r;
     int badCount = 0;
 
     for (auto i = 0; i < count; i++)
     {
-        const auto t = ts.at (i);
+        const auto t = m_mesh->at (i);
 
         auto candidates = ttree->find (t->box ());
         for (const auto& tt : std::as_const (candidates))
@@ -627,7 +626,7 @@ QPair<bool, QString> MeshChecker::checkHalfEdgeOverlap ()
     int badCount = 0;
     const auto& ttree = *m_octtreeFuture.result ();
     //QSet <QPair<SegmentPtr, SegmentPtr>> reported;
-    for (const auto& t : qAsConst (m_mesh->triangles ()))
+    for (const auto& t : qAsConst (*m_mesh))
     {
         if (t->testFlag (Triangle::Delete | Triangle::PreDelete))
         {
@@ -694,7 +693,7 @@ QPair<bool, QString> MeshChecker::checkTriangleOverlap ()
     const auto& ttree = *m_octtreeFuture.result ();
     QMutexLocker locker (&flagMutex);
 
-    for (const auto& t : qAsConst (m_mesh->triangles ()))
+    for (const auto& t : qAsConst (*m_mesh))
     {
         auto box = t->box ();
         auto plane = t->plane ();
