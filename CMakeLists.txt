@@ -86,23 +86,9 @@ target_link_libraries (${PROJECT_NAME}
 
 set_property (SOURCE main.cpp PROPERTY COMPILE_DEFINITIONS VERSION="${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}")
 
-# add_executable (HoleSplitter
-#     HoleSplitter.cpp
-# )
-
-# set_target_properties (HoleSplitter PROPERTIES
-#     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-
-# target_link_libraries (HoleSplitter
-#         Qt${QT_VERSION_MAJOR}::Core
-#         Qt${QT_VERSION_MAJOR}::Gui
-#         libSculpt)
-
-# set_property (SOURCE HoleSplitter.cpp PROPERTY COMPILE_DEFINITIONS VERSION="${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}")
-
 # Install app
 install (
-    TARGETS ${PROJECT_NAME} #HoleSplitter
+    TARGETS ${PROJECT_NAME}
     CONFIGURATIONS Release
     RUNTIME
     DESTINATION /usr/bin)
