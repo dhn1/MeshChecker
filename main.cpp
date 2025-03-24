@@ -10,6 +10,8 @@
 #include "MeshChecker.h"
 #include "globals.h"
 
+Verbosity verbosity {Mute};
+
 static QStringList suffixes{"nethers", "stl", "obj", "3mf"};
 
 static bool ok = true;
@@ -25,10 +27,7 @@ static bool processFile (const QString& path)
         qDebug ().nospace ().noquote () << "Unable to open: \"" << path << "\"\n";
         return false;
     }
-    if (!(flags & MeshChecker::Quiet))
-    {
-        out << path << '\n';
-    }
+
     MeshChecker checker (mesh);
 
     checker.setCheckFlags (flags);
@@ -42,12 +41,14 @@ static bool processFile (const QString& path)
     {
         ret = checker.check ();
     }
-    ok &= ret;
-    if (!(flags & MeshChecker::Quiet) && !ret)
+
+    if (verbosity & FileName)
     {
-        out << "found errors in: " << path << "\n";
-        out.flush ();
+        out << path << (ret ? " OK" : " FAIL") << '\n';
     }
+
+    ok &= ret;
+    out.flush ();
     return ret;
 }
 
@@ -73,6 +74,14 @@ static void files (const QString& path)
     }
 }
 
+constexpr int NO_LEVELS = 4;
+static int levels[NO_LEVELS] ={
+    Mute,
+    FileName,
+    FileName | Summary,
+    FileName | Summary | Details,
+};
+
 int main (int argc, char** argv)
 {
     QGuiApplication const a (argc, argv);
@@ -86,7 +95,7 @@ int main (int argc, char** argv)
     parser.addHelpOption ();
     parser.addVersionOption ();
     parser.addPositionalArgument (QStringLiteral ("mesh"), QStringLiteral ("3D file to examine (STL, 3MF or OBJ)"));
-    parser.addOption (QCommandLineOption (QStringLiteral ("verbose"), QStringLiteral ("Show details of errors")));
+    parser.addOption (QCommandLineOption (QStringLiteral ("verbose"), QStringLiteral ("Show details of errors, 0 = mute, 1 = file name, 2 = + summary, 3 = + details"), "0"));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("multi-thread") << QStringLiteral ("mt"), QStringLiteral ("Multi threaded execution (experimental)")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("quiet") << QStringLiteral ("q"), QStringLiteral ("Only print names of incorrect files")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("ShowInfo"), QStringLiteral ("Show basic stats")));
@@ -155,14 +164,7 @@ int main (int argc, char** argv)
     {
         flags |= MeshChecker::MultiThread;
     }
-    if (parser.isSet (QStringLiteral ("verbose")))
-    {
-        flags |= MeshChecker::Verbose;
-    }
-    if (parser.isSet (QStringLiteral ("quiet")))
-    {
-        flags |= MeshChecker::Quiet;
-    }
+    verbosity = (Verbosity)levels [std::min (parser.value (QStringLiteral ("verbose")).toInt(), NO_LEVELS -1)];
 
     if (parser.positionalArguments ().isEmpty ())
     {

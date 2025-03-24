@@ -24,8 +24,6 @@ public:
         CheckUnviableTriangles      = 1 << 10,
         CheckOverusedEdges          = 1 << 11,
 
-        Quiet                       = 1 << 16,
-        Verbose                     = 1 << 17,
         MultiThread                 = 1 << 18,
 
         Default = CheckHoles | CheckDuplicateTriangles | CheckShortEdges | CheckInfo | CheckReversedTriangles | CheckDuplicateVertices | CheckOpenEdges | CheckTriangleOverlap | CheckUnviableTriangles | CheckOverusedEdges,
@@ -59,6 +57,8 @@ private:
     QPair<bool, QString> checkTriangleOverlap ();
     QPair<bool, QString> checkUnviableTriangles ();
     QPair<bool, QString> checkOverusedEdges ();
+    
+    void report (QPair<bool, QString>& res);
 };
 
 #endif  // MESHCHECKER_H

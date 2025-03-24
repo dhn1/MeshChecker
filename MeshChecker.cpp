@@ -49,6 +49,7 @@ bool MeshChecker::checkMultiThreaded ()
         });
         futures.push_back (res);
     }
+
     if (m_checks & CheckHoles)
     {
         auto res = QtConcurrent::run ([this] {
@@ -56,6 +57,7 @@ bool MeshChecker::checkMultiThreaded ()
         });
         futures.push_back (res);
     }
+
     if (m_checks & CheckDuplicateTriangles)
     {
         auto res = QtConcurrent::run ([this] {
@@ -63,6 +65,7 @@ bool MeshChecker::checkMultiThreaded ()
         });
         futures.push_back (res);
     }
+
     if (m_checks & CheckShortEdges)
     {
         auto res = QtConcurrent::run ([this] {
@@ -130,17 +133,8 @@ bool MeshChecker::checkMultiThreaded ()
     bool ret = true;
     for (const auto& f : futures)
     {
-        if (!(m_checks & Quiet))
-        {
-            if (m_checks & Verbose)
-            {
-                out << f.result ().second;
-            }
-            else
-            {
-                out << f.result ().second.split ('\n').constFirst () << '\n';
-            }
-        }
+        auto res = f.result();
+        report (res);
         ret &= f.result ().first;
     }
 
@@ -159,76 +153,89 @@ bool MeshChecker::check ()
     {
         auto res = checkInfo ();
         ret &= res.first;
-        out << res.second;
+        report (res);
     }
     if (m_checks & CheckHoles)
     {
         auto res = checkHoles ();
         ret &= res.first;
-        out << res.second;
+        report (res);
     }
     if (m_checks & CheckDuplicateTriangles)
     {
         auto res = checkDuplicateTriangles ();
         ret &= res.first;
-        out << res.second;
+        report (res);
     }
     if (m_checks & CheckShortEdges)
     {
         auto res = checkShortEdges ();
         ret &= res.first;
-        out << res.second;
+        report (res);
     }
 
     if (m_checks & CheckReversedTriangles)
     {
         auto res = checkReversedTriangles ();
         ret &= res.first;
-        out << res.second;
+        report (res);
     }
 
     if (m_checks & CheckDuplicateVertices)
     {
         auto res = checkDuplicateVertices ();
         ret &= res.first;
-        out << res.second;
+        report (res);
     }
 
     if (m_checks & CheckOpenEdges)
     {
         auto res = checkOpenEdges ();
         ret &= res.first;
-        out << res.second;
+        report (res);
     }
 
     if (m_checks & CheckHalfEdgeOverlap)
     {
         auto res = checkHalfEdgeOverlap ();
         ret &= res.first;
-        out << res.second;
+        report (res);
     }
 
     if (m_checks & CheckTriangleOverlap)
     {
         auto res = checkTriangleOverlap ();
         ret &= res.first;
-        out << res.second;
+        report (res);
     }
 
     if (m_checks & CheckUnviableTriangles)
     {
         auto res = checkUnviableTriangles ();
         ret &= res.first;
-        out << res.second;
+        report (res);
     }
 
     if (m_checks & CheckOverusedEdges)
     {
         auto res = checkOverusedEdges ();
         ret &= res.first;
-        out << res.second;
+        report (res);
     }
     return ret;
+}
+
+void MeshChecker::report (QPair<bool, QString> & res)
+{
+    if (verbosity & Details)
+    {
+        out << res.second;
+    }
+    else if (verbosity & Summary)
+    {
+        out << res.second.split ('\n').constFirst () << '\n';
+    }
+    out.flush ();
 }
 
 EdgesPtr MeshChecker::getEdges ()
