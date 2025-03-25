@@ -95,7 +95,7 @@ int main (int argc, char** argv)
     parser.addHelpOption ();
     parser.addVersionOption ();
     parser.addPositionalArgument (QStringLiteral ("mesh"), QStringLiteral ("3D file to examine (STL, 3MF or OBJ)"));
-    parser.addOption (QCommandLineOption (QStringLiteral ("verbose"), QStringLiteral ("Show details of errors, 0 = mute, 1 = file name, 2 = + summary, 3 = + details"), "1"));
+    parser.addOption (QCommandLineOption (QStringLiteral ("verbose"), QStringLiteral ("Show details of errors, 0 = mute, 1 = file name, 2 = + summary, 3 = + details"), QStringLiteral ("verbosity"), QStringLiteral ("1")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("multi-thread") << QStringLiteral ("mt"), QStringLiteral ("Multi threaded execution (experimental)")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("quiet") << QStringLiteral ("q"), QStringLiteral ("Only print names of incorrect files")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("ShowInfo"), QStringLiteral ("Show basic stats")));
