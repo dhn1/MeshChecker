@@ -133,7 +133,7 @@ bool MeshChecker::checkMultiThreaded ()
     bool ret = true;
     for (const auto& f : futures)
     {
-        auto res = f.result();
+        auto res = f.result ();
         report (res);
         ret &= f.result ().first;
     }
@@ -225,7 +225,7 @@ bool MeshChecker::check ()
     return ret;
 }
 
-void MeshChecker::report (QPair<bool, QString> & res)
+void MeshChecker::report (QPair<bool, QString>& res)
 {
     if (verbosity & Details)
     {
@@ -251,7 +251,6 @@ QPair<bool, QString> MeshChecker::checkOpenEdges ()
 {
     QString str;
 
-    TriangleList suspects;
     auto edges = getEdges ();
     int badCount = 0;
 
