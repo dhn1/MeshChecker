@@ -28,6 +28,14 @@ static bool processFile (const QString& path)
         return false;
     }
 
+    if (verbosity & FileName)
+    {
+        out << path;
+        if (verbosity & (Summary | Details))
+        {
+            out << "\n";
+        }
+    }
     MeshChecker checker (mesh);
 
     checker.setCheckFlags (flags);
@@ -44,7 +52,7 @@ static bool processFile (const QString& path)
 
     if (verbosity & FileName)
     {
-        out << path << (ret ? " OK" : " FAIL") << '\n';
+        out << (ret ? "  OK" : "  FAIL") << '\n';
     }
 
     ok &= ret;

@@ -557,7 +557,7 @@ QPair<bool, QString> MeshChecker::checkDuplicateVertices ()
         if (res != v)
         {
             badCount++;
-            ret += QStringLiteral ("  Duplicate vertices: %1 and %2").arg (v->name ()).arg (res->name ());
+            ret += QStringLiteral ("    %1 and %2\n").arg (v->name ()).arg (res->name ());
         }
     }
     if (badCount)
