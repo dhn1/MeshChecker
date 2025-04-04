@@ -16,15 +16,20 @@ static QStringList suffixes{"nethers", "stl", "obj", "3mf"};
 
 static bool ok = true;
 static int flags = MeshChecker::CheckNothing;
+static int fileCount = 0;
+static int failCount= 0;
+
 QTextStream out (stdout);
 
 static bool processFile (const QString& path)
 {
+    fileCount++;
     Triangle::resetID ();
     auto mesh = Document::readMesh (path);
     if (!mesh)
     {
         qDebug ().nospace ().noquote () << "Unable to open: \"" << path << "\"\n";
+        failCount++;
         return false;
     }
 
@@ -54,7 +59,10 @@ static bool processFile (const QString& path)
     {
         out << (ret ? "  OK" : "  FAIL") << '\n';
     }
-
+    if (!ret)
+    {
+        failCount++;
+    }
     ok &= ret;
     out.flush ();
     return ret;
@@ -180,9 +188,14 @@ int main (int argc, char** argv)
         parser.showHelp (100);
     }
 
+
     QElapsedTimer et;
     et.start ();
     files (parser.positionalArguments ().at (0));
+    if (verbosity != Mute && fileCount> 1)
+    {
+        out << QStringLiteral ("%1 failed out of %2 (%3% passed)").arg(failCount).arg(fileCount).arg (100 * (fileCount - failCount)/fileCount);
+    }
     QLocale const locale;
     out << "\nTook " << locale.toString ((double)et.nsecsElapsed () / 1000000000.0) << " seconds" << '\n';
     return (ok ? 0 : 100);
