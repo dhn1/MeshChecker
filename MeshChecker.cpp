@@ -822,5 +822,5 @@ QPair<bool, QString> MeshChecker::checkUnviableTriangles ()
         return {true, "  No unviable triangles\n"};
     }
     ret.push_front (QStringLiteral ("  %1 unviable (small or flat) triangles\n").arg (badCount));
-    return {false, ret};
+    return {true, ret};
 }
