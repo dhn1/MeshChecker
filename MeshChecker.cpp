@@ -472,28 +472,26 @@ QPair<bool, QString> MeshChecker::checkOverusedEdges ()
     int badCount = 0;
     const auto& edgeByEdge = getEdges ()->edgeByEdge ();
 
-    for (const auto& t : *m_mesh)
-    {
-        for (int ee = 0; ee < 3; ee++)
-        {
-            const auto& e = t->halfEdge (ee);
-            if (e->testFlag (HalfEdge::Delete))
-            {
-                continue;
-            }
+    auto keys = edgeByEdge.keys ();
+    std::sort (keys.begin (), keys.end ());
+    auto it = std::unique (keys.begin (), keys.end ());
+    keys.erase (it, keys.end ());
 
-            auto values = edgeByEdge.values ({e});
-            values.removeIf ([] (const HalfEdgePtr& a) -> bool {
-                return a->testFlag (HalfEdge::Delete);
-            });
-            Q_ASSERT (values.count () != 0);
-            if (values.count () > 2)
+    for (const auto& key : keys)
+    {
+        auto values = edgeByEdge.values (key);
+        if (values.count () > 2)
+        {
+            badCount++;
+            auto e = values.constFirst ();
+            ret.push_back (QStringLiteral ("    edge: %1 -> %2\n").arg (e->v1 ()->name ()).arg (e->v2 ()->name ()));
+            for (const auto& match : values)
             {
-                ret.push_back (QStringLiteral ("    edge: %1 -> %2, T: %3\n").arg (e->v1 ()->name ()).arg (e->v2 ()->name ()).arg (e->triangle ()->name ()));
-                badCount++;
+                ret.push_back (QStringLiteral ("      Used by T: %1\n").arg (match->triangle ()->name ()));
             }
         }
     }
+
     if (badCount)
     {
         ret.push_front (QStringLiteral ("  %1 overused half edges\n").arg (badCount));
