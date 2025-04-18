@@ -254,7 +254,7 @@ QPair<bool, QString> MeshChecker::checkOpenEdges ()
     auto edges = getEdges ();
     int badCount = 0;
 
-    for (const auto& e : m_mesh->openEdges ())
+    for (const auto& e : edges->openEdges ())
     {
         if (!e->testFlag (HalfEdge::Delete))
         {
