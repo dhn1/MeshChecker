@@ -191,7 +191,10 @@ int main (int argc, char** argv)
 
     QElapsedTimer et;
     et.start ();
-    files (parser.positionalArguments ().at (0));
+    for (const auto & f : parser.positionalArguments ())
+    {
+        files (f);
+    }
     if (verbosity != Mute && fileCount> 1)
     {
         out << QStringLiteral ("%1 failed out of %2 (%3% passed)").arg(failCount).arg(fileCount).arg (100 * (fileCount - failCount)/fileCount);
