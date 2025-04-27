@@ -130,6 +130,14 @@ bool MeshChecker::checkMultiThreaded ()
         futures.push_back (res);
     }
 
+    if (m_checks & CheckFlatTriangles)
+    {
+        auto res = QtConcurrent::run ([this] {
+            return checkFlatTriangles ();
+        });
+        futures.push_back (res);
+    }
+
     bool ret = true;
     for (const auto& f : futures)
     {
@@ -222,6 +230,14 @@ bool MeshChecker::check ()
         ret &= res.first;
         report (res);
     }
+
+    if (m_checks & CheckFlatTriangles)
+    {
+        auto res = checkFlatTriangles ();
+        ret &= res.first;
+        report (res);
+    }
+
     return ret;
 }
 
@@ -821,4 +837,26 @@ QPair<bool, QString> MeshChecker::checkUnviableTriangles ()
     }
     ret.push_front (QStringLiteral ("  %1 unviable (small or flat) triangles\n").arg (badCount));
     return {true, ret};
+}
+
+QPair<bool, QString> MeshChecker::checkFlatTriangles ()
+{
+    QString ret;
+    int badCount = 0;
+    for (const auto& t : *m_mesh)
+    {
+        auto tnorm = t->unitNormal ();
+        if (!tnorm)
+        {
+            badCount++;
+            ret += QStringLiteral ("    T: %1\n").arg(t->name ());
+        }
+    }
+    if (badCount)
+    {
+        ret.push_front(QStringLiteral("  %1 flat triangles\n").arg(badCount));
+        return {false, ret};
+    }
+    return {true, "  No flat triangles"};
+
 }

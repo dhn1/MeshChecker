@@ -23,11 +23,12 @@ public:
         CheckTriangleOverlap        = 1 << 9,
         CheckUnviableTriangles      = 1 << 10,
         CheckOverusedEdges          = 1 << 11,
+        CheckFlatTriangles          = 1 << 12,
 
         MultiThread                 = 1 << 18,
 
-        Default = CheckHoles | CheckDuplicateTriangles | CheckShortEdges | CheckInfo | CheckReversedTriangles | CheckDuplicateVertices | CheckOpenEdges | CheckTriangleOverlap | CheckUnviableTriangles | CheckOverusedEdges,
-        All = CheckHoles | CheckDuplicateTriangles | CheckShortEdges | CheckInfo | CheckReversedTriangles | CheckDuplicateVertices | CheckOpenEdges | CheckHalfEdgeOverlap | CheckTriangleOverlap | CheckUnviableTriangles | CheckOverusedEdges,
+        Default = CheckHoles | CheckDuplicateTriangles | CheckShortEdges | CheckInfo | CheckReversedTriangles | CheckDuplicateVertices | CheckOpenEdges | CheckTriangleOverlap | CheckUnviableTriangles | CheckOverusedEdges | CheckFlatTriangles,
+        All = CheckHoles | CheckDuplicateTriangles | CheckShortEdges | CheckInfo | CheckReversedTriangles | CheckDuplicateVertices | CheckOpenEdges | CheckHalfEdgeOverlap | CheckTriangleOverlap | CheckUnviableTriangles | CheckOverusedEdges | CheckFlatTriangles,
     };
 
     MeshChecker (const MeshPtr& mesh);
@@ -57,7 +58,8 @@ private:
     QPair<bool, QString> checkTriangleOverlap ();
     QPair<bool, QString> checkUnviableTriangles ();
     QPair<bool, QString> checkOverusedEdges ();
-    
+    QPair<bool, QString> checkFlatTriangles ();
+
     void report (QPair<bool, QString>& res);
 };
 
