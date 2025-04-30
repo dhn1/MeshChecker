@@ -10,14 +10,14 @@
 #include "MeshChecker.h"
 #include "globals.h"
 
-Verbosity verbosity {Mute};
+Verbosity verbosity{Mute};
 
 static QStringList suffixes{"nethers", "stl", "obj", "3mf"};
 
 static bool ok = true;
 static int flags = MeshChecker::CheckNothing;
 static int fileCount = 0;
-static int failCount= 0;
+static int failCount = 0;
 
 QTextStream out (stdout);
 
@@ -57,6 +57,8 @@ static bool processFile (const QString& path)
 
     if (verbosity & FileName)
     {
+        out << "  SUMMARY:\n" << checker.summary ();
+
         out << (ret ? "  OK" : "  FAIL") << '\n';
     }
     if (!ret)
@@ -91,7 +93,7 @@ static void files (const QString& path)
 }
 
 constexpr int NO_LEVELS = 4;
-static int levels[NO_LEVELS] ={
+static int levels[NO_LEVELS] = {
     Mute,
     FileName,
     FileName | Summary,
@@ -180,7 +182,7 @@ int main (int argc, char** argv)
     {
         flags |= MeshChecker::MultiThread;
     }
-    verbosity = (Verbosity)levels [std::min (parser.value (QStringLiteral ("verbose")).toInt(), NO_LEVELS -1)];
+    verbosity = (Verbosity)levels[std::min (parser.value (QStringLiteral ("verbose")).toInt (), NO_LEVELS - 1)];
 
     if (parser.positionalArguments ().isEmpty ())
     {
@@ -188,16 +190,15 @@ int main (int argc, char** argv)
         parser.showHelp (100);
     }
 
-
     QElapsedTimer et;
     et.start ();
-    for (const auto & f : parser.positionalArguments ())
+    for (const auto& f : parser.positionalArguments ())
     {
         files (f);
     }
-    if (verbosity != Mute && fileCount> 1)
+    if (verbosity != Mute && fileCount > 1)
     {
-        out << QStringLiteral ("%1 failed out of %2 (%3% passed)").arg(failCount).arg(fileCount).arg (100 * (fileCount - failCount)/fileCount);
+        out << QStringLiteral ("%1 failed out of %2 (%3% passed)").arg (failCount).arg (fileCount).arg (100 * (fileCount - failCount) / fileCount);
     }
     QLocale const locale;
     out << "\nTook " << locale.toString ((double)et.nsecsElapsed () / 1000000000.0) << " seconds" << '\n';

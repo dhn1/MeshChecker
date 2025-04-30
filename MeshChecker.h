@@ -36,31 +36,41 @@ public:
     bool check ();
     bool checkMultiThreaded ();
     void setCheckFlags (uint flags) { m_checks = flags; }
+    QString checkName (MeshChecker::Checks check);
+    QString summary () const;
 
 private:
     MeshPtr m_mesh;
     uint m_checks = Default;
-
     EdgesPtr getEdges ();
     EdgesPtr m_edgesPtr;
-
+    QString m_summary;
     QFuture<EdgesPtr> m_edgesFuture;
     QFuture<TriangleOctTree*> m_octtreeFuture;
 
-    QPair<bool, QString> checkHoles ();
-    QPair<bool, QString> checkDuplicateTriangles ();
-    QPair<bool, QString> checkShortEdges ();
-    QPair<bool, QString> checkInfo ();
-    QPair<bool, QString> checkReversedTriangles ();
-    QPair<bool, QString> checkDuplicateVertices ();
-    QPair<bool, QString> checkOpenEdges ();
-    QPair<bool, QString> checkHalfEdgeOverlap ();
-    QPair<bool, QString> checkTriangleOverlap ();
-    QPair<bool, QString> checkUnviableTriangles ();
-    QPair<bool, QString> checkOverusedEdges ();
-    QPair<bool, QString> checkFlatTriangles ();
+    class CheckRet
+    {
+    public:
+        CheckRet (bool pass, const QString& result, int badCount) : first (pass), second (result), m_badCount(badCount) {}
+        bool first;
+        QString second;
+        int m_badCount {};
+    };
 
-    void report (QPair<bool, QString>& res);
+    CheckRet checkHoles ();
+    CheckRet checkDuplicateTriangles ();
+    CheckRet checkShortEdges ();
+    CheckRet checkInfo ();
+    CheckRet checkReversedTriangles ();
+    CheckRet checkDuplicateVertices ();
+    CheckRet checkOpenEdges ();
+    CheckRet checkHalfEdgeOverlap ();
+    CheckRet checkTriangleOverlap ();
+    CheckRet checkUnviableTriangles ();
+    CheckRet checkOverusedEdges ();
+    CheckRet checkFlatTriangles ();
+
+    void report (const CheckRet& res);
 };
 
 #endif  // MESHCHECKER_H
