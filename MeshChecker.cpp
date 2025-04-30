@@ -530,15 +530,19 @@ QPair<bool, QString> MeshChecker::checkInfo ()
     const auto comps = m_mesh->splitComponents (edges);
     if (comps.count () < 2)
     {
-        ret = QStringLiteral ("  %1 triangles, %2 vertices, %3 half edges\n").arg (locale.toString (m_mesh->tcount ())).arg (locale.toString (vcount)).arg (locale.toString (ecount));
+        ret = QStringLiteral ("  %1 triangles, %2 vertices, %3 half edges\n")
+                  .arg (locale.toString (m_mesh->tcount ()))
+                  .arg (locale.toString (vcount))
+                  .arg (locale.toString (ecount));
     }
     else
     {
-        ret = QStringLiteral ("  %5 components, %1 triangles, %2 vertices, %3 half edges\n")
+        ret = QStringLiteral ("  %4 components, %1 triangles, %2 vertices, %3 half edges\n")
                   .arg (locale.toString (m_mesh->tcount ()))
                   .arg (locale.toString (vcount))
                   .arg (locale.toString (ecount))
-                  .arg (locale.toString (ecount / 2));
+                  .arg(comps.count())
+                  ;
 
         int idx = 0;
         for (const auto& comp : comps)
@@ -547,11 +551,10 @@ QPair<bool, QString> MeshChecker::checkInfo ()
             auto edges = HalfEdges::create (comp);
             auto ecount = comp->halfEdgeList().count();
 
-            ret += QStringLiteral ("    comp %5: %1 triangles, %2 vertices, %3 half edges (%4 edges)\n")
+            ret += QStringLiteral ("    comp %4: %1 triangles, %2 vertices, %3 half edges\n")
                        .arg (locale.toString (comp->tcount ()))
                        .arg (locale.toString (vcount))
                        .arg (locale.toString (ecount))
-                       .arg (locale.toString (ecount / 2))
                        .arg (idx++);
         }
     }
