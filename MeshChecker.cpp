@@ -25,6 +25,10 @@ MeshChecker::MeshChecker (const MeshPtr& mesh) : m_mesh (mesh)
     });
 
     m_octtreeFuture = QtConcurrent::run ([this] {
+        if (m_mesh->isEmpty ())
+        {
+            return new TriangleOctTree (Box (10, 10, 10, 10, 10, 10));
+        }
         auto ret = new TriangleOctTree (m_mesh->box ());
         ret->add (m_mesh);
         return ret;
@@ -155,6 +159,8 @@ bool MeshChecker::checkMultiThreaded ()
 
 bool MeshChecker::check ()
 {
+    auto summaryTmplt = QStringLiteral ("    %1: %2\n");
+
     bool ret = true;
     m_summary.clear ();
 
@@ -170,7 +176,7 @@ bool MeshChecker::check ()
         auto res = checkHoles ();
         ret &= res.first;
         report (res);
-        m_summary += QStringLiteral ("    %1 %2\n").arg (checkName (CheckHoles)).arg (res.m_badCount);
+        m_summary += summaryTmplt.arg (checkName (CheckHoles)).arg (res.m_badCount);
     }
 
     if (m_checks & CheckDuplicateTriangles)
@@ -178,7 +184,7 @@ bool MeshChecker::check ()
         auto res = checkDuplicateTriangles ();
         ret &= res.first;
         report (res);
-        m_summary += QStringLiteral ("    %1 %2\n").arg (checkName (CheckDuplicateTriangles)).arg (res.m_badCount);
+        m_summary += summaryTmplt.arg (checkName (CheckDuplicateTriangles)).arg (res.m_badCount);
     }
 
     if (m_checks & CheckShortEdges)
@@ -193,7 +199,7 @@ bool MeshChecker::check ()
         auto res = checkReversedTriangles ();
         ret &= res.first;
         report (res);
-        m_summary += QStringLiteral ("    %1 %2\n").arg (checkName (CheckReversedTriangles)).arg (res.m_badCount);
+        m_summary += summaryTmplt.arg (checkName (CheckReversedTriangles)).arg (res.m_badCount);
     }
 
     if (m_checks & CheckDuplicateVertices)
@@ -201,7 +207,7 @@ bool MeshChecker::check ()
         auto res = checkDuplicateVertices ();
         ret &= res.first;
         report (res);
-        m_summary += QStringLiteral ("    %1 %2\n").arg (checkName (CheckDuplicateVertices)).arg (res.m_badCount);
+        m_summary += summaryTmplt.arg (checkName (CheckDuplicateVertices)).arg (res.m_badCount);
     }
 
     if (m_checks & CheckOpenEdges)
@@ -209,7 +215,7 @@ bool MeshChecker::check ()
         auto res = checkOpenEdges ();
         ret &= res.first;
         report (res);
-        m_summary += QStringLiteral ("    %1 %2\n").arg (checkName (CheckOpenEdges)).arg (res.m_badCount);
+        m_summary += summaryTmplt.arg (checkName (CheckOpenEdges)).arg (res.m_badCount);
     }
 
     if (m_checks & CheckHalfEdgeOverlap)
@@ -217,7 +223,7 @@ bool MeshChecker::check ()
         auto res = checkHalfEdgeOverlap ();
         ret &= res.first;
         report (res);
-        m_summary += QStringLiteral ("    %1 %2\n").arg (checkName (CheckHalfEdgeOverlap)).arg (res.m_badCount);
+        m_summary += summaryTmplt.arg (checkName (CheckHalfEdgeOverlap)).arg (res.m_badCount);
     }
 
     if (m_checks & CheckTriangleOverlap)
@@ -225,7 +231,7 @@ bool MeshChecker::check ()
         auto res = checkTriangleOverlap ();
         ret &= res.first;
         report (res);
-        m_summary += QStringLiteral ("    %1 %2\n").arg (checkName (CheckTriangleOverlap)).arg (res.m_badCount);
+        m_summary += summaryTmplt.arg (checkName (CheckTriangleOverlap)).arg (res.m_badCount);
     }
 
     if (m_checks & CheckUnviableTriangles)
@@ -233,7 +239,7 @@ bool MeshChecker::check ()
         auto res = checkUnviableTriangles ();
         ret &= res.first;
         report (res);
-        m_summary += QStringLiteral ("    %1 %2\n").arg (checkName (CheckUnviableTriangles)).arg (res.m_badCount);
+        m_summary += summaryTmplt.arg (checkName (CheckUnviableTriangles)).arg (res.m_badCount);
     }
 
     if (m_checks & CheckOverusedEdges)
@@ -241,7 +247,7 @@ bool MeshChecker::check ()
         auto res = checkOverusedEdges ();
         ret &= res.first;
         report (res);
-        m_summary += QStringLiteral ("    %1 %2\n").arg (checkName (CheckOverusedEdges)).arg (res.m_badCount);
+        m_summary += summaryTmplt.arg (checkName (CheckOverusedEdges)).arg (res.m_badCount);
     }
 
     if (m_checks & CheckFlatTriangles)
@@ -249,7 +255,7 @@ bool MeshChecker::check ()
         auto res = checkFlatTriangles ();
         ret &= res.first;
         report (res);
-        m_summary += QStringLiteral ("    %1 %2\n").arg (checkName (CheckFlatTriangles)).arg (res.m_badCount);
+        m_summary += summaryTmplt.arg (checkName (CheckFlatTriangles)).arg (res.m_badCount);
     }
 
     return ret;
@@ -889,11 +895,11 @@ QString MeshChecker::checkName (MeshChecker::Checks check)
     case MeshChecker::CheckHoles:
         return "Holes";
     case MeshChecker::CheckDuplicateTriangles:
-        return "DuplicateTriangles ";
+        return "DuplicateTriangles";
     case MeshChecker::CheckShortEdges:
-        return "ShortEdges ";
+        return "ShortEdges";
     case MeshChecker::CheckInfo:
-        return "Info ";
+        return "Info";
     case MeshChecker::CheckReversedTriangles:
         return "ReversedTriangles";
     case MeshChecker::CheckDuplicateVertices:
