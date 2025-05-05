@@ -17,6 +17,7 @@
 #include "globals.h"
 
 static QMutex flagMutex;  // Used to control access to triangle flags
+static QList<QPair<MeshChecker::Checks, MeshChecker::CheckFn>> checkList;
 
 MeshChecker::MeshChecker (const MeshPtr& mesh) : m_mesh (mesh)
 {
@@ -33,6 +34,22 @@ MeshChecker::MeshChecker (const MeshPtr& mesh) : m_mesh (mesh)
         ret->add (m_mesh);
         return ret;
     });
+    if (checkList.isEmpty ())
+    {
+        checkList.push_back ({CheckInfo, &MeshChecker::checkInfo});
+        checkList.push_back ({CheckHoles, &MeshChecker::checkHoles});
+        checkList.push_back ({CheckDuplicateTriangles, &MeshChecker::checkDuplicateTriangles});
+        checkList.push_back ({CheckShortEdges, &MeshChecker::checkShortEdges});
+        checkList.push_back ({CheckReversedTriangles, &MeshChecker::checkReversedTriangles});
+        checkList.push_back ({CheckDuplicateVertices, &MeshChecker::checkDuplicateVertices});
+        checkList.push_back ({CheckOpenEdges, &MeshChecker::checkOpenEdges});
+        checkList.push_back ({CheckHalfEdgeOverlap, &MeshChecker::checkHalfEdgeOverlap});
+        checkList.push_back ({CheckTriangleOverlap, &MeshChecker::checkTriangleOverlap});
+        checkList.push_back ({CheckUnviableTriangles, &MeshChecker::checkUnviableTriangles});
+        checkList.push_back ({CheckOverusedEdges, &MeshChecker::checkOverusedEdges});
+        checkList.push_back ({CheckFlatTriangles, &MeshChecker::checkFlatTriangles});
+        checkList.push_back ({CheckDeleted, &MeshChecker::checkDeleted});
+    }
 }
 
 MeshChecker::~MeshChecker ()
@@ -164,98 +181,18 @@ bool MeshChecker::check ()
     bool ret = true;
     m_summary.clear ();
 
-    if (m_checks & CheckInfo)
+    for (const auto& c : checkList)
     {
-        auto res = checkInfo ();
-        ret &= res.first;
-        report (res);
-    }
-
-    if (m_checks & CheckHoles)
-    {
-        auto res = checkHoles ();
-        ret &= res.first;
-        report (res);
-        m_summary += summaryTmplt.arg (checkName (CheckHoles)).arg (res.m_badCount);
-    }
-
-    if (m_checks & CheckDuplicateTriangles)
-    {
-        auto res = checkDuplicateTriangles ();
-        ret &= res.first;
-        report (res);
-        m_summary += summaryTmplt.arg (checkName (CheckDuplicateTriangles)).arg (res.m_badCount);
-    }
-
-    if (m_checks & CheckShortEdges)
-    {
-        auto res = checkShortEdges ();
-        ret &= res.first;
-        report (res);
-    }
-
-    if (m_checks & CheckReversedTriangles)
-    {
-        auto res = checkReversedTriangles ();
-        ret &= res.first;
-        report (res);
-        m_summary += summaryTmplt.arg (checkName (CheckReversedTriangles)).arg (res.m_badCount);
-    }
-
-    if (m_checks & CheckDuplicateVertices)
-    {
-        auto res = checkDuplicateVertices ();
-        ret &= res.first;
-        report (res);
-        m_summary += summaryTmplt.arg (checkName (CheckDuplicateVertices)).arg (res.m_badCount);
-    }
-
-    if (m_checks & CheckOpenEdges)
-    {
-        auto res = checkOpenEdges ();
-        ret &= res.first;
-        report (res);
-        m_summary += summaryTmplt.arg (checkName (CheckOpenEdges)).arg (res.m_badCount);
-    }
-
-    if (m_checks & CheckHalfEdgeOverlap)
-    {
-        auto res = checkHalfEdgeOverlap ();
-        ret &= res.first;
-        report (res);
-        m_summary += summaryTmplt.arg (checkName (CheckHalfEdgeOverlap)).arg (res.m_badCount);
-    }
-
-    if (m_checks & CheckTriangleOverlap)
-    {
-        auto res = checkTriangleOverlap ();
-        ret &= res.first;
-        report (res);
-        m_summary += summaryTmplt.arg (checkName (CheckTriangleOverlap)).arg (res.m_badCount);
-    }
-
-    if (m_checks & CheckUnviableTriangles)
-    {
-        auto res = checkUnviableTriangles ();
-        ret &= res.first;
-        report (res);
-        m_summary += summaryTmplt.arg (checkName (CheckUnviableTriangles)).arg (res.m_badCount);
-    }
-
-    if (m_checks & CheckOverusedEdges)
-    {
-        auto res = checkOverusedEdges ();
-        ret &= res.first;
-        report (res);
-        m_summary += summaryTmplt.arg (checkName (CheckOverusedEdges)).arg (res.m_badCount);
-    }
-
-    if (m_checks & CheckFlatTriangles)
-    {
-        auto res = checkFlatTriangles ();
-        ret &= res.first;
-        report (res);
-        m_summary += summaryTmplt.arg (checkName (CheckFlatTriangles)).arg (res.m_badCount);
+        if (m_checks & c.first)
+        {
+            auto res = (this->*c.second) ();
+            ret &= res.first;
+            report (res);
+            if (res.m_badCount >= 0)
+            {
+                m_summary += summaryTmplt.arg (checkName (c.first)).arg (res.m_badCount);
+            }
+        }
     }
 
     return ret;
@@ -281,6 +218,28 @@ EdgesPtr MeshChecker::getEdges ()
         m_edgesPtr = m_edgesFuture.result ();
     }
     return m_edgesPtr;
+}
+
+MeshChecker::CheckRet MeshChecker::checkDeleted ()
+{
+    QString str;
+    int badCount = 0;
+    for (const auto& t : *m_mesh)
+    {
+        if (t->testFlag (Triangle::Delete))
+        {
+            badCount++;
+            str += QStringLiteral ("    %1").arg (t->name ());
+        }
+    }
+    if (badCount)
+    {
+        str.push_front (QStringLiteral ("  %1 deleted triangles found\n"));
+
+        return {false, str, badCount};
+    }
+    str.push_front (QStringLiteral ("  No delete triangles found\n"));
+    return {true, str, badCount};
 }
 
 QString MeshChecker::summary () const
@@ -834,7 +793,7 @@ MeshChecker::CheckRet MeshChecker::checkTriangleOverlap ()
     }
     if (badCount)
     {
-        ret.push_front (QStringLiteral ("  Found %1 intersecting triangles, out of %2.\n").arg (badCount).arg (m_mesh->count ()));
+        ret.push_front (QStringLiteral ("  Found %1 intersecting triangles.\n").arg (badCount));
     }
     else
     {
@@ -916,6 +875,8 @@ QString MeshChecker::checkName (MeshChecker::Checks check)
         return "OverusedEdges";
     case MeshChecker::CheckFlatTriangles:
         return "FlatTriangles";
+    case MeshChecker::CheckDeleted:
+        return "Deleted";
     default:
         return "??";
     }

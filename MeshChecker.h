@@ -24,11 +24,12 @@ public:
         CheckUnviableTriangles      = 1 << 10,
         CheckOverusedEdges          = 1 << 11,
         CheckFlatTriangles          = 1 << 12,
+        CheckDeleted                = 1 << 13,
 
         MultiThread                 = 1 << 18,
 
-        Default = CheckHoles | CheckDuplicateTriangles | CheckShortEdges | CheckInfo | CheckReversedTriangles | CheckDuplicateVertices | CheckOpenEdges | CheckTriangleOverlap | CheckUnviableTriangles | CheckOverusedEdges | CheckFlatTriangles,
-        All = CheckHoles | CheckDuplicateTriangles | CheckShortEdges | CheckInfo | CheckReversedTriangles | CheckDuplicateVertices | CheckOpenEdges | CheckHalfEdgeOverlap | CheckTriangleOverlap | CheckUnviableTriangles | CheckOverusedEdges | CheckFlatTriangles,
+        Default = CheckHoles | CheckDuplicateTriangles | CheckShortEdges | CheckInfo | CheckReversedTriangles | CheckDuplicateVertices | CheckOpenEdges | CheckTriangleOverlap | CheckUnviableTriangles | CheckOverusedEdges | CheckFlatTriangles | CheckDeleted,
+        All = CheckHoles | CheckDuplicateTriangles | CheckShortEdges | CheckInfo | CheckReversedTriangles | CheckDuplicateVertices | CheckOpenEdges | CheckHalfEdgeOverlap | CheckTriangleOverlap | CheckUnviableTriangles | CheckOverusedEdges | CheckFlatTriangles | CheckDeleted,
     };
 
     MeshChecker (const MeshPtr& mesh);
@@ -69,8 +70,13 @@ private:
     CheckRet checkUnviableTriangles ();
     CheckRet checkOverusedEdges ();
     CheckRet checkFlatTriangles ();
+    CheckRet checkDeleted ();
 
     void report (const CheckRet& res);
+
+public:
+    typedef MeshChecker::CheckRet (MeshChecker::*CheckFn) ();
+
 };
 
 #endif  // MESHCHECKER_H
