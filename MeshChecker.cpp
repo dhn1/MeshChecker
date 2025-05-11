@@ -211,7 +211,7 @@ void MeshChecker::report (const CheckRet& res)
     out.flush ();
 }
 
-EdgesPtr MeshChecker::getEdges ()
+HalfEdgesPtr MeshChecker::getEdges ()
 {
     if (!m_edgesPtr)
     {

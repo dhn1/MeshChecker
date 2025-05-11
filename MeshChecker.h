@@ -43,10 +43,10 @@ public:
 private:
     MeshPtr m_mesh;
     uint m_checks = Default;
-    EdgesPtr getEdges ();
-    EdgesPtr m_edgesPtr;
+    HalfEdgesPtr getEdges ();
+    HalfEdgesPtr m_edgesPtr;
     QString m_summary;
-    QFuture<EdgesPtr> m_edgesFuture;
+    QFuture<HalfEdgesPtr> m_edgesFuture;
     QFuture<TriangleOctTree*> m_octtreeFuture;
 
     class CheckRet
