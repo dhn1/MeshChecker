@@ -707,6 +707,10 @@ MeshChecker::CheckRet MeshChecker::checkTriangleOverlap ()
 
         for (const auto& c : qAsConst (candidates))
         {
+            if (t->annotation() == "TT5" && c->annotation() == "TT17")
+            {
+                int t = 0;
+            }
             if (!c->testFlag (Triangle::Tagged) && c->box ().intersects (box) && c != t)
             {
                 auto p = c->plane ();
@@ -729,6 +733,11 @@ MeshChecker::CheckRet MeshChecker::checkTriangleOverlap ()
                         // does the T's half edges intersect the segOfIntersection
                         intersect = test (HalfEdge (c, 0), HalfEdge (t, 0)) || test (HalfEdge (c, 0), HalfEdge (t, 1)) || test (HalfEdge (c, 0), HalfEdge (t, 2)) || test (HalfEdge (c, 1), HalfEdge (t, 0)) || test (HalfEdge (c, 1), HalfEdge (t, 1)) ||
                                     test (HalfEdge (c, 1), HalfEdge (t, 2)) || test (HalfEdge (c, 2), HalfEdge (t, 0)) || test (HalfEdge (c, 2), HalfEdge (t, 1)) || test (HalfEdge (c, 2), HalfEdge (t, 2));
+
+                        if (!intersect)
+                        {
+                            intersect = t->contains (c->v1 ());
+                        }
                     }
                 }
                 else
