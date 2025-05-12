@@ -32,7 +32,7 @@ public:
         All = CheckHoles | CheckDuplicateTriangles | CheckShortEdges | CheckInfo | CheckReversedTriangles | CheckDuplicateVertices | CheckOpenEdges | CheckHalfEdgeOverlap | CheckTriangleOverlap | CheckUnviableTriangles | CheckOverusedEdges | CheckFlatTriangles | CheckDeleted,
     };
 
-    MeshChecker (const MeshPtr& mesh);
+    MeshChecker (const MeshPtr& mesh, const QString& path);
     virtual ~MeshChecker ();
     bool check ();
     bool checkMultiThreaded ();
@@ -48,6 +48,7 @@ private:
     QString m_summary;
     QFuture<HalfEdgesPtr> m_edgesFuture;
     QFuture<TriangleOctTree*> m_octtreeFuture;
+    QString m_path;
 
     class CheckRet
     {

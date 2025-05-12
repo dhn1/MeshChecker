@@ -41,7 +41,7 @@ static bool processFile (const QString& path)
             out << "\n";
         }
     }
-    MeshChecker checker (mesh);
+    MeshChecker checker (mesh, path);
 
     checker.setCheckFlags (flags);
 
@@ -119,7 +119,7 @@ int main (int argc, char** argv)
     parser.addOption (QCommandLineOption (QStringLiteral ("verbose"), QStringLiteral ("Show details of errors, 0 = mute, 1 = file name, 2 = + summary, 3 = + details"), QStringLiteral ("verbosity"), QStringLiteral ("1")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("multi-thread") << QStringLiteral ("mt"), QStringLiteral ("Multi threaded execution (experimental)")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("quiet") << QStringLiteral ("q"), QStringLiteral ("Only print names of incorrect files")));
-    parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("ShowInfo"), QStringLiteral ("Show basic stats")));
+    parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("CheckInfo"), QStringLiteral ("Show basic stats")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("CheckHoles"), QStringLiteral ("check for holes")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("CheckDuplicateTriangles"), QStringLiteral ("check for duplicate triangles")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("CheckShortEdges"), QStringLiteral ("check for short edges")));
@@ -147,7 +147,7 @@ int main (int argc, char** argv)
     {
         flags |= MeshChecker::CheckShortEdges;
     }
-    if (parser.isSet (QByteArrayLiteral ("ShowInfo")))
+    if (parser.isSet (QByteArrayLiteral ("CheckInfo")))
     {
         flags |= MeshChecker::CheckInfo;
     }
@@ -175,7 +175,7 @@ int main (int argc, char** argv)
     {
         flags |= MeshChecker::All;
     }
-    if (parser.isSet (QStringLiteral ("ShowInfo")))
+    if (parser.isSet (QStringLiteral ("CheckInfo")))
     {
         flags |= MeshChecker::CheckInfo;
     }

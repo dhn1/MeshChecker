@@ -19,8 +19,9 @@
 static QMutex flagMutex;  // Used to control access to triangle flags
 static QList<QPair<MeshChecker::Checks, MeshChecker::CheckFn>> checkList;
 
-MeshChecker::MeshChecker (const MeshPtr& mesh) : m_mesh (mesh)
+MeshChecker::MeshChecker (const MeshPtr& mesh, const QString& path) : m_mesh (mesh)
 {
+    m_path = path;
     m_edgesFuture = QtConcurrent::run ([this] {
         return HalfEdges::create (m_mesh);
     });
@@ -511,17 +512,20 @@ MeshChecker::CheckRet MeshChecker::checkInfo ()
 
     QMutexLocker locker (&flagMutex);
 
+    QFileInfo f (m_path);
+    ret += QStringLiteral ("  Modified: %1\n").arg (f.lastModified().toString());
+
     const auto comps = m_mesh->splitComponents (edges);
     if (comps.count () < 2)
     {
-        ret = QStringLiteral ("  %1 triangles, %2 vertices, %3 half edges\n")
+        ret += QStringLiteral ("  %1 triangles, %2 vertices, %3 half edges\n")
                   .arg (locale.toString (m_mesh->tcount ()))
                   .arg (locale.toString (vcount))
                   .arg (locale.toString (ecount));
     }
     else
     {
-        ret = QStringLiteral ("  %4 components, %1 triangles, %2 vertices, %3 half edges\n")
+        ret += QStringLiteral ("  %4 components, %1 triangles, %2 vertices, %3 half edges\n")
                   .arg (locale.toString (m_mesh->tcount ()))
                   .arg (locale.toString (vcount))
                   .arg (locale.toString (ecount))
