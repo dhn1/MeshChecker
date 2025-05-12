@@ -736,7 +736,8 @@ MeshChecker::CheckRet MeshChecker::checkTriangleOverlap ()
 
                         if (!intersect)
                         {
-                            intersect = t->contains (c->v1 ());
+                            auto res = t->containsWithDetails (c->v1 ()) ;
+                            intersect = res == Triangle::TriangleContainsResult::Contained;
                         }
                     }
                 }
