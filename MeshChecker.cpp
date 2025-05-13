@@ -47,7 +47,7 @@ MeshChecker::MeshChecker (const MeshPtr& mesh, const QString& path) : m_mesh (me
         checkList.push_back ({CheckHalfEdgeOverlap, &MeshChecker::checkHalfEdgeOverlap});
         checkList.push_back ({CheckTriangleOverlap, &MeshChecker::checkTriangleOverlap});
         checkList.push_back ({CheckUnviableTriangles, &MeshChecker::checkUnviableTriangles});
-        checkList.push_back ({CheckOverusedEdges, &MeshChecker::checkOverusedEdges});
+        checkList.push_back ({CheckOverusedHalfEdges, &MeshChecker::checkOverusedEdges});
         checkList.push_back ({CheckFlatTriangles, &MeshChecker::checkFlatTriangles});
         checkList.push_back ({CheckDeleted, &MeshChecker::checkDeleted});
     }
@@ -144,7 +144,7 @@ bool MeshChecker::checkMultiThreaded ()
         futures.push_back (res);
     }
 
-    if (m_checks & CheckOverusedEdges)
+    if (m_checks & CheckOverusedHalfEdges)
     {
         auto res = QtConcurrent::run ([this] {
             return checkOverusedEdges ();
@@ -177,8 +177,8 @@ bool MeshChecker::checkMultiThreaded ()
 
 bool MeshChecker::check ()
 {
-    auto summaryTmplt = QStringLiteral ("    %1: %2\n");
-
+    QLocale locale;
+    constexpr int padding = 20;
     bool ret = true;
     m_summary.clear ();
 
@@ -191,7 +191,8 @@ bool MeshChecker::check ()
             report (res);
             if (res.m_badCount >= 0)
             {
-                m_summary += summaryTmplt.arg (checkName (c.first)).arg (res.m_badCount);
+                const auto& name = checkName (c.first);
+                m_summary += "    " + name + QString (padding - name.length (), QChar ('.')) + ": " + locale.toString (res.m_badCount) + "\n";
             }
         }
     }
@@ -239,7 +240,7 @@ MeshChecker::CheckRet MeshChecker::checkDeleted ()
 
         return {false, str, badCount};
     }
-    str.push_front (QStringLiteral ("  No delete triangles found\n"));
+    str.push_front (QStringLiteral ("  No deleted triangles found\n"));
     return {true, str, badCount};
 }
 
@@ -711,10 +712,6 @@ MeshChecker::CheckRet MeshChecker::checkTriangleOverlap ()
 
         for (const auto& c : qAsConst (candidates))
         {
-            if (t->annotation() == "TT5" && c->annotation() == "TT17")
-            {
-                int t = 0;
-            }
             if (!c->testFlag (Triangle::Tagged) && c->box ().intersects (box) && c != t)
             {
                 auto p = c->plane ();
@@ -798,7 +795,7 @@ MeshChecker::CheckRet MeshChecker::checkTriangleOverlap ()
                         qDebug ().noquote ().nospace () << segOfIntersection.toCode ("segmentOfIntersection");
                     }
 #endif
-                    ret.push_back (QStringLiteral ("    Intersecting Ts: %1 and %2\n").arg (t->name ()).arg (c->name ()));
+                    ret.push_back (QStringLiteral ("    Overlapping Ts: %1 and %2\n").arg (t->name ()).arg (c->name ()));
                     badCount++;
                 }
                 t->setFlag (Triangle::Tagged);
@@ -807,11 +804,11 @@ MeshChecker::CheckRet MeshChecker::checkTriangleOverlap ()
     }
     if (badCount)
     {
-        ret.push_front (QStringLiteral ("  Found %1 intersecting triangles.\n").arg (badCount));
+        ret.push_front (QStringLiteral ("  Found %1 overlapping triangles.\n").arg (badCount));
     }
     else
     {
-        ret += QStringLiteral ("  No intersecting triangles\n");
+        ret += QStringLiteral ("  No overlapping triangles\n");
     }
     m_mesh->unsetFlag (Triangle::Tagged);
 
@@ -885,8 +882,8 @@ QString MeshChecker::checkName (MeshChecker::Checks check)
         return "TriangleOverlap";
     case MeshChecker::CheckUnviableTriangles:
         return "UnviableTriangles";
-    case MeshChecker::CheckOverusedEdges:
-        return "OverusedEdges";
+    case MeshChecker::CheckOverusedHalfEdges:
+        return "OverusedHalfEdges";
     case MeshChecker::CheckFlatTriangles:
         return "FlatTriangles";
     case MeshChecker::CheckDeleted:

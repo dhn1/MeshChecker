@@ -22,14 +22,14 @@ public:
         CheckHalfEdgeOverlap        = 1 << 8,
         CheckTriangleOverlap        = 1 << 9,
         CheckUnviableTriangles      = 1 << 10,
-        CheckOverusedEdges          = 1 << 11,
+        CheckOverusedHalfEdges          = 1 << 11,
         CheckFlatTriangles          = 1 << 12,
         CheckDeleted                = 1 << 13,
 
         MultiThread                 = 1 << 18,
 
-        Default = CheckHoles | CheckDuplicateTriangles | CheckShortEdges | CheckInfo | CheckReversedTriangles | CheckDuplicateVertices | CheckOpenEdges | CheckTriangleOverlap | CheckUnviableTriangles | CheckOverusedEdges | CheckFlatTriangles | CheckDeleted,
-        All = CheckHoles | CheckDuplicateTriangles | CheckShortEdges | CheckInfo | CheckReversedTriangles | CheckDuplicateVertices | CheckOpenEdges | CheckHalfEdgeOverlap | CheckTriangleOverlap | CheckUnviableTriangles | CheckOverusedEdges | CheckFlatTriangles | CheckDeleted,
+        Default = CheckHoles | CheckDuplicateTriangles | CheckShortEdges | CheckInfo | CheckReversedTriangles | CheckDuplicateVertices | CheckOpenEdges | CheckTriangleOverlap | CheckUnviableTriangles | CheckOverusedHalfEdges | CheckFlatTriangles | CheckDeleted,
+        All = CheckHoles | CheckDuplicateTriangles | CheckShortEdges | CheckInfo | CheckReversedTriangles | CheckDuplicateVertices | CheckOpenEdges | CheckHalfEdgeOverlap | CheckTriangleOverlap | CheckUnviableTriangles | CheckOverusedHalfEdges | CheckFlatTriangles | CheckDeleted,
     };
 
     MeshChecker (const MeshPtr& mesh, const QString& path);

@@ -55,7 +55,7 @@ static bool processFile (const QString& path)
         ret = checker.check ();
     }
 
-    if (verbosity & Summary)
+    if ((verbosity & Summary) && !checker.summary ().isEmpty ())
     {
         out << "  SUMMARY:\n" << checker.summary ();
     }
@@ -129,7 +129,7 @@ int main (int argc, char** argv)
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("CheckHalfEdgeOverlap"), QStringLiteral ("check for overlapping half edges")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("CheckTriangleOverlap"), QStringLiteral ("check for overlapping triangles")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("CheckUnviableTriangles"), QStringLiteral ("check for unviable triangles")));
-    parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("CheckOverusedEdges"), QStringLiteral ("check for overused edges")));
+    parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("CheckOverusedHalfEdges"), QStringLiteral ("check for overused half edges")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("CheckFlatTriangles"), QStringLiteral ("check for flat triangles")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("all") << QStringLiteral ("a"), QStringLiteral ("check for overlapping triangles")));
 
@@ -185,7 +185,7 @@ int main (int argc, char** argv)
     }
     if (parser.isSet (QStringLiteral ("CheckOverusedEdges")))
     {
-        flags |= MeshChecker::CheckOverusedEdges;
+        flags |= MeshChecker::CheckOverusedHalfEdges;
     }
     if (parser.isSet (QStringLiteral ("CheckFlatTriangles")))
     {
