@@ -183,7 +183,7 @@ int main (int argc, char** argv)
     {
         flags |= MeshChecker::CheckUnviableTriangles;
     }
-    if (parser.isSet (QStringLiteral ("CheckOverusedEdges")))
+    if (parser.isSet (QStringLiteral ("CheckOverusedHalfEdges")))
     {
         flags |= MeshChecker::CheckOverusedHalfEdges;
     }

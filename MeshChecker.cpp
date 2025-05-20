@@ -514,19 +514,19 @@ MeshChecker::CheckRet MeshChecker::checkInfo ()
     QMutexLocker locker (&flagMutex);
 
     QFileInfo f (m_path);
-    ret += QStringLiteral ("  Modified: %1\n").arg (f.lastModified().toString());
+    ret += QStringLiteral ("  Info\n    Modified: %1\n").arg (f.lastModified().toString());
 
     const auto comps = m_mesh->splitComponents (edges);
     if (comps.count () < 2)
     {
-        ret += QStringLiteral ("  %1 triangles, %2 vertices, %3 half edges\n")
+        ret += QStringLiteral ("    %1 triangles, %2 vertices, %3 half edges\n")
                   .arg (locale.toString (m_mesh->tcount ()))
                   .arg (locale.toString (vcount))
                   .arg (locale.toString (ecount));
     }
     else
     {
-        ret += QStringLiteral ("  %4 components, %1 triangles, %2 vertices, %3 half edges\n")
+        ret += QStringLiteral ("    %4 components, %1 triangles, %2 vertices, %3 half edges\n")
                   .arg (locale.toString (m_mesh->tcount ()))
                   .arg (locale.toString (vcount))
                   .arg (locale.toString (ecount))
@@ -540,11 +540,19 @@ MeshChecker::CheckRet MeshChecker::checkInfo ()
             auto edges = HalfEdges::create (comp);
             auto ecount = comp->halfEdgeList().count();
 
-            ret += QStringLiteral ("    comp %4: %1 triangles, %2 vertices, %3 half edges\n")
+            ret += QStringLiteral ("      comp %4: %1 triangles, %2 vertices, %3 half edges\n")
                        .arg (locale.toString (comp->tcount ()))
                        .arg (locale.toString (vcount))
                        .arg (locale.toString (ecount))
                        .arg (idx++);
+
+            if (comp->count () < 10)
+            {
+                for (const auto& t : *comp)
+                {
+                    ret += QStringLiteral ("        T: %1\n").arg (t->name());
+                }
+            }
         }
     }
     return {true, ret, -1};
