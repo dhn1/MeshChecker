@@ -705,11 +705,11 @@ MeshChecker::CheckRet MeshChecker::checkHalfEdgeOverlap ()
 MeshChecker::CheckRet MeshChecker::checkTriangleOverlap ()
 {
     QString ret;
-    int badCount = 0;
     QList<double> tts;
     QList<double> cts;
     const auto& ttree = *m_octtreeFuture.result ();
     QMutexLocker locker (&flagMutex);
+    QList<QPair<TrianglePtr, TrianglePtr>> overlaps;
 
     for (const auto& t : qAsConst (*m_mesh))
     {
@@ -720,7 +720,7 @@ MeshChecker::CheckRet MeshChecker::checkTriangleOverlap ()
 
         for (const auto& c : qAsConst (candidates))
         {
-            if (!c->testFlag (Triangle::Tagged) && c->box ().intersects (box) && c != t)
+            if (c != t && c->box ().intersects (box))
             {
                 auto p = c->plane ();
 
@@ -739,13 +739,12 @@ MeshChecker::CheckRet MeshChecker::checkTriangleOverlap ()
                     if (plane.equal (p))
                     {
                         // Coplanar Ts
-                        // does the T's half edges intersect the segOfIntersection
                         intersect = test (HalfEdge (c, 0), HalfEdge (t, 0)) || test (HalfEdge (c, 0), HalfEdge (t, 1)) || test (HalfEdge (c, 0), HalfEdge (t, 2)) || test (HalfEdge (c, 1), HalfEdge (t, 0)) || test (HalfEdge (c, 1), HalfEdge (t, 1)) ||
                                     test (HalfEdge (c, 1), HalfEdge (t, 2)) || test (HalfEdge (c, 2), HalfEdge (t, 0)) || test (HalfEdge (c, 2), HalfEdge (t, 1)) || test (HalfEdge (c, 2), HalfEdge (t, 2));
 
                         if (!intersect)
                         {
-                            auto res = t->containsWithDetails (c->v1 ()) ;
+                            auto res = t->containsWithDetails (c->centroid ());
                             intersect = res == Triangle::TriangleContainsResult::Contained;
                         }
                     }
@@ -785,42 +784,37 @@ MeshChecker::CheckRet MeshChecker::checkTriangleOverlap ()
 
                 if (intersect)
                 {
-#if 0
-                    auto mesh = Mesh::create ();
-                    mesh->add(t);
-                    mesh->add(c);
-                    DocumentNethers doc (mesh);
-                    if (segOfIntersection.isValid ())
+                    if (t->id() < c->id ())
                     {
-                        doc.add (Segment::create (segOfIntersection));
+                        overlaps.push_back({t, c});
                     }
-                    doc.write("/tmp/3d/overlap.nethers");
-
-                    qDebug ().noquote ().nospace () << t->toCode ("t");
-                    qDebug ().noquote ().nospace () << c->toCode ("c");
-                    if (segOfIntersection.isValid ())
+                    else
                     {
-                        qDebug ().noquote ().nospace () << segOfIntersection.toCode ("segmentOfIntersection");
+                        overlaps.push_back({c, t});
                     }
-#endif
-                    ret.push_back (QStringLiteral ("    Overlapping Ts: %1 and %2\n").arg (t->name ()).arg (c->name ()));
-                    badCount++;
                 }
-                t->setFlag (Triangle::Tagged);
             }
         }
     }
-    if (badCount)
+
+    if (!overlaps.isEmpty())
     {
-        ret.push_front (QStringLiteral ("  Found %1 overlapping triangles.\n").arg (badCount));
+        std::sort (overlaps.begin (), overlaps.end ());
+        auto it = std::unique (overlaps.begin(), overlaps.end());
+        overlaps.erase(it, overlaps.end ());
+
+        for (const auto& overlap : overlaps)
+        {
+            ret.push_back (QStringLiteral ("    Overlap: %1 and %2\n").arg (overlap.first->name ()).arg (overlap.second->name ()));
+        }
+
+        ret.push_front (QStringLiteral ("  Found %1 triangle overlaps\n").arg (overlaps.count()));
     }
     else
     {
-        ret += QStringLiteral ("  No overlapping triangles\n");
+        ret += QStringLiteral ("  No triangle overlap\n");
     }
-    m_mesh->unsetFlag (Triangle::Tagged);
-
-    return {badCount == 0, ret, badCount};
+    return {overlaps.isEmpty() == 0, ret, (int)overlaps.count()};
 }
 
 MeshChecker::CheckRet MeshChecker::checkUnviableTriangles ()
