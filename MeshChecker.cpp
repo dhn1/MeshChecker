@@ -814,7 +814,7 @@ MeshChecker::CheckRet MeshChecker::checkTriangleOverlap ()
     {
         ret += QStringLiteral ("  No triangle overlap\n");
     }
-    return {overlaps.isEmpty() == 0, ret, (int)overlaps.count()};
+    return {overlaps.isEmpty(), ret, (int)overlaps.count()};
 }
 
 MeshChecker::CheckRet MeshChecker::checkUnviableTriangles ()
