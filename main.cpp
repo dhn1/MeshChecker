@@ -1,4 +1,5 @@
 #include <Mesh.h>
+#include <libSculptVersion.h>
 
 #include <QCommandLineParser>
 #include <QDir>
@@ -108,7 +109,7 @@ int main (int argc, char** argv)
     QGuiApplication const a (argc, argv);
 
     QCoreApplication::setApplicationName (QStringLiteral ("MeshChecker"));
-    QCoreApplication::setApplicationVersion (QStringLiteral (VERSION));
+    QCoreApplication::setApplicationVersion (QStringLiteral (VERSION) + " (libSculpt " + libSculptVersion() + ")");
     QCoreApplication::setOrganizationName (QStringLiteral ("Netherwood Industries"));
 
     QCommandLineParser parser;

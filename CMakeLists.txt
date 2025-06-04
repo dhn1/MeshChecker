@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.14)
 
-project (MeshChecker LANGUAGES CXX VERSION 0.1.38)
+project (MeshChecker LANGUAGES CXX VERSION 0.1.42)
 
 find_program(CCACHE_FOUND ccache)
 if(CCACHE_FOUND)
@@ -104,7 +104,7 @@ set (CPACK_PACKAGE_VERSION_MINOR "${PROJECT_VERSION_MINOR}")
 set (CPACK_PACKAGE_VERSION_PATCH "${PROJECT_VERSION_PATCH}")
 set (CPACK_PACKAGE_CONTACT "david_netherwood@hotmail.com")
 set (CPACK_GENERATOR "DEB")
-set (CPACK_DEBIAN_PACKAGE_DEPENDS "libqt6gui6, libqt6core6, libqt6concurrent6, libqt6xml6, libzip4,  libqt6svg6, ${SCULPTLIB_DEP_NAME} (>= 0.6.1)")
+set (CPACK_DEBIAN_PACKAGE_DEPENDS "libqt6gui6, libqt6core6, libqt6concurrent6, libqt6xml6, libzip4,  libqt6svg6, ${SCULPTLIB_DEP_NAME} (>= 0.7.3)")
 set (CPACK_PACKAGE_FILE_NAME ${PROJECT_NAME})
 
 include(CPack)
