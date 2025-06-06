@@ -17,7 +17,7 @@
 #include "globals.h"
 
 static QMutex flagMutex;  // Used to control access to triangle flags
-static QList<QPair<MeshChecker::Checks, MeshChecker::CheckFn>> checkList;
+MeshChecker::CheckList MeshChecker::m_checkList;
 
 MeshChecker::MeshChecker (const MeshPtr& mesh, const QString& path) : m_mesh (mesh)
 {
@@ -35,22 +35,28 @@ MeshChecker::MeshChecker (const MeshPtr& mesh, const QString& path) : m_mesh (me
         ret->add (m_mesh);
         return ret;
     });
-    if (checkList.isEmpty ())
+}
+
+const MeshChecker::CheckList& MeshChecker::checkList ()
+{
+    if (m_checkList.isEmpty ())
     {
-        checkList.push_back ({CheckInfo, &MeshChecker::checkInfo});
-        checkList.push_back ({CheckHoles, &MeshChecker::checkHoles});
-        checkList.push_back ({CheckDuplicateTriangles, &MeshChecker::checkDuplicateTriangles});
-        checkList.push_back ({CheckShortEdges, &MeshChecker::checkShortEdges});
-        checkList.push_back ({CheckReversedTriangles, &MeshChecker::checkReversedTriangles});
-        checkList.push_back ({CheckDuplicateVertices, &MeshChecker::checkDuplicateVertices});
-        checkList.push_back ({CheckOpenEdges, &MeshChecker::checkOpenEdges});
-        checkList.push_back ({CheckHalfEdgeOverlap, &MeshChecker::checkHalfEdgeOverlap});
-        checkList.push_back ({CheckTriangleOverlap, &MeshChecker::checkTriangleOverlap});
-        checkList.push_back ({CheckUnviableTriangles, &MeshChecker::checkUnviableTriangles});
-        checkList.push_back ({CheckOverusedHalfEdges, &MeshChecker::checkOverusedEdges});
-        checkList.push_back ({CheckFlatTriangles, &MeshChecker::checkFlatTriangles});
-        checkList.push_back ({CheckDeleted, &MeshChecker::checkDeleted});
+        m_checkList.push_back ({CheckInfo, &MeshChecker::checkInfo});
+        m_checkList.push_back ({CheckHoles, &MeshChecker::checkHoles});
+        m_checkList.push_back ({CheckDuplicateTriangles, &MeshChecker::checkDuplicateTriangles});
+        m_checkList.push_back ({CheckShortEdges, &MeshChecker::checkShortEdges});
+        m_checkList.push_back ({CheckReversedTriangles, &MeshChecker::checkReversedTriangles});
+        m_checkList.push_back ({CheckDuplicateVertices, &MeshChecker::checkDuplicateVertices});
+        m_checkList.push_back ({CheckOpenEdges, &MeshChecker::checkOpenEdges});
+        m_checkList.push_back ({CheckHalfEdgeOverlap, &MeshChecker::checkHalfEdgeOverlap});
+        m_checkList.push_back ({CheckTriangleOverlap, &MeshChecker::checkTriangleOverlap});
+        m_checkList.push_back ({CheckUnviableTriangles, &MeshChecker::checkUnviableTriangles});
+        m_checkList.push_back ({CheckOverusedHalfEdges, &MeshChecker::checkOverusedEdges});
+        m_checkList.push_back ({CheckFlatTriangles, &MeshChecker::checkFlatTriangles});
+        m_checkList.push_back ({CheckDeleted, &MeshChecker::checkDeleted});
+        m_checkList.push_back ({CheckVertexLowRefs, &MeshChecker::checkVertexRefs});
     }
+    return m_checkList;
 }
 
 MeshChecker::~MeshChecker ()
@@ -182,7 +188,7 @@ bool MeshChecker::check ()
     bool ret = true;
     m_summary.clear ();
 
-    for (const auto& c : checkList)
+    for (const auto& c : m_checkList)
     {
         if (m_checks & c.first)
         {
@@ -222,6 +228,41 @@ HalfEdgesPtr MeshChecker::getEdges ()
     return m_edgesPtr;
 }
 
+MeshChecker::CheckRet MeshChecker::checkVertexRefs ()
+{
+    const auto& byV = getEdges()->edgeByVertex();
+    QString str;
+    int badCount = 0;
+
+    auto it = byV.constBegin();
+    if (it != byV.constEnd())
+    {
+        while (it != byV.constEnd())
+        {
+            int count = 0;
+            const VertexPtr v = it.key ();
+            while (it != byV.constEnd() && it.key () == v)
+            {
+                count++;
+                it++;
+            }
+            if (count < 6)
+            {
+                str += QStringLiteral ("    %1 referenced by half edges only %2 times\n").arg(v->name()).arg(count);
+                badCount++;
+            }
+        }
+    }
+    if (badCount)
+    {
+        str.push_front (QStringLiteral ("  %1 low ref vertices found\n").arg(badCount));
+
+        return {false, str, badCount};
+    }
+    str.push_front (QStringLiteral ("  No low ref vertices found\n"));
+    return {true, str, badCount};
+}
+
 MeshChecker::CheckRet MeshChecker::checkDeleted ()
 {
     QString str;
@@ -231,12 +272,12 @@ MeshChecker::CheckRet MeshChecker::checkDeleted ()
         if (t->testFlag (Triangle::Delete))
         {
             badCount++;
-            str += QStringLiteral ("    %1").arg (t->name ());
+            str += QStringLiteral ("    %1\n").arg (t->name ());
         }
     }
     if (badCount)
     {
-        str.push_front (QStringLiteral ("  %1 deleted triangles found\n"));
+        str.push_front (QStringLiteral ("  %1 deleted triangles found\n").arg(badCount));
 
         return {false, str, badCount};
     }
@@ -890,6 +931,52 @@ QString MeshChecker::checkName (MeshChecker::Checks check)
         return "FlatTriangles";
     case MeshChecker::CheckDeleted:
         return "Deleted";
+    case MeshChecker::CheckVertexLowRefs:
+        return "VertexLowRefs";
+    default:
+        return "??";
+    }
+}
+
+QString MeshChecker::optionName (MeshChecker::Checks check)
+{
+    return QStringLiteral ("Check") + checkName (check);
+}
+
+QString MeshChecker::description (MeshChecker::Checks check)
+{
+    switch (check)
+    {
+    case MeshChecker::CheckNothing:
+        return "Nothing";
+    case MeshChecker::CheckHoles:
+        return "check for holes";
+    case MeshChecker::CheckDuplicateTriangles:
+        return "check for duplicate triangles";
+    case MeshChecker::CheckShortEdges:
+        return "check for short edges";
+    case MeshChecker::CheckInfo:
+        return "show basic stats";
+    case MeshChecker::CheckReversedTriangles:
+        return "check for reversed triangles";
+    case MeshChecker::CheckDuplicateVertices:
+        return "check for duplicate vertices";
+    case MeshChecker::CheckOpenEdges:
+        return "check for open edges";
+    case MeshChecker::CheckHalfEdgeOverlap:
+        return "check for overlapping half edges";
+    case MeshChecker::CheckTriangleOverlap:
+        return "check for overlapping triangles";
+    case MeshChecker::CheckUnviableTriangles:
+        return "check for unviable triangles";
+    case MeshChecker::CheckOverusedHalfEdges:
+        return "check for overused half edges";
+    case MeshChecker::CheckFlatTriangles:
+        return "check for flat triangles";
+    case MeshChecker::CheckDeleted:
+        return "Check for deleted triangles (nethers only)";
+    case MeshChecker::CheckVertexLowRefs:
+        return "check for vertices with too few references";
     default:
         return "??";
     }
