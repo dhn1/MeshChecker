@@ -19,6 +19,7 @@ static bool ok = true;
 static int flags = MeshChecker::CheckNothing;
 static int fileCount = 0;
 static int failCount = 0;
+static bool failOnly = false;
 
 QTextStream out (stdout);
 
@@ -34,14 +35,6 @@ static bool processFile (const QString& path)
         return false;
     }
 
-    if (verbosity & FileName)
-    {
-        out << path;
-        if (verbosity & (Summary | Details))
-        {
-            out << "\n";
-        }
-    }
     MeshChecker checker (mesh, path);
 
     checker.setCheckFlags (flags);
@@ -56,15 +49,26 @@ static bool processFile (const QString& path)
         ret = checker.check ();
     }
 
-    if ((verbosity & Summary) && !checker.summary ().isEmpty ())
+    if (!failOnly || !ret)
     {
-        out << "  SUMMARY:\n" << checker.summary ();
-    }
-    if (verbosity & FileName)
-    {
-        out << (ret ? "  OK" : "  FAIL") << '\n';
-    }
+        if (verbosity & FileName)
+        {
+            out << path;
+            if (verbosity & (Summary | Details))
+            {
+                out << "\n";
+            }
+        }
+        if ((verbosity & Summary) && !checker.summary ().isEmpty ())
+        {
+            out << "  SUMMARY:\n" << checker.summary ();
+        }
 
+        if (verbosity & FileName)
+        {
+            out << (ret ? "  OK" : "  FAIL") << '\n';
+        }
+    }
     if (!ret)
     {
         failCount++;
@@ -109,7 +113,7 @@ int main (int argc, char** argv)
     QGuiApplication const a (argc, argv);
 
     QCoreApplication::setApplicationName (QStringLiteral ("MeshChecker"));
-    QCoreApplication::setApplicationVersion (QStringLiteral (VERSION) + " (libSculpt " + libSculptVersion() + ")");
+    QCoreApplication::setApplicationVersion (QStringLiteral (VERSION) + " (libSculpt " + libSculptVersion () + ")");
     QCoreApplication::setOrganizationName (QStringLiteral ("Netherwood Industries"));
 
     QCommandLineParser parser;
@@ -119,20 +123,20 @@ int main (int argc, char** argv)
     parser.addPositionalArgument (QStringLiteral ("mesh"), QStringLiteral ("3D file to examine (STL, 3MF or OBJ)"));
     parser.addOption (QCommandLineOption (QStringLiteral ("verbose"), QStringLiteral ("Show details of errors, 0 = mute, 1 = file name, 2 = + summary, 3 = + details"), QStringLiteral ("verbosity"), QStringLiteral ("1")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("multi-thread") << QStringLiteral ("mt"), QStringLiteral ("Multi threaded execution (experimental)")));
-    parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("quiet") << QStringLiteral ("q"), QStringLiteral ("Only print names of incorrect files")));
+    parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("failOnly") << QStringLiteral ("f"), QStringLiteral ("Only print names of incorrect files")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("all") << QStringLiteral ("a"), QStringLiteral ("check for overlapping triangles")));
 
     const auto checkList = MeshChecker::checkList ();
     for (const auto& check : checkList)
     {
-        parser.addOption (QCommandLineOption (QStringList () << MeshChecker::optionName(check.first), MeshChecker::description (check.first)));
+        parser.addOption (QCommandLineOption (QStringList () << MeshChecker::optionName (check.first), MeshChecker::description (check.first)));
     }
 
     parser.process (a);
 
     for (const auto& check : checkList)
     {
-        if (parser.isSet(MeshChecker::optionName(check.first)))
+        if (parser.isSet (MeshChecker::optionName (check.first)))
         {
             flags |= check.first;
         }
@@ -147,6 +151,7 @@ int main (int argc, char** argv)
     {
         flags |= MeshChecker::MultiThread;
     }
+    failOnly = parser.isSet ("f");
     verbosity = (Verbosity)levels[std::min (parser.value (QStringLiteral ("verbose")).toInt (), NO_LEVELS - 1)];
 
     if (parser.positionalArguments ().isEmpty ())
@@ -165,7 +170,11 @@ int main (int argc, char** argv)
     {
         out << QStringLiteral ("%1 failed out of %2 (%3% passed)").arg (failCount).arg (fileCount).arg (100 * (fileCount - failCount) / fileCount);
     }
-    QLocale const locale;
-    out << "\nTook " << locale.toString ((double)et.nsecsElapsed () / 1000000000.0) << " seconds" << '\n';
+
+    if (verbosity != Mute)
+    {
+        QLocale const locale;
+        out << "\nTook " << locale.toString ((double)et.nsecsElapsed () / 1000000000.0) << " seconds" << '\n';
+    }
     return (ok ? 0 : 100);
 }

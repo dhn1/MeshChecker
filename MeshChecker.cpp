@@ -230,32 +230,32 @@ HalfEdgesPtr MeshChecker::getEdges ()
 
 MeshChecker::CheckRet MeshChecker::checkVertexRefs ()
 {
-    const auto& byV = getEdges()->edgeByVertex();
+    const auto& byV = getEdges ()->edgeByVertex ();
     QString str;
     int badCount = 0;
 
-    auto it = byV.constBegin();
-    if (it != byV.constEnd())
+    auto it = byV.constBegin ();
+    if (it != byV.constEnd ())
     {
-        while (it != byV.constEnd())
+        while (it != byV.constEnd ())
         {
             int count = 0;
             const VertexPtr v = it.key ();
-            while (it != byV.constEnd() && it.key () == v)
+            while (it != byV.constEnd () && it.key () == v)
             {
                 count++;
                 it++;
             }
             if (count < 6)
             {
-                str += QStringLiteral ("    %1 referenced by half edges only %2 times\n").arg(v->name()).arg(count);
+                str += QStringLiteral ("    %1 referenced by half edges only %2 times\n").arg (v->name ()).arg (count);
                 badCount++;
             }
         }
     }
     if (badCount)
     {
-        str.push_front (QStringLiteral ("  %1 low ref vertices found\n").arg(badCount));
+        str.push_front (QStringLiteral ("  %1 low ref vertices found\n").arg (badCount));
 
         return {false, str, badCount};
     }
@@ -277,7 +277,7 @@ MeshChecker::CheckRet MeshChecker::checkDeleted ()
     }
     if (badCount)
     {
-        str.push_front (QStringLiteral ("  %1 deleted triangles found\n").arg(badCount));
+        str.push_front (QStringLiteral ("  %1 deleted triangles found\n").arg (badCount));
 
         return {false, str, badCount};
     }
@@ -555,7 +555,7 @@ MeshChecker::CheckRet MeshChecker::checkInfo ()
     QMutexLocker locker (&flagMutex);
 
     QFileInfo f (m_path);
-    ret += QStringLiteral ("  Info\n    Modified: %1\n").arg (f.lastModified().toString());
+    ret += QStringLiteral ("  Info\n    Modified: %1\n").arg (f.lastModified ().toString ());
 
     const auto comps = m_mesh->splitComponents (edges);
     if (comps.count () < 2)
@@ -591,7 +591,7 @@ MeshChecker::CheckRet MeshChecker::checkInfo ()
             {
                 for (const auto& t : *comp)
                 {
-                    ret += QStringLiteral ("        T: %1\n").arg (t->name());
+                    ret += QStringLiteral ("        T: %1\n").arg (t->name ());
                 }
             }
         }
@@ -825,37 +825,37 @@ MeshChecker::CheckRet MeshChecker::checkTriangleOverlap ()
 
                 if (intersect)
                 {
-                    if (t->id() < c->id ())
+                    if (t->id () < c->id ())
                     {
-                        overlaps.push_back({t, c});
+                        overlaps.push_back ({t, c});
                     }
                     else
                     {
-                        overlaps.push_back({c, t});
+                        overlaps.push_back ({c, t});
                     }
                 }
             }
         }
     }
 
-    if (!overlaps.isEmpty())
+    if (!overlaps.isEmpty ())
     {
         std::sort (overlaps.begin (), overlaps.end ());
-        auto it = std::unique (overlaps.begin(), overlaps.end());
-        overlaps.erase(it, overlaps.end ());
+        auto it = std::unique (overlaps.begin (), overlaps.end ());
+        overlaps.erase (it, overlaps.end ());
 
         for (const auto& overlap : overlaps)
         {
             ret.push_back (QStringLiteral ("    Overlap: %1 and %2\n").arg (overlap.first->name ()).arg (overlap.second->name ()));
         }
 
-        ret.push_front (QStringLiteral ("  Found %1 triangle overlaps\n").arg (overlaps.count()));
+        ret.push_front (QStringLiteral ("  Found %1 triangle overlaps\n").arg (overlaps.count ()));
     }
     else
     {
         ret += QStringLiteral ("  No triangle overlap\n");
     }
-    return {overlaps.isEmpty(), ret, (int)overlaps.count()};
+    return {overlaps.isEmpty (), ret, (int)overlaps.count ()};
 }
 
 MeshChecker::CheckRet MeshChecker::checkUnviableTriangles ()

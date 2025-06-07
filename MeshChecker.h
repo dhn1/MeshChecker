@@ -36,10 +36,10 @@ public:
     class CheckRet
     {
     public:
-        CheckRet (bool pass, const QString& result, int badCount) : first (pass), second (result), m_badCount(badCount) {}
+        CheckRet (bool pass, const QString& result, int badCount) : first (pass), second (result), m_badCount (badCount) {}
         bool first;
         QString second;
-        int m_badCount {};
+        int m_badCount{};
     };
 
     typedef MeshChecker::CheckRet (MeshChecker::*CheckFn) ();
