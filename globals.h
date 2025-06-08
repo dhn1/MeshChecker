@@ -12,3 +12,5 @@ enum Verbosity
 };
 
 extern Verbosity verbosity;
+
+void report (const CheckResult& res);

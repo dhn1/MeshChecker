@@ -20,11 +20,41 @@ static int flags = MeshChecker::CheckNothing;
 static int fileCount = 0;
 static int failCount = 0;
 static bool failOnly = false;
-
+static bool reportedFilename = false;
 QTextStream out (stdout);
+
+void report (const CheckResult& res)
+{
+    if (!reportedFilename)
+    {
+        reportedFilename = true;
+        if (failOnly )
+        {
+            if (!res.m_pass && (verbosity & FileName))
+            {
+                out << res.m_path << " FAIL\n";
+            }
+        }
+        else if ((verbosity & FileName))
+        {
+            out << '\n';
+        }
+    }
+
+    if (verbosity & Details)
+    {
+        out << res.m_report;
+    }
+    else if (verbosity & Summary)
+    {
+        out << res.m_report.split ('\n').constFirst () << '\n';
+    }
+    out.flush ();
+}
 
 static bool processFile (const QString& path)
 {
+    reportedFilename = false;
     fileCount++;
     Triangle::resetID ();
     auto mesh = Document::readMesh (path);
@@ -39,6 +69,11 @@ static bool processFile (const QString& path)
 
     checker.setCheckFlags (flags);
 
+    if (!failOnly && (verbosity & FileName))
+    {
+        out << path;
+    }
+
     bool ret;
     if (flags & MeshChecker::MultiThread)
     {
@@ -51,20 +86,20 @@ static bool processFile (const QString& path)
 
     if (!failOnly || !ret)
     {
-        if (verbosity & FileName)
-        {
-            out << path;
-            if (verbosity & (Summary | Details))
-            {
-                out << "\n";
-            }
-        }
         if ((verbosity & Summary) && !checker.summary ().isEmpty ())
         {
+             if (verbosity & FileName)
+             {
+                 if (!(verbosity & (Summary | Details)))
+                 {
+                     out << "\n";
+                 }
+             }
+
             out << "  SUMMARY:\n" << checker.summary ();
         }
 
-        if (verbosity & FileName)
+        if (!failOnly && (verbosity & FileName))
         {
             out << (ret ? "  OK" : "  FAIL") << '\n';
         }

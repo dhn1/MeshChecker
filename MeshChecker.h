@@ -7,6 +7,8 @@
 #include <QFuture>
 #include <QString>
 
+#include "CheckResult.h"
+
 class MeshChecker
 {
 public:
@@ -33,16 +35,7 @@ public:
         All = CheckHoles | CheckDuplicateTriangles | CheckShortEdges | CheckInfo | CheckReversedTriangles | CheckDuplicateVertices | CheckOpenEdges | CheckHalfEdgeOverlap | CheckTriangleOverlap | CheckUnviableTriangles | CheckOverusedHalfEdges | CheckFlatTriangles | CheckDeleted | CheckVertexLowRefs,
     };
 
-    class CheckRet
-    {
-    public:
-        CheckRet (bool pass, const QString& result, int badCount) : first (pass), second (result), m_badCount (badCount) {}
-        bool first;
-        QString second;
-        int m_badCount{};
-    };
-
-    typedef MeshChecker::CheckRet (MeshChecker::*CheckFn) ();
+    typedef CheckResult (MeshChecker::*CheckFn) ();
     typedef QList<QPair<MeshChecker::Checks, MeshChecker::CheckFn>> CheckList;
 
     static const CheckList& checkList ();
@@ -56,6 +49,7 @@ public:
     bool checkMultiThreaded ();
     void setCheckFlags (uint flags) { m_checks = flags; }
     QString summary () const;
+    QString path () const { return m_path; }
 
 private:
     MeshPtr m_mesh;
@@ -68,22 +62,21 @@ private:
     QString m_path;
     static CheckList m_checkList;
 
-    CheckRet checkHoles ();
-    CheckRet checkDuplicateTriangles ();
-    CheckRet checkShortEdges ();
-    CheckRet checkInfo ();
-    CheckRet checkReversedTriangles ();
-    CheckRet checkDuplicateVertices ();
-    CheckRet checkOpenEdges ();
-    CheckRet checkHalfEdgeOverlap ();
-    CheckRet checkTriangleOverlap ();
-    CheckRet checkUnviableTriangles ();
-    CheckRet checkOverusedEdges ();
-    CheckRet checkFlatTriangles ();
-    CheckRet checkDeleted ();
-    CheckRet checkVertexRefs ();
+    CheckResult checkHoles ();
+    CheckResult checkDuplicateTriangles ();
+    CheckResult checkShortEdges ();
+    CheckResult checkInfo ();
+    CheckResult checkReversedTriangles ();
+    CheckResult checkDuplicateVertices ();
+    CheckResult checkOpenEdges ();
+    CheckResult checkHalfEdgeOverlap ();
+    CheckResult checkTriangleOverlap ();
+    CheckResult checkUnviableTriangles ();
+    CheckResult checkOverusedEdges ();
+    CheckResult checkFlatTriangles ();
+    CheckResult checkDeleted ();
+    CheckResult checkVertexRefs ();
 
-    void report (const CheckRet& res);
 };
 
 #endif  // MESHCHECKER_H
