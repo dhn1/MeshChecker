@@ -30,12 +30,8 @@ void report (const CheckResult& res)
         reportedFilename = true;
         if (failOnly )
         {
-            if (!res.m_pass && (verbosity & FileName))
-            {
-                out << res.m_path << " FAIL\n";
-            }
         }
-        else if ((verbosity & FileName))
+        else if (verbosity > FileName)
         {
             out << '\n';
         }
@@ -103,6 +99,10 @@ static bool processFile (const QString& path)
         {
             out << (ret ? "  OK" : "  FAIL") << '\n';
         }
+        else if (failOnly && (verbosity & FileName) && !ret)
+        {
+            out << path << " FAIL" << '\n';
+        }
     }
     if (!ret)
     {
@@ -159,7 +159,11 @@ int main (int argc, char** argv)
     parser.addOption (QCommandLineOption (QStringLiteral ("verbose"), QStringLiteral ("Show details of errors, 0 = mute, 1 = file name, 2 = + summary, 3 = + details"), QStringLiteral ("verbosity"), QStringLiteral ("1")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("multi-thread") << QStringLiteral ("mt"), QStringLiteral ("Multi threaded execution (experimental)")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("failOnly") << QStringLiteral ("f"), QStringLiteral ("Only print names of incorrect files")));
-    parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("all") << QStringLiteral ("a"), QStringLiteral ("check for overlapping triangles")));
+    parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("all") << QStringLiteral ("a"), QStringLiteral ("run all checks")));
+    parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("critical") << QStringLiteral ("c"), QStringLiteral ("only do critical checks")));
+    parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("stl"), QStringLiteral ("STL files only")));
+    parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("3mf"), QStringLiteral ("3MF files only")));
+    parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("nethers"), QStringLiteral ("nethers files only")));
 
     const auto checkList = MeshChecker::checkList ();
     for (const auto& check : checkList)
@@ -168,6 +172,32 @@ int main (int argc, char** argv)
     }
 
     parser.process (a);
+
+    if (parser.isSet("stl") ||parser.isSet("3mf") || parser.isSet("nethers"))
+    {
+        suffixes.clear();
+    }
+    if (parser.isSet("stl"))
+    {
+        suffixes += "stl";
+    }
+    if (parser.isSet("3mf"))
+    {
+        suffixes +=  "3mf";
+    }
+    if (parser.isSet("nethers"))
+    {
+        suffixes += "nethers";
+    }
+
+    if (parser.isSet("all"))
+    {
+        flags = MeshChecker::All;
+    }
+    else if (parser.isSet("critical"))
+    {
+        flags = MeshChecker::Critical;
+    }
 
     for (const auto& check : checkList)
     {
