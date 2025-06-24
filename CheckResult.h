@@ -3,14 +3,19 @@
 
 #include <QString>
 
+#include "globals.h"
+
 class CheckResult
 {
 public:
-    CheckResult (const QString& path, bool pass, const QString& result, int badCount) : m_path (path), m_pass (pass), m_report (result), m_badCount (badCount) {}
+    CheckResult (Checks check, const QString& path, bool pass, const QString& result, int badCount);
+
+    QString name () const;
     QString m_path;
     bool m_pass;
     QString m_report;
     int m_badCount{};
+    Checks m_check;
 };
 
 #endif  // CHECKRESULT_H

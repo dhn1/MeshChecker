@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.14)
 
-project (MeshChecker LANGUAGES CXX VERSION 0.1.46)
+project (MeshChecker LANGUAGES CXX VERSION 0.1.47)
 
 find_program(CCACHE_FOUND ccache)
 if(CCACHE_FOUND)
@@ -74,6 +74,7 @@ add_executable (${PROJECT_NAME}
     MeshChecker.h MeshChecker.cpp
     globals.h
     CheckResult.h
+    CheckResult.cpp
     )
 
 set_target_properties (${PROJECT_NAME} PROPERTIES

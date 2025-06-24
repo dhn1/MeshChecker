@@ -2,7 +2,10 @@
 
 #include <QTextStream>
 
+class CheckResult;
+
 extern QTextStream out;
+
 enum Verbosity
 {
     Mute        = 0,
@@ -14,3 +17,29 @@ enum Verbosity
 extern Verbosity verbosity;
 
 void report (const CheckResult& res);
+
+enum Checks {
+    CheckNothing                = 0,
+    CheckHoles                  = 1 << 0,
+    CheckDuplicateTriangles     = 1 << 2,
+    CheckShortEdges             = 1 << 3,
+    CheckInfo                   = 1 << 4,
+    CheckReversedTriangles      = 1 << 5,
+    CheckDuplicateVertices      = 1 << 6,
+    CheckOpenEdges              = 1 << 7,
+    CheckHalfEdgeOverlap        = 1 << 8,
+    CheckTriangleOverlap        = 1 << 9,
+    CheckUnviableTriangles      = 1 << 10,
+    CheckOverusedHalfEdges      = 1 << 11,
+    CheckFlatTriangles          = 1 << 12,
+    CheckDeleted                = 1 << 13,
+    CheckVertexLowRefs          = 1 << 14,
+
+    MultiThread                 = 1 << 18,
+
+    Default = CheckHoles | CheckDuplicateTriangles | CheckShortEdges | CheckInfo | CheckReversedTriangles | CheckDuplicateVertices | CheckOpenEdges | CheckTriangleOverlap | CheckUnviableTriangles | CheckOverusedHalfEdges | CheckFlatTriangles | CheckDeleted | CheckVertexLowRefs,
+    All = CheckHoles | CheckDuplicateTriangles | CheckShortEdges | CheckInfo | CheckReversedTriangles | CheckDuplicateVertices | CheckOpenEdges | CheckHalfEdgeOverlap | CheckTriangleOverlap | CheckUnviableTriangles | CheckOverusedHalfEdges | CheckFlatTriangles | CheckDeleted | CheckVertexLowRefs,
+    Critical = CheckHoles | CheckDuplicateTriangles | CheckReversedTriangles | CheckDuplicateVertices | CheckOpenEdges | CheckTriangleOverlap | CheckOverusedHalfEdges | CheckDeleted | CheckVertexLowRefs,
+};
+
+constexpr int padding = 20;

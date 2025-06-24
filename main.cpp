@@ -16,11 +16,26 @@ Verbosity verbosity{Mute};
 static QStringList suffixes{"nethers", "stl", "obj", "3mf"};
 
 static bool ok = true;
-static int flags = MeshChecker::CheckNothing;
+static int flags = CheckNothing;
 static int fileCount = 0;
 static int failCount = 0;
 static bool failOnly = false;
 static bool reportedFilename = false;
+static int summeryResult[64] = {};
+static constexpr int NO_VERBOSITY_LEVELS = 4;
+
+static int check2idx (Checks check)
+{
+    int idx = -1;
+    auto t = (unsigned int)check;
+    while (t)
+    {
+        t >>= 1;
+        idx++;
+    }
+    return idx;
+}
+
 QTextStream out (stdout);
 
 void report (const CheckResult& res)
@@ -28,7 +43,7 @@ void report (const CheckResult& res)
     if (!reportedFilename)
     {
         reportedFilename = true;
-        if (failOnly )
+        if (failOnly)
         {
         }
         else if (verbosity > FileName)
@@ -46,6 +61,8 @@ void report (const CheckResult& res)
         out << res.m_report.split ('\n').constFirst () << '\n';
     }
     out.flush ();
+
+    summeryResult[check2idx (res.m_check)] += res.m_badCount;
 }
 
 static bool processFile (const QString& path)
@@ -71,7 +88,7 @@ static bool processFile (const QString& path)
     }
 
     bool ret;
-    if (flags & MeshChecker::MultiThread)
+    if (flags & MultiThread)
     {
         ret = checker.checkMultiThreaded ();
     }
@@ -84,13 +101,13 @@ static bool processFile (const QString& path)
     {
         if ((verbosity & Summary) && !checker.summary ().isEmpty ())
         {
-             if (verbosity & FileName)
-             {
-                 if (!(verbosity & (Summary | Details)))
-                 {
-                     out << "\n";
-                 }
-             }
+            if (verbosity & FileName)
+            {
+                if (!(verbosity & (Summary | Details)))
+                {
+                    out << "\n";
+                }
+            }
 
             out << "  SUMMARY:\n" << checker.summary ();
         }
@@ -135,8 +152,7 @@ static void files (const QString& path)
     }
 }
 
-constexpr int NO_LEVELS = 4;
-static int levels[NO_LEVELS] = {
+static const int levels[NO_VERBOSITY_LEVELS] = {
     Mute,
     FileName,
     FileName | Summary,
@@ -148,7 +164,7 @@ int main (int argc, char** argv)
     QGuiApplication const a (argc, argv);
 
     QCoreApplication::setApplicationName (QStringLiteral ("MeshChecker"));
-    QCoreApplication::setApplicationVersion (QStringLiteral (VERSION) + " (libSculpt " + libSculptVersion () + ")");
+    QCoreApplication::setApplicationVersion (QStringLiteral (VERSION) + QStringLiteral (" (libSculpt ") + libSculptVersion () + ")");
     QCoreApplication::setOrganizationName (QStringLiteral ("Netherwood Industries"));
 
     QCommandLineParser parser;
@@ -164,8 +180,8 @@ int main (int argc, char** argv)
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("stl"), QStringLiteral ("STL files only")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("3mf"), QStringLiteral ("3MF files only")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("nethers"), QStringLiteral ("nethers files only")));
-
-    const auto checkList = MeshChecker::checkList ();
+    parser.setSingleDashWordOptionMode (QCommandLineParser::ParseAsLongOptions);
+    const auto& checkList = MeshChecker::checkList ();
     for (const auto& check : checkList)
     {
         parser.addOption (QCommandLineOption (QStringList () << MeshChecker::optionName (check.first), MeshChecker::description (check.first)));
@@ -173,30 +189,30 @@ int main (int argc, char** argv)
 
     parser.process (a);
 
-    if (parser.isSet("stl") ||parser.isSet("3mf") || parser.isSet("nethers"))
+    if (parser.isSet ("stl") || parser.isSet (QStringLiteral ("3mf")) || parser.isSet (QStringLiteral ("nethers")))
     {
-        suffixes.clear();
+        suffixes.clear ();
     }
-    if (parser.isSet("stl"))
+    if (parser.isSet (QStringLiteral ("stl")))
     {
-        suffixes += "stl";
+        suffixes += QStringLiteral ("stl");
     }
-    if (parser.isSet("3mf"))
+    if (parser.isSet (QStringLiteral ("3mf")))
     {
-        suffixes +=  "3mf";
+        suffixes += QStringLiteral ("3mf");
     }
-    if (parser.isSet("nethers"))
+    if (parser.isSet (QStringLiteral ("nethers")))
     {
-        suffixes += "nethers";
+        suffixes += QStringLiteral ("nethers");
     }
 
-    if (parser.isSet("all"))
+    if (parser.isSet (QStringLiteral ("all")))
     {
-        flags = MeshChecker::All;
+        flags = All;
     }
-    else if (parser.isSet("critical"))
+    else if (parser.isSet (QStringLiteral ("critical")))
     {
-        flags = MeshChecker::Critical;
+        flags = Critical;
     }
 
     for (const auto& check : checkList)
@@ -209,15 +225,15 @@ int main (int argc, char** argv)
 
     if (flags == 0)
     {
-        flags = MeshChecker::Default;
+        flags = Default;
     }
 
     if (parser.isSet (QStringLiteral ("mt")))
     {
-        flags |= MeshChecker::MultiThread;
+        flags |= MultiThread;
     }
-    failOnly = parser.isSet ("f");
-    verbosity = (Verbosity)levels[std::min (parser.value (QStringLiteral ("verbose")).toInt (), NO_LEVELS - 1)];
+    failOnly = parser.isSet (QStringLiteral ("f"));
+    verbosity = (Verbosity)levels[std::min (parser.value (QStringLiteral ("verbose")).toInt (), NO_VERBOSITY_LEVELS - 1)];
 
     if (parser.positionalArguments ().isEmpty ())
     {
@@ -231,9 +247,29 @@ int main (int argc, char** argv)
     {
         files (f);
     }
+
     if (verbosity != Mute && fileCount > 1)
     {
-        out << QStringLiteral ("%1 failed out of %2 (%3% passed)").arg (failCount).arg (fileCount).arg (100 * (fileCount - failCount) / fileCount);
+        out << QStringLiteral ("\n%1 failed out of %2 (%3% passed)").arg (failCount).arg (fileCount).arg (100 * (fileCount - failCount) / fileCount);
+        out << "\n  Overall Summary:\n";
+        int t = 1;
+        int idx = 0;
+        QLocale const locale;
+        do
+        {
+            if (t & flags)
+            {
+                auto check = (Checks)(flags & t);
+                auto r = summeryResult[check2idx (check)];
+                if (r >= 0)
+                {
+                    const auto name = MeshChecker::checkName (check);
+                    out << "    " << name << QString (padding - name.length (), QChar ('.')) << ": " << locale.toString (summeryResult[check2idx (check)]) << "\n";
+                }
+            }
+            t <<= 1;
+            idx++;
+        } while (idx < 64);
     }
 
     if (verbosity != Mute)
@@ -241,5 +277,6 @@ int main (int argc, char** argv)
         QLocale const locale;
         out << "\nTook " << locale.toString ((double)et.nsecsElapsed () / 1000000000.0) << " seconds" << '\n';
     }
+
     return (ok ? 0 : 100);
 }

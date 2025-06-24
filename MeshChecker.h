@@ -12,37 +12,15 @@
 class MeshChecker
 {
 public:
-    enum Checks {
-        CheckNothing                = 0,
-        CheckHoles                  = 1 << 0,
-        CheckDuplicateTriangles     = 1 << 2,
-        CheckShortEdges             = 1 << 3,
-        CheckInfo                   = 1 << 4,
-        CheckReversedTriangles      = 1 << 5,
-        CheckDuplicateVertices      = 1 << 6,
-        CheckOpenEdges              = 1 << 7,
-        CheckHalfEdgeOverlap        = 1 << 8,
-        CheckTriangleOverlap        = 1 << 9,
-        CheckUnviableTriangles      = 1 << 10,
-        CheckOverusedHalfEdges      = 1 << 11,
-        CheckFlatTriangles          = 1 << 12,
-        CheckDeleted                = 1 << 13,
-        CheckVertexLowRefs          = 1 << 14,
 
-        MultiThread                 = 1 << 18,
-
-        Default = CheckHoles | CheckDuplicateTriangles | CheckShortEdges | CheckInfo | CheckReversedTriangles | CheckDuplicateVertices | CheckOpenEdges | CheckTriangleOverlap | CheckUnviableTriangles | CheckOverusedHalfEdges | CheckFlatTriangles | CheckDeleted | CheckVertexLowRefs,
-        All = CheckHoles | CheckDuplicateTriangles | CheckShortEdges | CheckInfo | CheckReversedTriangles | CheckDuplicateVertices | CheckOpenEdges | CheckHalfEdgeOverlap | CheckTriangleOverlap | CheckUnviableTriangles | CheckOverusedHalfEdges | CheckFlatTriangles | CheckDeleted | CheckVertexLowRefs,
-        Critical = CheckHoles | CheckDuplicateTriangles | CheckReversedTriangles | CheckDuplicateVertices | CheckOpenEdges | CheckTriangleOverlap | CheckOverusedHalfEdges | CheckDeleted | CheckVertexLowRefs,
-    };
 
     typedef CheckResult (MeshChecker::*CheckFn) ();
-    typedef QList<QPair<MeshChecker::Checks, MeshChecker::CheckFn>> CheckList;
+    typedef QList<QPair<Checks, MeshChecker::CheckFn>> CheckList;
 
     static const CheckList& checkList ();
-    static QString checkName (MeshChecker::Checks check);
-    static QString optionName (MeshChecker::Checks check);
-    static QString description (MeshChecker::Checks check);
+    static QString checkName (Checks check);
+    static QString optionName (Checks check);
+    static QString description (Checks check);
 
     MeshChecker (const MeshPtr& mesh, const QString& path);
     virtual ~MeshChecker ();
@@ -73,7 +51,7 @@ private:
     CheckResult checkHalfEdgeOverlap ();
     CheckResult checkTriangleOverlap ();
     CheckResult checkUnviableTriangles ();
-    CheckResult checkOverusedEdges ();
+    CheckResult checkOverusedHalfEdges ();
     CheckResult checkFlatTriangles ();
     CheckResult checkDeleted ();
     CheckResult checkVertexRefs ();
