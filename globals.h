@@ -14,14 +14,6 @@ enum Verbosity
     Details     = 4,
 };
 
-extern bool genReport;
-
-extern Verbosity verbosity;
-
-typedef void (*ReporterFn) (const CheckResult&);
-
-extern ReporterFn report;
-
 enum Checks {
     CheckNothing                = 0,
     CheckHoles                  = 1 << 0,
@@ -39,7 +31,7 @@ enum Checks {
     CheckDeleted                = 1 << 13,
     CheckVertexLowRefs          = 1 << 14,
 
-    MultiThread                 = 1 << 18,
+    //MultiThread                 = 1 << 18,
 
     Default = CheckHoles | CheckDuplicateTriangles | CheckShortEdges | CheckInfo | CheckReversedTriangles | CheckDuplicateVertices | CheckOpenEdges | CheckTriangleOverlap | CheckUnviableTriangles | CheckOverusedHalfEdges | CheckFlatTriangles | CheckDeleted | CheckVertexLowRefs,
     All = CheckHoles | CheckDuplicateTriangles | CheckShortEdges | CheckInfo | CheckReversedTriangles | CheckDuplicateVertices | CheckOpenEdges | CheckHalfEdgeOverlap | CheckTriangleOverlap | CheckUnviableTriangles | CheckOverusedHalfEdges | CheckFlatTriangles | CheckDeleted | CheckVertexLowRefs,
@@ -47,3 +39,4 @@ enum Checks {
 };
 
 constexpr int padding = 20;
+

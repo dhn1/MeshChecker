@@ -75,6 +75,8 @@ add_executable (${PROJECT_NAME}
     globals.h
     CheckResult.h
     CheckResult.cpp
+    FileResult.h FileResult.cpp
+
     )
 
 set_target_properties (${PROJECT_NAME} PROPERTIES

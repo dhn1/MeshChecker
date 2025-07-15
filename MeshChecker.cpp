@@ -65,7 +65,7 @@ MeshChecker::~MeshChecker ()
     m_edgesFuture.waitForFinished ();
     delete m_octtreeFuture.result ();
 }
-
+#if 0
 bool MeshChecker::checkMultiThreaded ()
 {
     QList<QFuture<CheckResult>> futures;
@@ -180,12 +180,14 @@ bool MeshChecker::checkMultiThreaded ()
     QThread::usleep (20);  // TODO: remove?
     return ret;
 }
+#endif
 
-bool MeshChecker::check ()
+FileResult MeshChecker::check ()
 {
     QLocale const locale;
-
-    bool ret = true;
+    FileResult ret;
+    ret.m_path = m_path;
+    ret.m_pass = true;
     m_summary.clear ();
 
     for (const auto& c : std::as_const (m_checkList))
@@ -193,8 +195,8 @@ bool MeshChecker::check ()
         if (m_checks & c.first)
         {
             auto res = (this->*c.second) ();
-            ret &= res.m_pass;
-            report (res);
+            ret.m_pass &= res.m_pass;
+            ret.m_checkResults.push_back(res);
             if (res.m_badCount >= 0)
             {
                 const auto& name = checkName (c.first);
@@ -970,13 +972,13 @@ QString MeshChecker::description (Checks check)
     case CheckTriangleOverlap:
         return "check for overlapping triangles";
     case CheckUnviableTriangles:
-        return "check for unviable triangles";
+        return "check for expressively small triangles.";
     case CheckOverusedHalfEdges:
         return "check for overused half edges";
     case CheckFlatTriangles:
-        return "check for flat triangles";
+        return "check for flat triangles ((too small to reliably calculate a normal)";
     case CheckDeleted:
-        return "Check for deleted triangles (nethers only)";
+        return "Check for deleted triangles (nethers format only)";
     case CheckVertexLowRefs:
         return "check for vertices with too few references";
     default:

@@ -8,6 +8,7 @@
 #include <QString>
 
 #include "CheckResult.h"
+#include "FileResult.h"
 
 class MeshChecker
 {
@@ -23,9 +24,10 @@ public:
     static QString description (Checks check);
 
     MeshChecker (const MeshPtr& mesh, const QString& path);
+
     virtual ~MeshChecker ();
-    bool check ();
-    bool checkMultiThreaded ();
+    FileResult check ();
+    //bool checkMultiThreaded ();
     void setCheckFlags (uint flags) { m_checks = flags; }
     QString summary () const;
     QString path () const { return m_path; }
