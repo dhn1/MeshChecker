@@ -6,12 +6,16 @@
 #include <QElapsedTimer>
 #include <QFileInfo>
 #include <QGuiApplication>
+#include <QTextCursor>
+#include <QTextDocument>
 
 #include "Document.h"
 #include "MeshChecker.h"
 #include "globals.h"
 
 Verbosity verbosity{Mute};
+bool genReport {};
+ReporterFn report;
 
 static QStringList suffixes{"nethers", "stl", "obj", "3mf"};
 
@@ -37,8 +41,41 @@ static int check2idx (Checks check)
 }
 
 QTextStream out (stdout);
+static QFile markdown ("/tmp/report.md");
+static QTextStream md (&markdown);
 
-void report (const CheckResult& res)
+static void reportFancy (const CheckResult& res)
+{
+    if (!reportedFilename)
+    {
+        reportedFilename = true;
+
+        md << "## " << res.m_path << '\n';
+        md << "|||\n|--|--|\n";
+    }
+    if (res.m_check == CheckInfo || res.m_check == CheckShortEdges)
+    {
+        return;
+    }
+    if (verbosity & Summary)
+    {
+        switch (res.m_badCount)
+        {
+        case -1:
+            md << "|" << res.m_report.split ('\n').constFirst () << "||\n";
+            break;
+        case 0:
+            md << "|" << MeshChecker::checkName (res.m_check) << "|None|\n";
+            break;
+        default:
+            md << "|" << MeshChecker::checkName (res.m_check) << "|" << QString::number (res.m_badCount) << "|\n";
+            break;
+        }
+    }
+    summeryResult[check2idx (res.m_check)] += res.m_badCount;
+}
+
+static void reportBasic (const CheckResult& res)
 {
     if (!reportedFilename)
     {
@@ -82,7 +119,7 @@ static bool processFile (const QString& path)
 
     checker.setCheckFlags (flags);
 
-    if (!failOnly && (verbosity & FileName))
+    if (!genReport && !failOnly && (verbosity & FileName))
     {
         out << path;
     }
@@ -97,7 +134,7 @@ static bool processFile (const QString& path)
         ret = checker.check ();
     }
 
-    if (!failOnly || !ret)
+    if (!genReport && (!failOnly || !ret))
     {
         if ((verbosity & Summary) && !checker.summary ().isEmpty ())
         {
@@ -152,6 +189,64 @@ static void files (const QString& path)
     }
 }
 
+static void summarise ()
+{
+    out << QStringLiteral ("\n%1 failed out of %2 (%3% passed)").arg (failCount).arg (fileCount).arg (100 * (fileCount - failCount) / fileCount);
+    out << "\n  Overall Summary:\n";
+    int t = 1;
+    int idx = 0;
+    QLocale const locale;
+    do
+    {
+        if (t & flags)
+        {
+            auto check = (Checks)(flags & t);
+            auto r = summeryResult[check2idx (check)];
+            if (r >= 0)
+            {
+                const auto name = MeshChecker::checkName (check);
+                out << "    " << name << QString (padding - name.length (), QChar ('.')) << ": " << locale.toString (summeryResult[check2idx (check)]) << "\n";
+            }
+        }
+        t <<= 1;
+        idx++;
+    } while (idx < 64);
+}
+
+static void summariseMd ()
+{
+    md << "# Overall Summary:\n";
+    md << QStringLiteral ("\n%1 failed out of %2 (%3% passed)").arg (failCount).arg (fileCount).arg (100 * (fileCount - failCount) / fileCount) << "\n";
+    md << "|||\n|---|---|\n";
+
+    int t = 1;
+    int idx = 0;
+    QLocale const locale;
+    do
+    {
+        if (t & flags)
+        {
+            auto check = (Checks)(flags & t);
+            auto r = summeryResult[check2idx (check)];
+            if (r >= 0)
+            {
+                const auto name = MeshChecker::checkName (check);
+                const auto badCount = summeryResult[check2idx (check)];
+                if (badCount == 0)
+                {
+                    md << "|" << name << "|None|\n";
+                }
+                else
+                {
+                    md << "|" << name << "|" << locale.toString (summeryResult[check2idx (check)]) << "|\n";
+                }
+            }
+        }
+        t <<= 1;
+        idx++;
+    } while (idx < 64);
+}
+
 static const int levels[NO_VERBOSITY_LEVELS] = {
     Mute,
     FileName,
@@ -161,6 +256,8 @@ static const int levels[NO_VERBOSITY_LEVELS] = {
 
 int main (int argc, char** argv)
 {
+    report = reportBasic;
+
     QGuiApplication const a (argc, argv);
 
     QCoreApplication::setApplicationName (QStringLiteral ("MeshChecker"));
@@ -180,6 +277,7 @@ int main (int argc, char** argv)
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("stl"), QStringLiteral ("STL files only")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("3mf"), QStringLiteral ("3MF files only")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("nethers"), QStringLiteral ("nethers files only")));
+    parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("report"), QStringLiteral ("generate a report in MD format")));
     parser.setSingleDashWordOptionMode (QCommandLineParser::ParseAsLongOptions);
     const auto& checkList = MeshChecker::checkList ();
     for (const auto& check : checkList)
@@ -188,6 +286,15 @@ int main (int argc, char** argv)
     }
 
     parser.process (a);
+
+    genReport = parser.isSet (QStringLiteral ("report"));
+    if (genReport)
+    {
+        report = reportFancy;
+        markdown.open (QFile::WriteOnly);
+        md << "# Mesh Check report\n";
+        md << "Version: " <<  + VERSION << '\n';
+    }
 
     if (parser.isSet ("stl") || parser.isSet (QStringLiteral ("3mf")) || parser.isSet (QStringLiteral ("nethers")))
     {
@@ -250,26 +357,15 @@ int main (int argc, char** argv)
 
     if (verbosity != Mute && fileCount > 1)
     {
-        out << QStringLiteral ("\n%1 failed out of %2 (%3% passed)").arg (failCount).arg (fileCount).arg (100 * (fileCount - failCount) / fileCount);
-        out << "\n  Overall Summary:\n";
-        int t = 1;
-        int idx = 0;
-        QLocale const locale;
-        do
+        if (genReport)
         {
-            if (t & flags)
-            {
-                auto check = (Checks)(flags & t);
-                auto r = summeryResult[check2idx (check)];
-                if (r >= 0)
-                {
-                    const auto name = MeshChecker::checkName (check);
-                    out << "    " << name << QString (padding - name.length (), QChar ('.')) << ": " << locale.toString (summeryResult[check2idx (check)]) << "\n";
-                }
-            }
-            t <<= 1;
-            idx++;
-        } while (idx < 64);
+            summariseMd ();
+        }
+        else
+        {
+            summarise ();
+        }
+
     }
 
     if (verbosity != Mute)
@@ -278,5 +374,11 @@ int main (int argc, char** argv)
         out << "\nTook " << locale.toString ((double)et.nsecsElapsed () / 1000000000.0) << " seconds" << '\n';
     }
 
+    // if (genReport)
+    // {
+    //     QFile out ("/tmp/report.md");
+    //     out.open(QFile::WriteOnly);
+    //     out .write (rep.toMarkdown().toUtf8());
+    // }
     return (ok ? 0 : 100);
 }

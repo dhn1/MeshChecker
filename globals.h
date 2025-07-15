@@ -14,9 +14,13 @@ enum Verbosity
     Details     = 4,
 };
 
+extern bool genReport;
+
 extern Verbosity verbosity;
 
-void report (const CheckResult& res);
+typedef void (*ReporterFn) (const CheckResult&);
+
+extern ReporterFn report;
 
 enum Checks {
     CheckNothing                = 0,
