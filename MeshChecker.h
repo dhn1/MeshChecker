@@ -13,8 +13,6 @@
 class MeshChecker
 {
 public:
-
-
     typedef CheckResult (MeshChecker::*CheckFn) ();
     typedef QList<QPair<Checks, MeshChecker::CheckFn>> CheckList;
 
@@ -27,7 +25,6 @@ public:
 
     virtual ~MeshChecker ();
     FileResult check ();
-    //bool checkMultiThreaded ();
     void setCheckFlags (uint flags) { m_checks = flags; }
     QString summary () const;
     QString path () const { return m_path; }
@@ -57,7 +54,6 @@ private:
     CheckResult checkFlatTriangles ();
     CheckResult checkDeleted ();
     CheckResult checkVertexRefs ();
-
 };
 
 #endif  // MESHCHECKER_H

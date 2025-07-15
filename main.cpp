@@ -15,8 +15,7 @@
 #include "globals.h"
 
 static Verbosity verbosity{Mute};
-static bool genReport {};
-
+static bool genReport{};
 static QStringList suffixes{"nethers", "stl", "obj", "3mf"};
 
 static bool ok = true;
@@ -41,7 +40,7 @@ static int check2idx (Checks check)
 }
 
 QTextStream out (stdout);
-static QFile markdown ("/tmp/report.md");
+static QFile markdown;
 static QTextStream md (&markdown);
 
 static void reportFancy (const FileResult& results)
@@ -51,10 +50,10 @@ static void reportFancy (const FileResult& results)
         return;
     }
     auto path = results.m_path;
-    if (path.startsWith(rootFolder))
+    if (path.startsWith (rootFolder))
     {
-        path = path.mid(rootFolder.length());
-        if (path.startsWith("/"))
+        path = path.mid (rootFolder.length ());
+        if (path.startsWith (QStringLiteral ("/")))
         {
             path = path.mid (1);
         }
@@ -66,8 +65,8 @@ static void reportFancy (const FileResult& results)
         {
             if (res.m_check == CheckInfo /*|| res.m_check == CheckShortEdges*/)
             {
-                auto report = res.m_report.trimmed();
-                report = report.mid (4).trimmed();
+                auto report = res.m_report.trimmed ();
+                report = report.mid (4).trimmed ();
                 //report.replace("\n", "\n\n");
                 md << "    " << report << "\n";
             }
@@ -128,12 +127,11 @@ static void reportBasic (const FileResult& results)
         summeryResult[check2idx (res.m_check)] += res.m_badCount;
     }
 
-
     if (verbosity & Summary)
     {
         out << "  SUMMARY:\n";
     }
-    QLocale locale;
+    QLocale const locale;
     for (const auto& res : results.m_checkResults)
     {
         if (verbosity & Summary)
@@ -146,13 +144,12 @@ static void reportBasic (const FileResult& results)
         }
     }
     out.flush ();
- }
+}
 
 static bool processFile (const QString& path)
 {
-    //reportedFilename = false;
     fileCount++;
-    Triangle::resetID ();   // May need to mutex this if we multi thread
+    Triangle::resetID ();  // May need to mutex this if we multi thread
     auto mesh = Document::readMesh (path);
     if (!mesh)
     {
@@ -169,7 +166,7 @@ static bool processFile (const QString& path)
 
     if (genReport)
     {
-        reportFancy(res);
+        reportFancy (res);
     }
     else
     {
@@ -194,12 +191,12 @@ static void files (const QString& path)
     }
     if (inf.isFile () && suffixes.contains (inf.suffix ()))
     {
-        rootFolder = inf.absolutePath();
+        rootFolder = inf.absolutePath ();
         processFile (path);
     }
     else if (inf.isDir ())
     {
-        rootFolder = inf.absoluteFilePath();
+        rootFolder = inf.absoluteFilePath ();
         QDir const d (path);
         auto entries = d.entryInfoList (QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot);
         for (const auto& e : std::as_const (entries))
@@ -282,7 +279,7 @@ int main (int argc, char** argv)
     QGuiApplication const a (argc, argv);
 
     QCoreApplication::setApplicationName (QStringLiteral ("MeshChecker"));
-    QCoreApplication::setApplicationVersion (QStringLiteral (VERSION) + QStringLiteral (" (libSculpt ") + libSculptVersion () + ")");
+    QCoreApplication::setApplicationVersion (QStringLiteral (VERSION) + QStringLiteral (" (libSculpt ") + libSculptVersion () + QStringLiteral (")"));
     QCoreApplication::setOrganizationName (QStringLiteral ("Netherwood Industries"));
 
     QCommandLineParser parser;
@@ -308,7 +305,7 @@ int main (int argc, char** argv)
 
     parser.process (a);
 
-    if (parser.isSet ("stl") || parser.isSet (QStringLiteral ("3mf")) || parser.isSet (QStringLiteral ("nethers")))
+    if (parser.isSet (QStringLiteral ("stl")) || parser.isSet (QStringLiteral ("3mf")) || parser.isSet (QStringLiteral ("nethers")))
     {
         suffixes.clear ();
     }
@@ -358,28 +355,27 @@ int main (int argc, char** argv)
 
     if (genReport)
     {
-        markdown.setFileName(parser.value("report"));
+        markdown.setFileName (parser.value (QStringLiteral ("report")));
         markdown.open (QFile::WriteOnly);
-        if (!markdown.isOpen())
+        if (!markdown.isOpen ())
         {
-            qDebug () << "Unable to open report output file: " << parser.value("report");
+            qDebug () << "Unable to open report output file: " << parser.value (QStringLiteral ("report"));
             return 100;
         }
         md << "# Mesh Check report\n";
-        md << "Version: " <<  + VERSION << "\n\n";
+        md << "Version: " << +VERSION << "\n\n";
         if (failOnly)
         {
             md << "reporting only failed files\n\n";
         }
-        md << "Running checks:\n" ;
+        md << "Running checks:\n";
         int t = 1;
         do
         {
             if (t & flags)
             {
                 auto check = (Checks)(flags & t);
-                const auto name = MeshChecker::checkName (check);
-                md << "* " << MeshChecker::checkName (check) << " - " << MeshChecker::description(check) << "\n";
+                md << "* " << MeshChecker::checkName (check) << " - " << MeshChecker::description (check) << "\n";
             }
             t <<= 1;
         } while (t);
@@ -409,7 +405,6 @@ int main (int argc, char** argv)
         {
             summarise ();
         }
-
     }
 
     if (verbosity != Mute)
@@ -418,11 +413,5 @@ int main (int argc, char** argv)
         out << "\nTook " << locale.toString ((double)et.nsecsElapsed () / 1000000000.0) << " seconds" << '\n';
     }
 
-    // if (genReport)
-    // {
-    //     QFile out ("/tmp/report.md");
-    //     out.open(QFile::WriteOnly);
-    //     out .write (rep.toMarkdown().toUtf8());
-    // }
     return (ok ? 0 : 100);
 }
