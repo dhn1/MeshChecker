@@ -19,9 +19,8 @@
 static QMutex flagMutex;  // Used to control access to triangle flags
 MeshChecker::CheckList MeshChecker::m_checkList;
 
-MeshChecker::MeshChecker (const MeshPtr& mesh, const QString& path) : m_mesh (mesh)
+MeshChecker::MeshChecker (const MeshPtr& mesh, const QString& path) : m_mesh (mesh), m_path (path)
 {
-    m_path = path;
     m_edgesFuture = QtConcurrent::run ([this] {
         return HalfEdges::create (m_mesh);
     });
@@ -65,7 +64,7 @@ MeshChecker::~MeshChecker ()
     m_edgesFuture.waitForFinished ();
     delete m_octtreeFuture.result ();
 }
-
+#if 0
 bool MeshChecker::checkMultiThreaded ()
 {
     QList<QFuture<CheckResult>> futures;
@@ -180,12 +179,14 @@ bool MeshChecker::checkMultiThreaded ()
     QThread::usleep (20);  // TODO: remove?
     return ret;
 }
+#endif
 
-bool MeshChecker::check ()
+FileResult MeshChecker::check ()
 {
     QLocale const locale;
-
-    bool ret = true;
+    FileResult ret;
+    ret.m_path = m_path;
+    ret.m_pass = true;
     m_summary.clear ();
 
     for (const auto& c : std::as_const (m_checkList))
@@ -193,12 +194,12 @@ bool MeshChecker::check ()
         if (m_checks & c.first)
         {
             auto res = (this->*c.second) ();
-            ret &= res.m_pass;
-            report (res);
+            ret.m_pass &= res.m_pass;
+            ret.m_checkResults.push_back (res);
             if (res.m_badCount >= 0)
             {
                 const auto& name = checkName (c.first);
-                m_summary += "    " + name + QString (padding - name.length (), QChar ('.')) + QStringLiteral (": ") + locale.toString (res.m_badCount) + QStringLiteral ("\n");
+                m_summary += QStringLiteral ("    ") + name + QString (padding - name.length (), QChar ('.')) + QStringLiteral (": ") + locale.toString (res.m_badCount) + QStringLiteral ("\n");
             }
         }
     }
@@ -303,8 +304,6 @@ CheckResult MeshChecker::checkOpenEdges ()
 
 CheckResult MeshChecker::checkHoles ()
 {
-    QMutexLocker const locker (&flagMutex);
-
     auto holes = getEdges ()->holes ();
     if (holes.isEmpty ())
     {
@@ -319,7 +318,7 @@ CheckResult MeshChecker::checkHoles ()
     {
         //idx++;
         auto area = hole.area ();
-        r += QStringLiteral ("    Hole: (") + QString::number (area) + "sq)\n";
+        r += QStringLiteral ("    Hole: (") + QString::number (area) + QStringLiteral ("sq)\n");
     }
     return {CheckHoles, m_path, holes.isEmpty (), r, (int)holes.count ()};
 }
@@ -379,7 +378,7 @@ CheckResult MeshChecker::checkDuplicateTriangles ()
             {
                 if (!thash.contains (t))
                 {
-                    r += QStringLiteral ("    T: %1 and T: %2\n").arg(t->name (), tt->name ());
+                    r += QStringLiteral ("    T: %1 and T: %2\n").arg (t->name (), tt->name ());
                     badCount++;
                     thash.insert (TriangleKey (t), 0);
                 }
@@ -427,12 +426,12 @@ CheckResult MeshChecker::checkShortEdges ()
                 if (edge->pair ())
                 {
                     ret += QStringLiteral ("    Short edge ") + QString::number (sqrt (mag2)) + QStringLiteral ("mm. Between vertex: ") + edge->v1 ()->name () + QStringLiteral (" and ") + edge->v2 ()->name () + QStringLiteral (". Ts ") +
-                           edge->triangle ()->name () + " and " + edge->pair ()->triangle ()->name () + " \n";
+                           edge->triangle ()->name () + " and " + edge->pair ()->triangle ()->name () + QStringLiteral (" \n");
                 }
                 else
                 {
                     ret += QStringLiteral ("    Short edge ") + QString::number (sqrt (mag2)) + QStringLiteral ("mm. Between vertex: ") + edge->v1 ()->name () + QStringLiteral (" and ") + edge->v2 ()->name () + QStringLiteral (". Ts ") +
-                           edge->triangle ()->name () + " and None\n";
+                           edge->triangle ()->name () + QByteArrayLiteral (" and None\n");
                 }
             }
             if (mag2 < smallest2)
@@ -468,8 +467,6 @@ CheckResult MeshChecker::checkShortEdges ()
 CheckResult MeshChecker::checkReversedTriangles ()
 {
     QString ret;
-
-    QMutexLocker locker (&flagMutex);
 
     QList<TrianglePtr> reversedTriangles;
     const auto hash = getEdges ()->edgeByEdge ();
@@ -540,8 +537,8 @@ CheckResult MeshChecker::checkOverusedHalfEdges ()
         if (values.count () > 2)
         {
             badCount++;
-            auto e = values.constFirst ();
-            ret.push_back (QStringLiteral ("    edge: %1 -> %2\n").arg(e->v1 ()->name (), e->v2 ()->name ()));
+            const auto& e = values.constFirst ();
+            ret.push_back (QStringLiteral ("    edge: %1 -> %2\n").arg (e->v1 ()->name (), e->v2 ()->name ()));
             for (const auto& match : values)
             {
                 ret.push_back (QStringLiteral ("      Used by T: %1\n").arg (match->triangle ()->name ()));
@@ -566,9 +563,7 @@ CheckResult MeshChecker::checkInfo ()
     auto edges = getEdges ();
     auto ecount = m_mesh->halfEdgeList ().count ();
 
-    QMutexLocker const locker (&flagMutex);
-
-    QFileInfo f (m_path);
+    const QFileInfo f (m_path);
     ret += QStringLiteral ("  Info\n    Modified: %1\n").arg (f.lastModified ().toString ());
 
     const auto comps = m_mesh->splitComponents (edges);
@@ -603,7 +598,6 @@ CheckResult MeshChecker::checkInfo ()
 
 CheckResult MeshChecker::checkDuplicateVertices ()
 {
-    QMutexLocker const locker (&flagMutex);
     QString ret;
     int badCount = 0;
     OctTree tree (m_mesh->box ());
@@ -751,7 +745,6 @@ CheckResult MeshChecker::checkTriangleOverlap ()
     QList<double> tts;
     QList<double> cts;
     const auto& ttree = *m_octtreeFuture.result ();
-    QMutexLocker locker (&flagMutex);
     QList<QPair<TrianglePtr, TrianglePtr>> overlaps;
 
     for (const auto& t : qAsConst (*m_mesh))
@@ -848,7 +841,7 @@ CheckResult MeshChecker::checkTriangleOverlap ()
 
         for (const auto& overlap : overlaps)
         {
-            ret.push_back (QStringLiteral ("    Overlap: %1 and %2\n").arg(overlap.first->name (), overlap.second->name ()));
+            ret.push_back (QStringLiteral ("    Overlap: %1 and %2\n").arg (overlap.first->name (), overlap.second->name ()));
         }
 
         ret.push_front (QStringLiteral ("  Found %1 triangle overlaps\n").arg (overlaps.count ()));
@@ -906,37 +899,37 @@ QString MeshChecker::checkName (Checks check)
     switch (check)
     {
     case CheckNothing:
-        return "Nothing";
+        return QStringLiteral ("Nothing");
     case CheckHoles:
-        return "Holes";
+        return QStringLiteral ("Holes");
     case CheckDuplicateTriangles:
-        return "DuplicateTriangles";
+        return QStringLiteral ("DuplicateTriangles");
     case CheckShortEdges:
-        return "ShortEdges";
+        return QStringLiteral ("ShortEdges");
     case CheckInfo:
-        return "Info";
+        return QStringLiteral ("Info");
     case CheckReversedTriangles:
-        return "ReversedTriangles";
+        return QStringLiteral ("ReversedTriangles");
     case CheckDuplicateVertices:
-        return "DuplicateVertices";
+        return QStringLiteral ("DuplicateVertices");
     case CheckOpenEdges:
-        return "OpenEdges";
+        return QStringLiteral ("OpenEdges");
     case CheckHalfEdgeOverlap:
-        return "HalfEdgeOverlap";
+        return QStringLiteral ("HalfEdgeOverlap");
     case CheckTriangleOverlap:
-        return "TriangleOverlap";
+        return QStringLiteral ("TriangleOverlap");
     case CheckUnviableTriangles:
-        return "UnviableTriangles";
+        return QStringLiteral ("UnviableTriangles");
     case CheckOverusedHalfEdges:
-        return "OverusedHalfEdges";
+        return QStringLiteral ("OverusedHalfEdges");
     case CheckFlatTriangles:
-        return "FlatTriangles";
+        return QStringLiteral ("FlatTriangles");
     case CheckDeleted:
-        return "Deleted";
+        return QStringLiteral ("Deleted");
     case CheckVertexLowRefs:
-        return "VertexLowRefs";
+        return QStringLiteral ("VertexLowRefs");
     default:
-        return "??";
+        return QStringLiteral ("??");
     }
 }
 
@@ -950,36 +943,36 @@ QString MeshChecker::description (Checks check)
     switch (check)
     {
     case CheckNothing:
-        return "Nothing";
+        return QStringLiteral ("Nothing");
     case CheckHoles:
-        return "check for holes";
+        return QStringLiteral ("check for holes");
     case CheckDuplicateTriangles:
-        return "check for duplicate triangles";
+        return QStringLiteral ("check for duplicate triangles");
     case CheckShortEdges:
-        return "check for short edges";
+        return QStringLiteral ("check for short edges");
     case CheckInfo:
-        return "show basic stats";
+        return QStringLiteral ("show basic stats");
     case CheckReversedTriangles:
-        return "check for reversed triangles";
+        return QStringLiteral ("check for reversed triangles");
     case CheckDuplicateVertices:
-        return "check for duplicate vertices";
+        return QStringLiteral ("check for duplicate vertices");
     case CheckOpenEdges:
-        return "check for open edges";
+        return QStringLiteral ("check for open edges");
     case CheckHalfEdgeOverlap:
-        return "check for overlapping half edges";
+        return QStringLiteral ("check for overlapping half edges");
     case CheckTriangleOverlap:
-        return "check for overlapping triangles";
+        return QStringLiteral ("check for overlapping triangles");
     case CheckUnviableTriangles:
-        return "check for unviable triangles";
+        return QStringLiteral ("check for expressively small triangles.");
     case CheckOverusedHalfEdges:
-        return "check for overused half edges";
+        return QStringLiteral ("check for overused half edges");
     case CheckFlatTriangles:
-        return "check for flat triangles";
+        return QStringLiteral ("check for flat triangles ((too small to reliably calculate a normal)");
     case CheckDeleted:
-        return "Check for deleted triangles (nethers only)";
+        return QStringLiteral ("Check for deleted triangles (nethers format only)");
     case CheckVertexLowRefs:
-        return "check for vertices with too few references";
+        return QStringLiteral ("check for vertices with too few references");
     default:
-        return "??";
+        return QStringLiteral ("??");
     }
 }

@@ -8,12 +8,11 @@
 #include <QString>
 
 #include "CheckResult.h"
+#include "FileResult.h"
 
 class MeshChecker
 {
 public:
-
-
     typedef CheckResult (MeshChecker::*CheckFn) ();
     typedef QList<QPair<Checks, MeshChecker::CheckFn>> CheckList;
 
@@ -23,9 +22,9 @@ public:
     static QString description (Checks check);
 
     MeshChecker (const MeshPtr& mesh, const QString& path);
+
     virtual ~MeshChecker ();
-    bool check ();
-    bool checkMultiThreaded ();
+    FileResult check ();
     void setCheckFlags (uint flags) { m_checks = flags; }
     QString summary () const;
     QString path () const { return m_path; }
@@ -55,7 +54,6 @@ private:
     CheckResult checkFlatTriangles ();
     CheckResult checkDeleted ();
     CheckResult checkVertexRefs ();
-
 };
 
 #endif  // MESHCHECKER_H
