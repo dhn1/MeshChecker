@@ -475,21 +475,21 @@ CheckResult MeshChecker::checkReversedTriangles ()
     {
         for (int ee = 0; ee < 3; ee++)
         {
-            auto const & e = t->halfEdge (ee);
+            auto const & hedge = t->halfEdge (ee);
 
-            if (e->testFlag (HalfEdge::Delete))
+            if (hedge->testFlag (HalfEdge::Delete))
             {
                 continue;
             }
 
-            auto values = hash.values ({e});
+            auto values = hash.values ({hedge});
             //Q_ASSERT (values.count () == 1 || values.count() == 2);
 
             if (values.count () == 2)
             {
                 if (values.at (0)->v1 () == values.at (1)->v1 ())
                 {
-                    reversedTriangles << e->triangle ();
+                    reversedTriangles << hedge->triangle ();
                 }
             }
         }
@@ -953,7 +953,7 @@ QString MeshChecker::description (Checks check)
     case CheckInfo:
         return QStringLiteral ("show basic stats");
     case CheckReversedTriangles:
-        return QStringLiteral ("check for reversed triangles");
+        return QStringLiteral ("check for triangles who's edges are in the same direction as its neighbours - i.e. the triangle is reversed");
     case CheckDuplicateVertices:
         return QStringLiteral ("check for duplicate vertices");
     case CheckOpenEdges:
@@ -963,13 +963,13 @@ QString MeshChecker::description (Checks check)
     case CheckTriangleOverlap:
         return QStringLiteral ("check for overlapping triangles");
     case CheckUnviableTriangles:
-        return QStringLiteral ("check for expressively small triangles.");
+        return QStringLiteral ("check for triangles for expressively small heights and edges");
     case CheckOverusedHalfEdges:
         return QStringLiteral ("check for overused half edges");
     case CheckFlatTriangles:
-        return QStringLiteral ("check for flat triangles ((too small to reliably calculate a normal)");
+        return QStringLiteral ("check for flat triangles (too flat to reliably calculate a normal)");
     case CheckDeleted:
-        return QStringLiteral ("Check for deleted triangles (nethers format only)");
+        return QStringLiteral ("check for deleted triangles (nethers format only)");
     case CheckVertexLowRefs:
         return QStringLiteral ("check for vertices with too few references");
     default:
