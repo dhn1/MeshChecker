@@ -26,8 +26,8 @@ enum Checks {
     CheckHalfEdgeOverlap        = 1 << 8,
     CheckTriangleOverlap        = 1 << 9,
     CheckUnviableTriangles      = 1 << 10,
-    CheckOverusedHalfEdges      = 1 << 11,
-    CheckFlatTriangles          = 1 << 12,
+    CheckFlatTriangles          = 1 << 11,
+    CheckOverusedHalfEdges      = 1 << 12,
     CheckDeleted                = 1 << 13,
     CheckVertexLowRefs          = 1 << 14,
 
