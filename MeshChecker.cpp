@@ -245,10 +245,10 @@ CheckResult MeshChecker::checkVertexRefs ()
     {
         str.push_front (QStringLiteral ("  %1 low ref vertices found\n").arg (badCount));
 
-        return {CheckVertexLowRefs, m_path, false, str, badCount};
+        return {CheckVertexLowRefs, false, str, badCount};
     }
     str.push_front (QStringLiteral ("  No low ref vertices found\n"));
-    return {CheckVertexLowRefs, m_path, true, str, badCount};
+    return {CheckVertexLowRefs, true, str, badCount};
 }
 
 CheckResult MeshChecker::checkDeleted ()
@@ -267,10 +267,10 @@ CheckResult MeshChecker::checkDeleted ()
     {
         str.push_front (QStringLiteral ("  %1 deleted triangles found\n").arg (badCount));
 
-        return {CheckDeleted, m_path, false, str, badCount};
+        return {CheckDeleted, false, str, badCount};
     }
     str.push_front (QStringLiteral ("  No deleted triangles found\n"));
-    return {CheckDeleted, m_path, true, str, badCount};
+    return {CheckDeleted, true, str, badCount};
 }
 
 QString MeshChecker::summary () const
@@ -296,10 +296,10 @@ CheckResult MeshChecker::checkOpenEdges ()
     if (badCount == 0)
     {
         str.push_front (QStringLiteral ("  No open edges found\n"));
-        return {CheckOpenEdges, m_path, true, str, badCount};
+        return {CheckOpenEdges, true, str, badCount};
     }
     str.push_front (QStringLiteral ("  %1 Open edges found\n").arg (badCount));
-    return {CheckOpenEdges, m_path, badCount == 0, str, badCount};
+    return {CheckOpenEdges, badCount == 0, str, badCount};
 }
 
 CheckResult MeshChecker::checkHoles ()
@@ -307,7 +307,7 @@ CheckResult MeshChecker::checkHoles ()
     auto holes = getEdges ()->holes ();
     if (holes.isEmpty ())
     {
-        return {CheckHoles, m_path, true, QStringLiteral ("  No holes\n"), 0};
+        return {CheckHoles, true, QStringLiteral ("  No holes\n"), 0};
     }
     QString r;
 
@@ -320,7 +320,7 @@ CheckResult MeshChecker::checkHoles ()
         auto area = hole.area ();
         r += QStringLiteral ("    Hole: (") + QString::number (area) + QStringLiteral ("sq)\n");
     }
-    return {CheckHoles, m_path, holes.isEmpty (), r, (int)holes.count ()};
+    return {CheckHoles, holes.isEmpty (), r, (int)holes.count ()};
 }
 
 class TriangleKey
@@ -388,10 +388,10 @@ CheckResult MeshChecker::checkDuplicateTriangles ()
     if (!badCount)
     {
         r += QStringLiteral ("  No duplicate triangles\n");
-        return {CheckDuplicateTriangles, m_path, true, r, badCount};
+        return {CheckDuplicateTriangles, true, r, badCount};
     }
     r.push_front (QStringLiteral ("  %1 duplicate triangles\n").arg (badCount));
-    return {CheckDuplicateTriangles, m_path, false, r, badCount};
+    return {CheckDuplicateTriangles, false, r, badCount};
 }
 
 CheckResult MeshChecker::checkShortEdges ()
@@ -461,7 +461,7 @@ CheckResult MeshChecker::checkShortEdges ()
     {
         ret.push_front (QStringLiteral ("  No null edges\n"));
     }
-    return {CheckShortEdges, m_path, ok, ret, -1};
+    return {CheckShortEdges, ok, ret, -1};
 }
 
 CheckResult MeshChecker::checkReversedTriangles ()
@@ -514,10 +514,10 @@ CheckResult MeshChecker::checkReversedTriangles ()
     if (badCount)
     {
         ret.push_front (QStringLiteral ("  %1 reversed triangles\n").arg (badCount));
-        return {CheckReversedTriangles, m_path, false, ret, badCount};
+        return {CheckReversedTriangles, false, ret, badCount};
     }
     ret += QStringLiteral ("  No reversed triangles\n");
-    return {CheckReversedTriangles, m_path, true, ret, badCount};
+    return {CheckReversedTriangles, true, ret, badCount};
 }
 
 CheckResult MeshChecker::checkOverusedHalfEdges ()
@@ -549,10 +549,10 @@ CheckResult MeshChecker::checkOverusedHalfEdges ()
     if (badCount)
     {
         ret.push_front (QStringLiteral ("  %1 overused half edges\n").arg (badCount));
-        return {CheckOverusedHalfEdges, m_path, false, ret, badCount};
+        return {CheckOverusedHalfEdges, false, ret, badCount};
     }
     ret += QStringLiteral ("  No overused half edges\n");
-    return {CheckOverusedHalfEdges, m_path, true, ret, badCount};
+    return {CheckOverusedHalfEdges, true, ret, badCount};
 }
 
 CheckResult MeshChecker::checkInfo ()
@@ -593,7 +593,7 @@ CheckResult MeshChecker::checkInfo ()
             }
         }
     }
-    return {CheckInfo, m_path, true, ret, -1};
+    return {CheckInfo, true, ret, -1};
 }
 
 CheckResult MeshChecker::checkDuplicateVertices ()
@@ -614,9 +614,9 @@ CheckResult MeshChecker::checkDuplicateVertices ()
     if (badCount)
     {
         ret.prepend (QStringLiteral ("  %1 duplicate vertices\n").arg (badCount));
-        return {CheckDuplicateVertices, m_path, false, ret, badCount};
+        return {CheckDuplicateVertices, false, ret, badCount};
     }
-    return {CheckDuplicateVertices, m_path, true, QStringLiteral ("  No duplicate vertices\n"), badCount};
+    return {CheckDuplicateVertices, true, QStringLiteral ("  No duplicate vertices\n"), badCount};
 }
 
 CheckResult MeshChecker::checkHalfEdgeOverlap ()
@@ -736,7 +736,7 @@ CheckResult MeshChecker::checkHalfEdgeOverlap ()
     }
 #endif
     ret.push_front (QStringLiteral ("  Found %1 overlapping halfEdges (currently each reported twice).\n").arg (badCount / 2));
-    return {CheckHalfEdgeOverlap, m_path, badCount == 0, ret, badCount / 2};
+    return {CheckHalfEdgeOverlap, badCount == 0, ret, badCount / 2};
 }
 
 CheckResult MeshChecker::checkTriangleOverlap ()
@@ -850,7 +850,7 @@ CheckResult MeshChecker::checkTriangleOverlap ()
     {
         ret += QStringLiteral ("  No triangle overlap\n");
     }
-    return {CheckTriangleOverlap, m_path, overlaps.isEmpty (), ret, (int)overlaps.count ()};
+    return {CheckTriangleOverlap, overlaps.isEmpty (), ret, (int)overlaps.count ()};
 }
 
 CheckResult MeshChecker::checkUnviableTriangles ()
@@ -867,10 +867,10 @@ CheckResult MeshChecker::checkUnviableTriangles ()
     }
     if (!badCount)
     {
-        return {CheckUnviableTriangles, m_path, true, QStringLiteral ("  No unviable triangles\n"), badCount};
+        return {CheckUnviableTriangles, true, QStringLiteral ("  No unviable triangles\n"), badCount};
     }
     ret.push_front (QStringLiteral ("  %1 unviable (small or flat) triangles\n").arg (badCount));
-    return {CheckUnviableTriangles, m_path, true, ret, badCount};
+    return {CheckUnviableTriangles, true, ret, badCount};
 }
 
 CheckResult MeshChecker::checkFlatTriangles ()
@@ -889,9 +889,9 @@ CheckResult MeshChecker::checkFlatTriangles ()
     if (badCount)
     {
         ret.push_front (QStringLiteral ("  %1 flat triangles\n").arg (badCount));
-        return {CheckFlatTriangles, m_path, false, ret, badCount};
+        return {CheckFlatTriangles, false, ret, badCount};
     }
-    return {CheckFlatTriangles, m_path, true, QStringLiteral ("  No flat triangles\n"), badCount};
+    return {CheckFlatTriangles, true, QStringLiteral ("  No flat triangles\n"), badCount};
 }
 
 QString MeshChecker::checkName (Checks check)

@@ -6,6 +6,7 @@
 #include <QElapsedTimer>
 #include <QFileInfo>
 #include <QGuiApplication>
+#include <QJsonDocument>
 #include <QTextCursor>
 #include <QTextDocument>
 
@@ -23,10 +24,26 @@ static int flags = CheckNothing;
 static int fileCount = 0;
 static int failCount = 0;
 static bool failOnly = false;
+static enum {None, Record, Compare} recordMode { None};
 static int summeryResult[64] = {};
+static int compareSummery[64] = {};
 static constexpr int NO_VERBOSITY_LEVELS = 4;
 static QString rootFolder;
 static bool verboseFail = false;
+QTextStream out (stdout);
+static QFile markdown;
+static QTextStream md (&markdown);
+static QJsonObject recording;
+
+static QString diffNo (int no)
+{
+    static const QLocale locale;
+    if (no <= 0)
+    {
+        return locale.toString(no);
+    }
+    return QStringLiteral ("+") + locale.toString (no);
+}
 
 static int check2idx (Checks check)
 {
@@ -40,9 +57,67 @@ static int check2idx (Checks check)
     return idx;
 }
 
-QTextStream out (stdout);
-static QFile markdown;
-static QTextStream md (&markdown);
+static void record ( const FileResult& results)
+{
+    switch (recordMode)
+    {
+    case None:
+        break;
+
+    case Record:
+        {
+            QJsonObject file;
+            file.insert ("file", results.m_path);
+            QJsonObject o;
+            for (const auto& result : results.m_checkResults)
+            {
+                o.insert (MeshChecker::checkName (result.m_check), result.m_badCount);
+            }
+            file.insert ("checks", o);
+            recording.insert (results.m_path, file);
+        }
+        break;
+
+    case Compare:
+        {
+            bool changes = false;
+            auto file = recording.value (results.m_path).toObject ();
+            if (file.isEmpty())
+            {
+                out << "\n" << results.m_path << " - NEW FILE\n";
+                return;
+            }
+            auto o = file.value ("checks").toObject ();
+
+            for (const auto& result : results.m_checkResults)
+            {
+                auto old = o.value (MeshChecker::checkName (result.m_check)).toDouble ();
+                auto diff = result.m_badCount - old;
+                compareSummery[check2idx (result.m_check)] += diff;
+                if (result.m_badCount != old)
+                {
+                    changes = true;
+                }
+            }
+            if (changes)
+            {
+                out << '\n' << results.m_path << '\n';
+                for (const auto& result : results.m_checkResults)
+                {
+                    auto name = MeshChecker::checkName (result.m_check);
+                    auto old = o.value (name).toDouble ();
+
+                    auto diff = result.m_badCount - old;
+                    if (diff != 0)
+                    {
+                        out << "  " << name << QString (padding - name.length (), QChar ('.')) << ": " << old << " -> " << result.m_badCount << " " << diffNo (diff) << '\n';
+                    }
+                 }
+            }
+        }
+        break;
+    }
+}
 
 static void reportMd (const FileResult& results)
 {
@@ -98,10 +173,10 @@ static void reportMd (const FileResult& results)
                 md << "|" << res.m_report.split ('\n').constFirst () << "||\n";
                 break;
             case 0:
-                md << "|" << MeshChecker::checkName (res.m_check) << "|None|\n";
+                md << "|" << res.name () << "|None|\n";
                 break;
             default:
-                md << "|" << MeshChecker::checkName (res.m_check) << "|" << QString::number (res.m_badCount) << "|\n";
+                md << "|" << res.name () << "|" << QString::number (res.m_badCount) << "|\n";
                 break;
             }
         }
@@ -144,7 +219,7 @@ static void reportBasic (const FileResult& results)
         {
             if (res.m_badCount > -1)
             {
-                auto name = MeshChecker::checkName (res.m_check);
+                auto name = res.name ();
                 out << "    " << name + QString (padding - name.length (), QChar ('.')) << QStringLiteral (": ") + locale.toString (res.m_badCount) + QStringLiteral ("\n");
             }
         }
@@ -178,6 +253,8 @@ static bool processFile (const QString& path)
     {
         reportBasic (res);
     }
+
+    record (res);
 
     if (!res.m_pass)
     {
@@ -315,6 +392,9 @@ int main (int argc, char** argv)
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("nethers"), QStringLiteral ("nethers files only")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("report"), QStringLiteral ("generate a report in Mark Down format"), QStringLiteral ("file")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("verboseFail"), QStringLiteral ("generate a summery or detailed report only for failed mesh files")));
+    parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("compare"), QStringLiteral ("compare with last recorded run"), QStringLiteral("JSON file")));
+    parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("record"), QStringLiteral ("record results in file for use with compare"), QStringLiteral("JSON file")));
+
     parser.setSingleDashWordOptionMode (QCommandLineParser::ParseAsLongOptions);
     const auto& checkList = MeshChecker::checkList ();
     for (const auto& check : checkList)
@@ -323,6 +403,34 @@ int main (int argc, char** argv)
     }
 
     parser.process (a);
+
+    if (parser.isSet ("compare"))
+    {
+        if (parser.isSet ("record"))
+        {
+            qDebug ().nospace ().noquote () << "Only --record or --compare allowed, not both";
+            return 106;
+        }
+        QFile in (parser.value ("compare"));
+        in.open (QFile::ReadOnly);
+        if (!in.isOpen ())
+        {
+            qDebug ().nospace ().noquote () << "Unable to open \"" << parser.value ("compare") << "\"";
+            return 105;
+        }
+        recordMode = Compare;
+        recording = QJsonDocument::fromJson (in.readAll ()).object ();
+    }
+
+    if (parser.isSet ("record"))
+    {
+        if (parser.isSet ("compare"))
+        {
+            qDebug ().nospace ().noquote () << "Only --record or --compare allowed, not both";
+            return 106;
+        }
+        recordMode = Record;
+    }
 
     verboseFail = parser.isSet (QStringLiteral ("verboseFail"));
     if (parser.isSet (QStringLiteral ("stl")) || parser.isSet (QStringLiteral ("3mf")) || parser.isSet (QStringLiteral ("nethers")))
@@ -415,16 +523,53 @@ int main (int argc, char** argv)
         rootFiles (f);
     }
 
-    if (verbosity != Mute && fileCount > 1)
+    if (genReport)
     {
-        if (genReport)
+        summariseMd ();
+    }
+
+    if ((verbosity & Summary) && fileCount > 1)
+    {
+        summarise ();
+    }
+
+    if (recordMode == Record)
+    {
+        recording.insert("files", fileCount);
+        recording.insert("fails", failCount);
+        QFile out (parser.value ("record"));
+        out.open (QFile::WriteOnly);
+        if (!out.isOpen ())
         {
-            summariseMd ();
+            qDebug ().nospace ().noquote () << "Unable to open \"" << parser.value ("record") << "\"";
+            return 105;
         }
-        else
+        QJsonDocument doc (recording);
+        out.write(doc.toJson());
+    }
+    if (recordMode == Compare)
+    {
+        out << QStringLiteral ("\nOverall changes: %1 files, %2 fails\n")
+                   .arg (diffNo (fileCount - recording.value("files").toInt()))
+                   .arg (diffNo (failCount - recording.value("fails").toInt()));
+        int t = 1;
+        int idx = 0;
+        QLocale const locale;
+        do
         {
-            summarise ();
-        }
+            if (t & flags)
+            {
+                auto check = (Checks)(flags & t);
+                auto r = compareSummery[check2idx (check)];
+                if (r != 0)
+                {
+                    const auto name = MeshChecker::checkName (check);
+                     out << "  " << name << QString (padding - name.length (), QChar ('.')) << ": " << diffNo (compareSummery[check2idx (check)]) << "\n";
+                }
+            }
+            t <<= 1;
+            idx++;
+        } while (idx < 64);
     }
 
     if (verbosity != Mute)
