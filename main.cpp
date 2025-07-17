@@ -26,6 +26,7 @@ static bool failOnly = false;
 static int summeryResult[64] = {};
 static constexpr int NO_VERBOSITY_LEVELS = 4;
 static QString rootFolder;
+static bool verboseFail = false;
 
 static int check2idx (Checks check)
 {
@@ -43,7 +44,7 @@ QTextStream out (stdout);
 static QFile markdown;
 static QTextStream md (&markdown);
 
-static void reportFancy (const FileResult& results)
+static void reportMd (const FileResult& results)
 {
     if (results.m_pass && failOnly)
     {
@@ -55,10 +56,14 @@ static void reportFancy (const FileResult& results)
         path = path.mid (rootFolder.length ());
         if (path.startsWith (QStringLiteral ("/")))
         {
-            path = path.mid (1);
+            path = QStringLiteral ("./") + path.mid (1);
         }
     }
     md << "## " << path << (results.m_pass ? " - PASS\n" : " - FAIL\n");
+    if (results.m_pass && verboseFail)
+    {
+        return;
+    }
     if (verbosity & Summary)
     {
         for (const auto& res : results.m_checkResults)
@@ -67,25 +72,26 @@ static void reportFancy (const FileResult& results)
             {
                 auto report = res.m_report.trimmed ();
                 report = report.mid (4).trimmed ();
-                //report.replace("\n", "\n\n");
                 md << "    " << report << "\n";
             }
         }
     }
 
+    for (const auto& res : results.m_checkResults)
+    {
+        summeryResult[check2idx (res.m_check)] += res.m_badCount;
+    }
+
     if (verbosity & Summary)
     {
         md << "|Test|Result|\n|--|--|\n";
-    }
 
-    for (const auto& res : results.m_checkResults)
-    {
-        if (res.m_check == CheckInfo || res.m_check == CheckShortEdges)
+        for (const auto& res : results.m_checkResults)
         {
-            continue;
-        }
-        if (verbosity & Summary)
-        {
+            if (res.m_check == CheckInfo || res.m_check == CheckShortEdges)
+            {
+                continue;
+            }
             switch (res.m_badCount)
             {
             case -1:
@@ -99,7 +105,7 @@ static void reportFancy (const FileResult& results)
                 break;
             }
         }
-        summeryResult[check2idx (res.m_check)] += res.m_badCount;
+        md << '\n';
     }
 }
 
@@ -166,7 +172,7 @@ static bool processFile (const QString& path)
 
     if (genReport)
     {
-        reportFancy (res);
+        reportMd (res);
     }
     else
     {
@@ -185,18 +191,12 @@ static bool processFile (const QString& path)
 static void files (const QString& path)
 {
     QFileInfo const inf (path);
-    if (!inf.exists ())
-    {
-        qDebug ().nospace ().noquote () << path << " does not exist";
-    }
     if (inf.isFile () && suffixes.contains (inf.suffix ()))
     {
-        rootFolder = inf.absolutePath ();
         processFile (path);
     }
     else if (inf.isDir ())
     {
-        rootFolder = inf.absoluteFilePath ();
         QDir const d (path);
         auto entries = d.entryInfoList (QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot);
         for (const auto& e : std::as_const (entries))
@@ -204,6 +204,24 @@ static void files (const QString& path)
             files (e.absoluteFilePath ());
         }
     }
+}
+
+static void rootFiles (const QString& path)
+{
+    QFileInfo const inf (path);
+    if (!inf.exists ())
+    {
+        qDebug ().nospace ().noquote () << path << " does not exist";
+    }
+    if (inf.isDir())
+    {
+        rootFolder = inf.absoluteFilePath ();
+    }
+    else
+    {
+        rootFolder = inf.absolutePath ();
+    }
+    files (path);
 }
 
 static void summarise ()
@@ -296,6 +314,7 @@ int main (int argc, char** argv)
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("3mf"), QStringLiteral ("3MF files only")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("nethers"), QStringLiteral ("nethers files only")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("report"), QStringLiteral ("generate a report in Mark Down format"), QStringLiteral ("file")));
+    parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("verboseFail"), QStringLiteral ("generate a summery or detailed report only for failed mesh files")));
     parser.setSingleDashWordOptionMode (QCommandLineParser::ParseAsLongOptions);
     const auto& checkList = MeshChecker::checkList ();
     for (const auto& check : checkList)
@@ -305,6 +324,7 @@ int main (int argc, char** argv)
 
     parser.process (a);
 
+    verboseFail = parser.isSet (QStringLiteral ("verboseFail"));
     if (parser.isSet (QStringLiteral ("stl")) || parser.isSet (QStringLiteral ("3mf")) || parser.isSet (QStringLiteral ("nethers")))
     {
         suffixes.clear ();
@@ -366,7 +386,7 @@ int main (int argc, char** argv)
         md << "Version: " << +VERSION << "\n\n";
         if (failOnly)
         {
-            md << "reporting only failed files\n\n";
+            md << "Reporting only failed files.\n\n";
         }
         md << "Running checks:\n";
         int t = 1;
@@ -392,7 +412,7 @@ int main (int argc, char** argv)
     et.start ();
     for (const auto& f : parser.positionalArguments ())
     {
-        files (f);
+        rootFiles (f);
     }
 
     if (verbosity != Mute && fileCount > 1)
@@ -410,7 +430,7 @@ int main (int argc, char** argv)
     if (verbosity != Mute)
     {
         QLocale const locale;
-        out << "\nTook " << locale.toString ((double)et.nsecsElapsed () / 1000000000.0) << " seconds" << '\n';
+        out << "\n" << a.applicationName() << " took " << locale.toString ((double)et.nsecsElapsed () / 1000000000.0) << " seconds" << '\n';
     }
 
     return (ok ? 0 : 100);
