@@ -426,7 +426,7 @@ CheckResult MeshChecker::checkShortEdges ()
                 if (edge->pair ())
                 {
                     ret += QStringLiteral ("    Short edge ") + QString::number (sqrt (mag2)) + QStringLiteral ("mm. Between vertex: ") + edge->v1 ()->name () + QStringLiteral (" and ") + edge->v2 ()->name () + QStringLiteral (". Ts ") +
-                           edge->triangle ()->name () + " and " + edge->pair ()->triangle ()->name () + QStringLiteral (" \n");
+                           edge->triangle ()->name () + QStringLiteral (" and ") + edge->pair ()->triangle ()->name () + QStringLiteral (" \n");
                 }
                 else
                 {

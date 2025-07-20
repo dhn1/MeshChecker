@@ -67,13 +67,14 @@ static void record ( const FileResult& results)
     case Record:
         {
             QJsonObject file;
-            file.insert ("file", results.m_path);
+            file.insert (QStringLiteral ("file"), results.m_path);
             QJsonObject o;
             for (const auto& result : results.m_checkResults)
             {
                 o.insert (MeshChecker::checkName (result.m_check), result.m_badCount);
             }
-            file.insert ("checks", o);
+            file.insert (QStringLiteral ("checks"), o);
+            file.insert (QStringLiteral ("pass"), results.m_pass);
             recording.insert (results.m_path, file);
         }
         break;
@@ -87,7 +88,7 @@ static void record ( const FileResult& results)
                 out << "\n" << results.m_path << " - NEW FILE\n";
                 return;
             }
-            auto o = file.value ("checks").toObject ();
+            auto o = file.value (QStringLiteral ("checks")).toObject ();
 
             for (const auto& result : results.m_checkResults)
             {
@@ -99,13 +100,19 @@ static void record ( const FileResult& results)
                     changes = true;
                 }
             }
+            changes |= (results.m_pass != file.value (QStringLiteral ("pass")).toBool ());
             if (changes)
             {
-                out << '\n' << results.m_path << '\n';
+                out << '\n' << results.m_path;
+                if (results.m_pass != file.value (QStringLiteral ("pass")).toBool ())
+                {
+                    out << " " << (file.value (QStringLiteral ("pass")).toBool () ? "PASS" : "FAIL") << " -> " << (results.m_pass ? "PASS" : "FAIL");
+                }
+                out << "\n";
                 for (const auto& result : results.m_checkResults)
                 {
                     auto name = MeshChecker::checkName (result.m_check);
-                    auto old = o.value (name).toDouble ();
+                    auto old = o.value (name).toInt ();
 
                     auto diff = result.m_badCount - old;
                     if (diff != 0)
@@ -404,27 +411,27 @@ int main (int argc, char** argv)
 
     parser.process (a);
 
-    if (parser.isSet ("compare"))
+    if (parser.isSet (QStringLiteral ("compare")))
     {
-        if (parser.isSet ("record"))
+        if (parser.isSet (QStringLiteral ("record")))
         {
             qDebug ().nospace ().noquote () << "Only --record or --compare allowed, not both";
             return 106;
         }
-        QFile in (parser.value ("compare"));
+        QFile in (parser.value (QStringLiteral ("compare")));
         in.open (QFile::ReadOnly);
         if (!in.isOpen ())
         {
-            qDebug ().nospace ().noquote () << "Unable to open \"" << parser.value ("compare") << "\"";
+            qDebug ().nospace ().noquote () << "Unable to open \"" << parser.value (QStringLiteral ("compare")) << "\"";
             return 105;
         }
         recordMode = Compare;
         recording = QJsonDocument::fromJson (in.readAll ()).object ();
     }
 
-    if (parser.isSet ("record"))
+    if (parser.isSet (QStringLiteral ("record")))
     {
-        if (parser.isSet ("compare"))
+        if (parser.isSet (QStringLiteral ("compare")))
         {
             qDebug ().nospace ().noquote () << "Only --record or --compare allowed, not both";
             return 106;
@@ -535,26 +542,23 @@ int main (int argc, char** argv)
 
     if (recordMode == Record)
     {
-        recording.insert("files", fileCount);
-        recording.insert("fails", failCount);
-        QFile out (parser.value ("record"));
+        recording.insert (QStringLiteral ("files"), fileCount);
+        recording.insert (QStringLiteral ("fails"), failCount);
+        QFile out (parser.value (QStringLiteral ("record")));
         out.open (QFile::WriteOnly);
         if (!out.isOpen ())
         {
-            qDebug ().nospace ().noquote () << "Unable to open \"" << parser.value ("record") << "\"";
+            qDebug ().nospace ().noquote () << "Unable to open \"" << parser.value (QStringLiteral ("record")) << "\"";
             return 105;
         }
-        QJsonDocument doc (recording);
+        const QJsonDocument doc (recording);
         out.write(doc.toJson());
     }
     if (recordMode == Compare)
     {
-        out << QStringLiteral ("\nOverall changes: %1 files, %2 fails\n")
-                   .arg (diffNo (fileCount - recording.value("files").toInt()))
-                   .arg (diffNo (failCount - recording.value("fails").toInt()));
+        out << QStringLiteral ("\nOverall changes: %1 files, %2 fails\n").arg (diffNo (fileCount - recording.value (QStringLiteral ("files")).toInt ())).arg (diffNo (failCount - recording.value (QStringLiteral ("fails")).toInt ()));
         int t = 1;
         int idx = 0;
-        QLocale const locale;
         do
         {
             if (t & flags)
@@ -575,7 +579,7 @@ int main (int argc, char** argv)
     if (verbosity != Mute)
     {
         QLocale const locale;
-        out << "\n" << a.applicationName() << " took " << locale.toString ((double)et.nsecsElapsed () / 1000000000.0) << " seconds" << '\n';
+        out << "\n" << QGuiApplication::applicationName () << " took " << locale.toString ((double)et.nsecsElapsed () / 1000000000.0) << " seconds" << '\n';
     }
 
     return (ok ? 0 : 100);
