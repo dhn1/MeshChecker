@@ -81,6 +81,11 @@ static void record ( const FileResult& results)
 
     case Compare:
         {
+            const QFileInfo fi (results.m_path);
+            if (fi.lastModified().secsTo(QDateTime::currentDateTime()) > 40 * 60)
+            {
+                qDebug ().noquote().nospace() << "Out of date file? \"" << results.m_path << "\"";
+            }
             bool changes = false;
             auto file = recording.value (results.m_path).toObject ();
             if (file.isEmpty())
