@@ -751,11 +751,32 @@ CheckResult MeshChecker::checkHalfEdgeOverlap ()
 }
 #endif
 
+
+struct Intersection
+{
+    Intersection (double t1, double t2, int e) : m_edgeT (t1), m_segmentOfIntersectionT (t2), m_edge (e) {}
+    double m_edgeT;
+    double m_segmentOfIntersectionT;
+    int m_edge;
+};
+
+struct Intersections : public QList<Intersection*>
+{
+    ~Intersections () { qDeleteAll (*this); }
+    double minT () const { return at (0)->m_segmentOfIntersectionT; }
+    double maxT () const { return at (size () - 1)->m_segmentOfIntersectionT; }
+    void sortT2 ()
+    {
+        std::sort (begin (), end (), [] (const Intersection* a, const Intersection* b) -> bool {
+            return a->m_segmentOfIntersectionT < b->m_segmentOfIntersectionT;
+        });
+    }
+};
+
+
 CheckResult MeshChecker::checkTriangleOverlap ()
 {
     QString ret;
-    QList<double> tts;
-    QList<double> cts;
     const auto& ttree = *m_octtreeFuture.result ();
     QList<QPair<TrianglePtr, TrianglePtr>> overlaps;
 
@@ -764,13 +785,13 @@ CheckResult MeshChecker::checkTriangleOverlap ()
         auto plane = t->plane ();
         if (plane.isValid ())
         {
-            auto box = t->box ();
-            auto candidates = ttree.find (box);
-            m_mesh->unsetFlag (Triangle::Tagged);
+        auto box = t->box ();
+        auto plane = t->plane ();
+        auto candidates = ttree.find (box);
+        m_mesh->unsetFlag (Triangle::Tagged);
 
-            for (const auto& candidate : qAsConst (candidates))
-            {
-                if (candidate != t && candidate->box ().intersects (box))
+        for (const auto& candidate : qAsConst (candidates))
+        {
                 {
                     auto p = candidate->plane ();
 
@@ -780,29 +801,45 @@ CheckResult MeshChecker::checkTriangleOverlap ()
                     {
                         segOfIntersection = plane.intersection (p, 0.00000000000001);
                     }
-                    bool intersect = false;
 
-                    auto test = [] (const HalfEdge& he1, const HalfEdge& he2) -> bool {
-                        auto res = intersectionOfLines3DMk2 (he1, he2);
-                        return res.type == IntersectionOfLines3DMk2Result::Cross;
-                    };
+            // if (candidate != t && (t->annotation() == "TT735" || t->annotation() ==  "TT729") && (candidate->annotation() == "TT735" || candidate->annotation() ==  "TT729"))
+            // {
+            //     int t = 0;
+            // }
 
-                    if (!segOfIntersection.isValid ())
+            if (candidate != t && candidate->box ().intersects (box))
+            {
+                auto p = candidate->plane ();
+
+                auto segOfIntersection = plane.intersection (p);
+                bool intersect = false;
+
+                auto test = [] (const HalfEdge& he1, const HalfEdge& he2) -> bool {
+                    auto res = intersectionOfLines3DMk2 (he1, he2);
+                    return res.type == IntersectionOfLines3DMk2Result::Cross;
+                };
+
+                if (!segOfIntersection.isValid ())
+                {
+                    // No intersection of planes - must be parallel or the same plane, or same plane inverted
+                    if (plane.equal (p))
                     {
-                        // No intersection of planes - must be parallel or the same plane, or same plane inverted
-                        if (plane.equal (p))
-                        {
-                            // Coplanar Ts
-                            intersect = test (HalfEdge (candidate, 0), HalfEdge (t, 0)) || test (HalfEdge (candidate, 0), HalfEdge (t, 1)) || test (HalfEdge (candidate, 0), HalfEdge (t, 2)) || test (HalfEdge (candidate, 1), HalfEdge (t, 0)) ||
-                                        test (HalfEdge (candidate, 1), HalfEdge (t, 1)) || test (HalfEdge (candidate, 1), HalfEdge (t, 2)) || test (HalfEdge (candidate, 2), HalfEdge (t, 0)) || test (HalfEdge (candidate, 2), HalfEdge (t, 1)) ||
-                                        test (HalfEdge (candidate, 2), HalfEdge (t, 2));
+                        // Coplanar Ts
+                        intersect = test (HalfEdge (candidate, 0), HalfEdge (t, 0)) || test (HalfEdge (candidate, 0), HalfEdge (t, 1)) || test (HalfEdge (candidate, 0), HalfEdge (t, 2)) || test (HalfEdge (candidate, 1), HalfEdge (t, 0)) ||
+                                    test (HalfEdge (candidate, 1), HalfEdge (t, 1)) || test (HalfEdge (candidate, 1), HalfEdge (t, 2)) || test (HalfEdge (candidate, 2), HalfEdge (t, 0)) || test (HalfEdge (candidate, 2), HalfEdge (t, 1)) ||
+                                    test (HalfEdge (candidate, 2), HalfEdge (t, 2));
 
-                            if (!intersect)
-                            {
-                                auto res = t->containsWithDetails (candidate->centroid ());
-                                intersect = res == Triangle::TriangleContainsResult::Contained;
-                            }
+                        if (!intersect)
+                        {
+                            auto res = t->containsWithDetails (candidate->centroid ());
+                            intersect = res == Triangle::TriangleContainsResult::Contained;
                         }
+                    }
+                }
+                else
+                {
+
+                    auto inter = [&segOfIntersection] (const TrianglePtr& t) -> Intersections {
                     }
                     else
                     {
@@ -856,8 +893,16 @@ CheckResult MeshChecker::checkTriangleOverlap ()
 
     if (!overlaps.isEmpty ())
     {
-        std::sort (overlaps.begin (), overlaps.end ());
-        auto it = std::unique (overlaps.begin (), overlaps.end ());
+        std::sort (overlaps.begin (), overlaps.end (), [] (const QPair<TrianglePtr, TrianglePtr>& a, const QPair<TrianglePtr, TrianglePtr>& b) -> bool {
+            if (a.first->id () != b.first->id ())
+            {
+                return a.first->id () < b.first->id ();
+            }
+            return a.second->id () < b.second->id ();
+        });
+        auto it = std::unique (overlaps.begin (), overlaps.end (),  [] (const QPair<TrianglePtr, TrianglePtr>& a, const QPair<TrianglePtr, TrianglePtr>& b) -> bool {
+            return a.first->id () == b.first->id () && a.second->id () == b.second->id ();
+        });
         overlaps.erase (it, overlaps.end ());
 
         for (const auto& overlap : overlaps)
