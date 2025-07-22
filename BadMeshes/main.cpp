@@ -48,12 +48,20 @@ static void generateDupVsMesh (const QString& path)
     Document::write (mesh, path + "/2dupVs.nethers");
 }
 
-static void generateOverlappingTs (const QString& path)
+static void generateOverlappingTsCoplanar (const QString& path)
 {
-    const auto mesh = Mesh::createCube(100);
+    const auto mesh = Mesh::createCube (100);
 
     auto t = mesh->at (2);
     mesh->push_back (t->scaledAboutCenter (0.75));
+
+    Document::setExcludeDeleted (false);
+    Document::write (mesh, path + "/overlapsCoplanar.nethers");
+    Document::setExcludeDeleted (true);
+}
+static void generateOverlappingTs (const QString& path)
+{
+    const auto mesh = Mesh::createCube(100);
 
     auto t2 = mesh->at (7)->scaledAboutCenter(0.75);
     auto m = Matrix::rotateAroundZ (degreesToRadians (30));
@@ -115,6 +123,7 @@ int main (int argc, char* argv[])
     generateReversedTsMesh (outFolder);
     generateDupVsMesh (outFolder);
     generateOverlappingTs (outFolder);
+    generateOverlappingTsCoplanar (outFolder);
     generateOverusedHalfEdges (outFolder);
     generateDeletedT (outFolder);
 }

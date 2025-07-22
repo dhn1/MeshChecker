@@ -754,14 +754,17 @@ CheckResult MeshChecker::checkTriangleOverlap ()
         auto candidates = ttree.find (box);
         m_mesh->unsetFlag (Triangle::Tagged);
 
-        for (const auto& c : qAsConst (candidates))
+        for (const auto& candidate : qAsConst (candidates))
         {
-            if (c != t && c->box ().intersects (box))
+            if (candidate != t && (t->annotation() == "TT21163" || t->annotation() ==  "TT21387") && (candidate->annotation() == "TT21163" || candidate->annotation() ==  "TT21387"))
             {
-                auto p = c->plane ();
+                int t = 0;
+            }
+            if (candidate != t && candidate->box ().intersects (box))
+            {
+                auto p = candidate->plane ();
 
                 auto segOfIntersection = plane.intersection (p);
-
                 bool intersect = false;
 
                 auto test = [] (const HalfEdge& he1, const HalfEdge& he2) -> bool {
@@ -771,16 +774,17 @@ CheckResult MeshChecker::checkTriangleOverlap ()
 
                 if (!segOfIntersection.isValid ())
                 {
-                    // No intersection of planes - must be parallel or the same plane
+                    // No intersection of planes - must be parallel or the same plane, or same plane inverted
                     if (plane.equal (p))
                     {
                         // Coplanar Ts
-                        intersect = test (HalfEdge (c, 0), HalfEdge (t, 0)) || test (HalfEdge (c, 0), HalfEdge (t, 1)) || test (HalfEdge (c, 0), HalfEdge (t, 2)) || test (HalfEdge (c, 1), HalfEdge (t, 0)) || test (HalfEdge (c, 1), HalfEdge (t, 1)) ||
-                                    test (HalfEdge (c, 1), HalfEdge (t, 2)) || test (HalfEdge (c, 2), HalfEdge (t, 0)) || test (HalfEdge (c, 2), HalfEdge (t, 1)) || test (HalfEdge (c, 2), HalfEdge (t, 2));
+                        intersect = test (HalfEdge (candidate, 0), HalfEdge (t, 0)) || test (HalfEdge (candidate, 0), HalfEdge (t, 1)) || test (HalfEdge (candidate, 0), HalfEdge (t, 2)) || test (HalfEdge (candidate, 1), HalfEdge (t, 0)) ||
+                                    test (HalfEdge (candidate, 1), HalfEdge (t, 1)) || test (HalfEdge (candidate, 1), HalfEdge (t, 2)) || test (HalfEdge (candidate, 2), HalfEdge (t, 0)) || test (HalfEdge (candidate, 2), HalfEdge (t, 1)) ||
+                                    test (HalfEdge (candidate, 2), HalfEdge (t, 2));
 
                         if (!intersect)
                         {
-                            auto res = t->containsWithDetails (c->centroid ());
+                            auto res = t->containsWithDetails (candidate->centroid ());
                             intersect = res == Triangle::TriangleContainsResult::Contained;
                         }
                     }
@@ -800,7 +804,7 @@ CheckResult MeshChecker::checkTriangleOverlap ()
                                 tts.push_back (tres.t);
                             }
                         }
-                        auto cres = intersectionOfLines3DMk2 (segOfIntersection, HalfEdge (c, e));
+                        auto cres = intersectionOfLines3DMk2 (segOfIntersection, HalfEdge (candidate, e));
                         if (cres.type == IntersectionOfLines3DMk2Result::Cross)
                         {
                             if (t->contains (cres.intersection1))
@@ -820,13 +824,13 @@ CheckResult MeshChecker::checkTriangleOverlap ()
 
                 if (intersect)
                 {
-                    if (t->id () < c->id ())
+                    if (t->id () < candidate->id ())
                     {
-                        overlaps.push_back ({t, c});
+                        overlaps.push_back ({t, candidate});
                     }
                     else
                     {
-                        overlaps.push_back ({c, t});
+                        overlaps.push_back ({candidate, t});
                     }
                 }
             }
@@ -917,7 +921,7 @@ QString MeshChecker::checkName (Checks check)
     case CheckHalfEdgeOverlap:
         return QStringLiteral ("HalfEdgeOverlap");
     case CheckTriangleOverlap:
-        return QStringLiteral ("TriangleOverlap");
+        return QStringLiteral ("OverlapTriangles");
     case CheckUnviableTriangles:
         return QStringLiteral ("UnviableTriangles");
     case CheckOverusedHalfEdges:
@@ -945,33 +949,33 @@ QString MeshChecker::description (Checks check)
     case CheckNothing:
         return QStringLiteral ("Nothing");
     case CheckHoles:
-        return QStringLiteral ("check for holes");
+        return QStringLiteral ("Check for holes");
     case CheckDuplicateTriangles:
-        return QStringLiteral ("check for duplicate triangles");
+        return QStringLiteral ("Check for duplicate triangles");
     case CheckShortEdges:
-        return QStringLiteral ("check for short edges");
+        return QStringLiteral ("Check for short edges");
     case CheckInfo:
-        return QStringLiteral ("show basic stats");
+        return QStringLiteral ("Show basic stats");
     case CheckReversedTriangles:
-        return QStringLiteral ("check for triangles who's edges are in the same direction as its neighbours - i.e. the triangle is reversed");
+        return QStringLiteral ("Check for triangles who's edges are in the same direction as its neighbours - i.e. the triangle is reversed");
     case CheckDuplicateVertices:
-        return QStringLiteral ("check for duplicate vertices");
+        return QStringLiteral ("Check for duplicate vertices");
     case CheckOpenEdges:
-        return QStringLiteral ("check for open edges");
+        return QStringLiteral ("Check for open edges");
     case CheckHalfEdgeOverlap:
-        return QStringLiteral ("check for overlapping half edges");
+        return QStringLiteral ("Check for overlapping half edges");
     case CheckTriangleOverlap:
-        return QStringLiteral ("check for overlapping triangles");
+        return QStringLiteral ("Check for overlapping triangles");
     case CheckUnviableTriangles:
-        return QStringLiteral ("check for triangles for expressively small heights and edges");
+        return QStringLiteral ("Check for triangles for expressively small heights and edges");
     case CheckOverusedHalfEdges:
-        return QStringLiteral ("check for overused half edges");
+        return QStringLiteral ("Check for overused half edges");
     case CheckFlatTriangles:
-        return QStringLiteral ("check for flat triangles (too flat to reliably calculate a normal)");
+        return QStringLiteral ("Check for flat triangles (too flat to reliably calculate a normal)");
     case CheckDeleted:
-        return QStringLiteral ("check for deleted triangles (nethers format only)");
+        return QStringLiteral ("Check for deleted triangles (nethers format only)");
     case CheckVertexLowRefs:
-        return QStringLiteral ("check for vertices with too few references");
+        return QStringLiteral ("Check for vertices with too few references");
     default:
         return QStringLiteral ("??");
     }

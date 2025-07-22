@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.14)
 
-project (MeshChecker LANGUAGES CXX VERSION 0.2.8)
+project (MeshChecker LANGUAGES CXX VERSION 0.2.9)
 
 find_program(CCACHE_FOUND ccache)
 if(CCACHE_FOUND)
@@ -69,6 +69,8 @@ set (INSTALL_LIB OFF)
 
 add_subdirectory (libSculpt)
 
+add_subdirectory (BadMeshes)
+
 add_executable (${PROJECT_NAME}
     main.cpp
     MeshChecker.h MeshChecker.cpp
@@ -76,6 +78,7 @@ add_executable (${PROJECT_NAME}
     CheckResult.h
     CheckResult.cpp
     FileResult.h FileResult.cpp
+    README.md
     )
 
 set_target_properties (${PROJECT_NAME} PROPERTIES
