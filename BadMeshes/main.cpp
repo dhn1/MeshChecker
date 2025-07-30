@@ -59,6 +59,7 @@ static void generateOverlappingTsCoplanar (const QString& path)
     Document::write (mesh, path + "/overlapsCoplanar.nethers");
     Document::setExcludeDeleted (true);
 }
+
 static void generateOverlappingTs (const QString& path)
 {
     const auto mesh = Mesh::createCube(100);
