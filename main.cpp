@@ -387,6 +387,11 @@ int main (int argc, char** argv)
 {
     QGuiApplication const a (argc, argv);
 
+#ifdef QT_DEBUG
+    QDir dir;
+    dir.mkpath("/tmp/3d");
+#endif
+
     QCoreApplication::setApplicationName (QStringLiteral ("MeshChecker"));
     QCoreApplication::setApplicationVersion (QStringLiteral (VERSION) + QStringLiteral (" (libSculpt ") + libSculptVersion () + QStringLiteral (")"));
     QCoreApplication::setOrganizationName (QStringLiteral ("Netherwood Industries"));
