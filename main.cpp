@@ -34,6 +34,7 @@ QTextStream out (stdout);
 static QFile markdown;
 static QTextStream md (&markdown);
 static QJsonObject recording;
+static QString folderFilter;
 
 static QString diffNo (int no)
 {
@@ -280,7 +281,8 @@ static bool processFile (const QString& path)
 static void files (const QString& path)
 {
     QFileInfo const inf (path);
-    if (inf.isFile () && suffixes.contains (inf.suffix ()))
+
+    if (inf.isFile () && suffixes.contains (inf.suffix ()) && inf.path().endsWith(folderFilter))
     {
         processFile (path);
     }
@@ -406,6 +408,7 @@ int main (int argc, char** argv)
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("verboseFail"), QStringLiteral ("Generate a summery or detailed report only for failed mesh files.")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("compare"), QStringLiteral ("Compare with last recorded run."), QStringLiteral("JSON file")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("record"), QStringLiteral ("Record results in file for use with compare."), QStringLiteral("JSON file")));
+    parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("folderFilter") << "ff", QStringLiteral ("Only look in subfolders with given name."), QStringLiteral("folder name")));
 
     //parser.setSingleDashWordOptionMode (QCommandLineParser::ParseAsLongOptions);
     const auto& checkList = MeshChecker::checkList ();
@@ -443,6 +446,8 @@ int main (int argc, char** argv)
         }
         recordMode = Record;
     }
+
+    folderFilter = parser.value("ff");
 
     verboseFail = parser.isSet (QStringLiteral ("verboseFail"));
     if (parser.isSet (QStringLiteral ("stl")) || parser.isSet (QStringLiteral ("3mf")) || parser.isSet (QStringLiteral ("nethers")))
