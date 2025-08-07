@@ -34,7 +34,23 @@ QTextStream out (stdout);
 static QFile markdown;
 static QTextStream md (&markdown);
 static QJsonObject recording;
+static QJsonObject recordingFiles;
 static QString folderFilter;
+static QStringList fileList;
+static const int levels[NO_VERBOSITY_LEVELS] = {
+    Mute,
+    FileName,
+    FileName | Summary,
+    FileName | Summary | Details,
+};
+
+static void generateFileList ()
+{
+    for (auto it = recordingFiles.begin() ; it != recordingFiles.end(); it++)
+    {
+        fileList.push_back(it.key());
+    }
+}
 
 static QString diffNo (int no)
 {
@@ -76,19 +92,19 @@ static void record ( const FileResult& results)
             }
             file.insert (QStringLiteral ("checks"), o);
             file.insert (QStringLiteral ("pass"), results.m_pass);
-            recording.insert (results.m_path, file);
+            recordingFiles.insert (results.m_path, file);
         }
         break;
 
     case Compare:
         {
             const QFileInfo fi (results.m_path);
-            if (fi.lastModified().secsTo(QDateTime::currentDateTime()) > 40 * 60)
+            if (fi.lastModified ().secsTo (QDateTime::currentDateTime ()) > 40 * 60)
             {
                 qDebug ().noquote().nospace() << "Out of date file? \"" << results.m_path << "\"";
             }
             bool changes = false;
-            auto file = recording.value (results.m_path).toObject ();
+            auto file = recordingFiles.value (results.m_path).toObject ();
             if (file.isEmpty())
             {
                 out << "\n" << results.m_path << " - NEW FILE\n";
@@ -98,6 +114,10 @@ static void record ( const FileResult& results)
 
             for (const auto& result : results.m_checkResults)
             {
+                if (result.m_badCount == -1)
+                {
+                    continue;
+                }
                 auto old = o.value (MeshChecker::checkName (result.m_check)).toDouble ();
                 auto diff = result.m_badCount - old;
                 compareSummery[check2idx (result.m_check)] += diff;
@@ -117,6 +137,10 @@ static void record ( const FileResult& results)
                 out << "\n";
                 for (const auto& result : results.m_checkResults)
                 {
+                    if (result.m_badCount == -1)
+                    {
+                        continue;
+                    }
                     auto name = MeshChecker::checkName (result.m_check);
                     auto old = o.value (name).toInt ();
 
@@ -242,6 +266,8 @@ static void reportBasic (const FileResult& results)
 
 static bool processFile (const QString& path)
 {
+    fileList.removeAll(path);
+
     fileCount++;
     Triangle::resetID ();  // May need to mutex this if we multi thread
     auto mesh = Document::readMesh (path);
@@ -376,13 +402,6 @@ static void summariseMd ()
     } while (idx < 64);
 }
 
-static const int levels[NO_VERBOSITY_LEVELS] = {
-    Mute,
-    FileName,
-    FileName | Summary,
-    FileName | Summary | Details,
-};
-
 int main (int argc, char** argv)
 {
     QGuiApplication const a (argc, argv);
@@ -440,6 +459,9 @@ int main (int argc, char** argv)
         }
         recordMode = Compare;
         recording = QJsonDocument::fromJson (in.readAll ()).object ();
+        recordingFiles = recording.value("files").toObject();
+
+        generateFileList ();
     }
 
     if (parser.isSet (QStringLiteral ("record")))
@@ -557,8 +579,10 @@ int main (int argc, char** argv)
 
     if (recordMode == Record)
     {
-        recording.insert (QStringLiteral ("files"), fileCount);
+        recording.insert (QStringLiteral ("fileCount"), fileCount);
         recording.insert (QStringLiteral ("fails"), failCount);
+        recording.insert (QStringLiteral ("files"), recordingFiles);
+
         QFile out (parser.value (QStringLiteral ("record")));
         out.open (QFile::WriteOnly);
         if (!out.isOpen ())
@@ -571,7 +595,11 @@ int main (int argc, char** argv)
     }
     if (recordMode == Compare)
     {
-        out << QStringLiteral ("\nOverall changes: %1 files, %2 fails\n").arg (diffNo (fileCount - recording.value (QStringLiteral ("files")).toInt ())).arg (diffNo (failCount - recording.value (QStringLiteral ("fails")).toInt ()));
+        for (const auto& file : std::as_const(fileList))
+        {
+            out << "Missing file: \"" << file << "\"\n";
+        }
+        out << QStringLiteral ("\nOverall changes: %1 files, %2 fails\n").arg (diffNo (fileCount - recording.value (QStringLiteral ("fileCount")).toInt ())).arg (diffNo (failCount - recording.value (QStringLiteral ("fails")).toInt ()));
         int t = 1;
         int idx = 0;
         do
