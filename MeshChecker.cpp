@@ -756,15 +756,15 @@ CheckResult MeshChecker::checkTriangleOverlap ()
 
         for (const auto& candidate : qAsConst (candidates))
         {
-            if (candidate != t && (t->annotation() == "TT21163" || t->annotation() ==  "TT21387") && (candidate->annotation() == "TT21163" || candidate->annotation() ==  "TT21387"))
-            {
-                int t = 0;
-            }
+            // if (candidate != t && (t->annotation() == "TT21163" || t->annotation() ==  "TT21387") && (candidate->annotation() == "TT21163" || candidate->annotation() ==  "TT21387"))
+            // {
+            //     int t = 0;
+            // }
             if (candidate != t && candidate->box ().intersects (box))
             {
                 auto p = candidate->plane ();
 
-                auto segOfIntersection = plane.intersection (p);
+                auto segOfIntersection = plane.intersection (p, 0.00000000000001);
                 bool intersect = false;
 
                 auto test = [] (const HalfEdge& he1, const HalfEdge& he2) -> bool {

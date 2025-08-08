@@ -24,8 +24,8 @@ static int flags = CheckNothing;
 static int fileCount = 0;
 static int failCount = 0;
 static bool failOnly = false;
-static enum {None, Record, Compare} recordMode { None};
-static int summeryResult[64] = {};
+static enum { None, Record, Compare } recordMode{None};
+static int summaryResult[64] = {};
 static int compareSummery[64] = {};
 static constexpr int NO_VERBOSITY_LEVELS = 4;
 static QString rootFolder;
@@ -46,18 +46,18 @@ static const int levels[NO_VERBOSITY_LEVELS] = {
 
 static void generateFileList ()
 {
-    for (auto it = recordingFiles.begin() ; it != recordingFiles.end(); it++)
+    for (auto it = recordingFiles.begin (); it != recordingFiles.end (); it++)
     {
-        fileList.push_back(it.key());
+        fileList.push_back (it.key ());
     }
 }
 
 static QString diffNo (int no)
 {
     static const QLocale locale;
-    if (no <= 0)
+    if (no < 0)
     {
-        return locale.toString(no);
+        return locale.toString (no);
     }
     return QStringLiteral ("+") + locale.toString (no);
 }
@@ -74,7 +74,7 @@ static int check2idx (Checks check)
     return idx;
 }
 
-static void record ( const FileResult& results)
+static void record (const FileResult& results)
 {
     switch (recordMode)
     {
@@ -101,11 +101,11 @@ static void record ( const FileResult& results)
             const QFileInfo fi (results.m_path);
             if (fi.lastModified ().secsTo (QDateTime::currentDateTime ()) > 40 * 60)
             {
-                qDebug ().noquote().nospace() << "Out of date file? \"" << results.m_path << "\"";
+                qDebug ().noquote ().nospace () << "Out of date file? \"" << results.m_path << "\"";
             }
             bool changes = false;
             auto file = recordingFiles.value (results.m_path).toObject ();
-            if (file.isEmpty())
+            if (file.isEmpty ())
             {
                 out << "\n" << results.m_path << " - NEW FILE\n";
                 return;
@@ -149,7 +149,7 @@ static void record ( const FileResult& results)
                     {
                         out << "  " << name << QString (padding - name.length (), QChar ('.')) << ": " << old << " -> " << result.m_badCount << " " << diffNo (diff) << '\n';
                     }
-                 }
+                }
             }
         }
         break;
@@ -189,14 +189,9 @@ static void reportMd (const FileResult& results)
         }
     }
 
-    for (const auto& res : results.m_checkResults)
-    {
-        summeryResult[check2idx (res.m_check)] += res.m_badCount;
-    }
-
     if (verbosity & Summary)
     {
-        md << "|Test|Result|\n|--|--|\n";
+        md << "|Test|Result|\n|---|---|\n";
 
         for (const auto& res : results.m_checkResults)
         {
@@ -242,7 +237,6 @@ static void reportBasic (const FileResult& results)
         {
             out << res.m_report.split ('\n').constFirst () << '\n';
         }
-        summeryResult[check2idx (res.m_check)] += res.m_badCount;
     }
 
     if (verbosity & Summary)
@@ -266,7 +260,7 @@ static void reportBasic (const FileResult& results)
 
 static bool processFile (const QString& path)
 {
-    fileList.removeAll(path);
+    fileList.removeAll (path);
 
     fileCount++;
     Triangle::resetID ();  // May need to mutex this if we multi thread
@@ -283,6 +277,10 @@ static bool processFile (const QString& path)
     checker.setCheckFlags (flags);
 
     auto res = checker.check ();
+    for (const auto& c : res.m_checkResults)
+    {
+        summaryResult[check2idx (c.m_check)] += c.m_badCount;
+    }
 
     if (genReport)
     {
@@ -308,7 +306,7 @@ static void files (const QString& path)
 {
     QFileInfo const inf (path);
 
-    if (inf.isFile () && suffixes.contains (inf.suffix ()) && inf.path().endsWith(folderFilter))
+    if (inf.isFile () && suffixes.contains (inf.suffix ()) && inf.path ().endsWith (folderFilter))
     {
         processFile (path);
     }
@@ -330,7 +328,7 @@ static void rootFiles (const QString& path)
     {
         qDebug ().nospace ().noquote () << path << " does not exist";
     }
-    if (inf.isDir())
+    if (inf.isDir ())
     {
         rootFolder = inf.absoluteFilePath ();
     }
@@ -352,11 +350,11 @@ static void summarise ()
         if (t & flags)
         {
             auto check = (Checks)(flags & t);
-            auto r = summeryResult[check2idx (check)];
+            auto r = summaryResult[check2idx (check)];
             if (r >= 0)
             {
                 const auto name = MeshChecker::checkName (check);
-                out << "    " << name << QString (padding - name.length (), QChar ('.')) << ": " << locale.toString (summeryResult[check2idx (check)]) << "\n";
+                out << "    " << name << QString (padding - name.length (), QChar ('.')) << ": " << locale.toString (summaryResult[check2idx (check)]) << "\n";
             }
         }
         t <<= 1;
@@ -382,18 +380,18 @@ static void summariseMd ()
         if (t & flags)
         {
             auto check = (Checks)(flags & t);
-            auto r = summeryResult[check2idx (check)];
+            auto r = summaryResult[check2idx (check)];
             if (r >= 0)
             {
                 const auto name = MeshChecker::checkName (check);
-                const auto badCount = summeryResult[check2idx (check)];
+                const auto badCount = summaryResult[check2idx (check)];
                 if (badCount == 0)
                 {
                     md << "|" << name << "|None|\n";
                 }
                 else
                 {
-                    md << "|" << name << "|" << locale.toString (summeryResult[check2idx (check)]) << "|\n";
+                    md << "|" << name << "|" << locale.toString (summaryResult[check2idx (check)]) << "|\n";
                 }
             }
         }
@@ -408,7 +406,7 @@ int main (int argc, char** argv)
 
 #ifdef QT_DEBUG
     QDir dir;
-    dir.mkpath("/tmp/3d");
+    dir.mkpath ("/tmp/3d");
 #endif
 
     QCoreApplication::setApplicationName (QStringLiteral ("MeshChecker"));
@@ -430,9 +428,9 @@ int main (int argc, char** argv)
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("nethers"), QStringLiteral ("nethers files only.")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("report"), QStringLiteral ("Generate a report in Mark Down format."), QStringLiteral ("file")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("verboseFail"), QStringLiteral ("Generate a summery or detailed report only for failed mesh files.")));
-    parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("compare"), QStringLiteral ("Compare with last recorded run."), QStringLiteral("JSON file")));
-    parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("record"), QStringLiteral ("Record results in file for use with compare."), QStringLiteral("JSON file")));
-    parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("folderFilter") << "ff", QStringLiteral ("Only look in subfolders with given name."), QStringLiteral("folder name")));
+    parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("compare"), QStringLiteral ("Compare with last recorded run."), QStringLiteral ("JSON file")));
+    parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("record"), QStringLiteral ("Record results in file for use with compare."), QStringLiteral ("JSON file")));
+    parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("folderFilter") << "ff", QStringLiteral ("Only look in subfolders with given name."), QStringLiteral ("folder name")));
 
     //parser.setSingleDashWordOptionMode (QCommandLineParser::ParseAsLongOptions);
     const auto& checkList = MeshChecker::checkList ();
@@ -459,7 +457,7 @@ int main (int argc, char** argv)
         }
         recordMode = Compare;
         recording = QJsonDocument::fromJson (in.readAll ()).object ();
-        recordingFiles = recording.value("files").toObject();
+        recordingFiles = recording.value ("files").toObject ();
 
         generateFileList ();
     }
@@ -472,9 +470,10 @@ int main (int argc, char** argv)
             return 106;
         }
         recordMode = Record;
+        recording.insert ("version", qApp->applicationVersion ());
     }
 
-    folderFilter = parser.value("ff");
+    folderFilter = parser.value ("ff");
 
     verboseFail = parser.isSet (QStringLiteral ("verboseFail"));
     if (parser.isSet (QStringLiteral ("stl")) || parser.isSet (QStringLiteral ("3mf")) || parser.isSet (QStringLiteral ("nethers")))
@@ -591,15 +590,19 @@ int main (int argc, char** argv)
             return 105;
         }
         const QJsonDocument doc (recording);
-        out.write(doc.toJson());
+        out.write (doc.toJson ());
     }
     if (recordMode == Compare)
     {
-        for (const auto& file : std::as_const(fileList))
+        for (const auto& file : std::as_const (fileList))
         {
             out << "Missing file: \"" << file << "\"\n";
         }
-        out << QStringLiteral ("\nOverall changes: %1 files, %2 fails\n").arg (diffNo (fileCount - recording.value (QStringLiteral ("fileCount")).toInt ())).arg (diffNo (failCount - recording.value (QStringLiteral ("fails")).toInt ()));
+        out << QStringLiteral ("\nOverall changes: files: %1 (%2), fails: %3 (%4)\n")
+                   .arg (fileCount)
+                   .arg (diffNo (fileCount - recording.value (QStringLiteral ("fileCount")).toInt ()))
+                   .arg (failCount)
+                   .arg (diffNo (failCount - recording.value (QStringLiteral ("fails")).toInt ()));
         int t = 1;
         int idx = 0;
         do
@@ -611,7 +614,8 @@ int main (int argc, char** argv)
                 if (r != 0)
                 {
                     const auto name = MeshChecker::checkName (check);
-                     out << "  " << name << QString (padding - name.length (), QChar ('.')) << ": " << diffNo (compareSummery[check2idx (check)]) << "\n";
+                    int idx = check2idx (check);
+                    out << "  " << name << QString (padding - name.length (), QChar ('.')) << ": " << summaryResult[idx] - compareSummery[idx] << " -> " << summaryResult[idx] << " (" << diffNo (compareSummery[idx]) << ")\n";
                 }
             }
             t <<= 1;
