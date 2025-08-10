@@ -74,7 +74,7 @@ static int check2idx (Checks check)
     return idx;
 }
 
-static void record (const FileResult& results)
+static void record (const FileResult& result)
 {
     switch (recordMode)
     {
@@ -84,35 +84,35 @@ static void record (const FileResult& results)
     case Record:
         {
             QJsonObject file;
-            file.insert (QStringLiteral ("file"), results.m_path);
+            file.insert (QStringLiteral ("file"), result.m_path);
             QJsonObject o;
-            for (const auto& result : results.m_checkResults)
+            for (const auto& result : result.m_checkResults)
             {
                 o.insert (MeshChecker::checkName (result.m_check), result.m_badCount);
             }
             file.insert (QStringLiteral ("checks"), o);
-            file.insert (QStringLiteral ("pass"), results.m_pass);
-            recordingFiles.insert (results.m_path, file);
+            file.insert (QStringLiteral ("pass"), result.m_pass);
+            recordingFiles.insert (result.m_path, file);
         }
         break;
 
     case Compare:
         {
-            const QFileInfo fi (results.m_path);
+            const QFileInfo fi (result.m_path);
             if (fi.lastModified ().secsTo (QDateTime::currentDateTime ()) > 40 * 60)
             {
-                qDebug ().noquote ().nospace () << "Out of date file? \"" << results.m_path << "\"";
+                qDebug ().noquote ().nospace () << "Out of date file? \"" << result.m_path << "\"";
             }
             bool changes = false;
-            auto file = recordingFiles.value (results.m_path).toObject ();
+            auto file = recordingFiles.value (result.m_path).toObject ();
             if (file.isEmpty ())
             {
-                out << "\n" << results.m_path << " - NEW FILE\n";
+                out << "\n" << result.m_path << " - NEW FILE\n";
                 return;
             }
             auto o = file.value (QStringLiteral ("checks")).toObject ();
 
-            for (const auto& result : results.m_checkResults)
+            for (const auto& result : result.m_checkResults)
             {
                 if (result.m_badCount == -1)
                 {
@@ -126,16 +126,16 @@ static void record (const FileResult& results)
                     changes = true;
                 }
             }
-            changes |= (results.m_pass != file.value (QStringLiteral ("pass")).toBool ());
+            changes |= (result.m_pass != file.value (QStringLiteral ("pass")).toBool ());
             if (changes)
             {
-                out << '\n' << results.m_path;
-                if (results.m_pass != file.value (QStringLiteral ("pass")).toBool ())
+                out << '\n' << result.m_path;
+                if (result.m_pass != file.value (QStringLiteral ("pass")).toBool ())
                 {
-                    out << " " << (file.value (QStringLiteral ("pass")).toBool () ? "PASS" : "FAIL") << " -> " << (results.m_pass ? "PASS" : "FAIL");
+                    out << " " << (file.value (QStringLiteral ("pass")).toBool () ? "PASS" : "FAIL") << " -> " << (result.m_pass ? "PASS" : "FAIL");
                 }
                 out << "\n";
-                for (const auto& result : results.m_checkResults)
+                for (const auto& result : result.m_checkResults)
                 {
                     if (result.m_badCount == -1)
                     {
@@ -156,13 +156,13 @@ static void record (const FileResult& results)
     }
 }
 
-static void reportMd (const FileResult& results)
+static void reportMd (const FileResult& result)
 {
-    if (results.m_pass && failOnly)
+    if (result.m_pass && failOnly)
     {
         return;
     }
-    auto path = results.m_path;
+    auto path = result.m_path;
     if (path.startsWith (rootFolder))
     {
         path = path.mid (rootFolder.length ());
@@ -171,14 +171,15 @@ static void reportMd (const FileResult& results)
             path = QStringLiteral ("./") + path.mid (1);
         }
     }
-    md << "## " << path << (results.m_pass ? " - PASS\n" : " - FAIL\n");
-    if (results.m_pass && verboseFail)
+    md << "## " << path << (result.m_pass ? " - PASS\n" : " - FAIL\n");
+    if (result.m_pass && verboseFail)
     {
         return;
     }
-    if (verbosity & Summary)
+
+    if ((verbosity & Details))
     {
-        for (const auto& res : results.m_checkResults)
+        for (const auto& res : result.m_checkResults)
         {
             if (res.m_check == CheckInfo /*|| res.m_check == CheckShortEdges*/)
             {
@@ -189,11 +190,11 @@ static void reportMd (const FileResult& results)
         }
     }
 
-    if (verbosity & Summary)
+    if (verbosity & Summary || (!result.m_pass && verboseFail))
     {
-        md << "|Test|Result|\n|---|---|\n";
+        md << "|Check|Result|\n|---|---|\n";
 
-        for (const auto& res : results.m_checkResults)
+        for (const auto& res : result.m_checkResults)
         {
             if (res.m_check == CheckInfo || res.m_check == CheckShortEdges)
             {
@@ -216,18 +217,18 @@ static void reportMd (const FileResult& results)
     }
 }
 
-static void reportBasic (const FileResult& results)
+static void reportBasic (const FileResult& result)
 {
-    if (results.m_pass && failOnly)
+    if (result.m_pass && failOnly)
     {
         return;
     }
     if (verbosity > FileName)
     {
-        out << results.m_path << (results.m_pass ? " - PASS\n" : " - FAIL\n");
+        out << result.m_path << (result.m_pass ? " - PASS\n" : " - FAIL\n");
     }
 
-    for (const auto& res : results.m_checkResults)
+    for (const auto& res : result.m_checkResults)
     {
         if (verbosity & Details)
         {
@@ -244,7 +245,7 @@ static void reportBasic (const FileResult& results)
         out << "  SUMMARY:\n";
     }
     QLocale const locale;
-    for (const auto& res : results.m_checkResults)
+    for (const auto& res : result.m_checkResults)
     {
         if (verbosity & Summary)
         {
@@ -366,11 +367,12 @@ static void summariseMd ()
 {
     md << "# Overall Summary:\n";
     md << QStringLiteral ("\n%1 failed out of %2 (%3% passed)").arg (failCount).arg (fileCount).arg (100 * (fileCount - failCount) / fileCount) << "\n";
-    if (!(verbosity & Summary))
+    if (!(verbosity & Summary) && ! (failCount > 0 && verboseFail))
     {
         return;
     }
-    md << "|||\n|---|---|\n";
+    md << "\n|Check|Result|\n";
+    md << "|---|---|\n";
 
     int t = 1;
     int idx = 0;
@@ -381,7 +383,7 @@ static void summariseMd ()
         {
             auto check = (Checks)(flags & t);
             auto r = summaryResult[check2idx (check)];
-            if (r >= 0)
+            if (r >= 0 || (failCount > 0 && verboseFail))
             {
                 const auto name = MeshChecker::checkName (check);
                 const auto badCount = summaryResult[check2idx (check)];

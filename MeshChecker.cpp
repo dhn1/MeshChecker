@@ -47,7 +47,6 @@ const MeshChecker::CheckList& MeshChecker::checkList ()
         m_checkList.push_back ({CheckReversedTriangles, &MeshChecker::checkReversedTriangles});
         m_checkList.push_back ({CheckDuplicateVertices, &MeshChecker::checkDuplicateVertices});
         m_checkList.push_back ({CheckOpenEdges, &MeshChecker::checkOpenEdges});
-        m_checkList.push_back ({CheckHalfEdgeOverlap, &MeshChecker::checkHalfEdgeOverlap});
         m_checkList.push_back ({CheckTriangleOverlap, &MeshChecker::checkTriangleOverlap});
         m_checkList.push_back ({CheckUnviableTriangles, &MeshChecker::checkUnviableTriangles});
         m_checkList.push_back ({CheckOverusedHalfEdges, &MeshChecker::checkOverusedHalfEdges});
@@ -619,6 +618,7 @@ CheckResult MeshChecker::checkDuplicateVertices ()
     return {CheckDuplicateVertices, true, QStringLiteral ("  No duplicate vertices\n"), badCount};
 }
 
+#if 0
 CheckResult MeshChecker::checkHalfEdgeOverlap ()
 {
     QString ret;
@@ -738,6 +738,7 @@ CheckResult MeshChecker::checkHalfEdgeOverlap ()
     ret.push_front (QStringLiteral ("  Found %1 overlapping halfEdges (currently each reported twice).\n").arg (badCount / 2));
     return {CheckHalfEdgeOverlap, badCount == 0, ret, badCount / 2};
 }
+#endif
 
 CheckResult MeshChecker::checkTriangleOverlap ()
 {
@@ -918,8 +919,6 @@ QString MeshChecker::checkName (Checks check)
         return QStringLiteral ("DuplicateVertices");
     case CheckOpenEdges:
         return QStringLiteral ("OpenEdges");
-    case CheckHalfEdgeOverlap:
-        return QStringLiteral ("HalfEdgeOverlap");
     case CheckTriangleOverlap:
         return QStringLiteral ("OverlapTriangles");
     case CheckUnviableTriangles:
@@ -962,8 +961,6 @@ QString MeshChecker::description (Checks check)
         return QStringLiteral ("Check for duplicate vertices");
     case CheckOpenEdges:
         return QStringLiteral ("Check for open edges");
-    case CheckHalfEdgeOverlap:
-        return QStringLiteral ("Check for overlapping half edges");
     case CheckTriangleOverlap:
         return QStringLiteral ("Check for overlapping triangles");
     case CheckUnviableTriangles:
