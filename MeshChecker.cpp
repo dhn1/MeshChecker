@@ -53,6 +53,7 @@ const MeshChecker::CheckList& MeshChecker::checkList ()
         m_checkList.push_back ({CheckFlatTriangles, &MeshChecker::checkFlatTriangles});
         m_checkList.push_back ({CheckDeleted, &MeshChecker::checkDeleted});
         m_checkList.push_back ({CheckVertexLowRefs, &MeshChecker::checkVertexRefs});
+        m_checkList.push_back ({CheckTCount, &MeshChecker::checkTCount});
     }
     return m_checkList;
 }
@@ -847,6 +848,15 @@ CheckResult MeshChecker::checkTriangleOverlap ()
         for (const auto& overlap : overlaps)
         {
             ret.push_back (QStringLiteral ("    Overlap: %1 and %2\n").arg (overlap.first->name (), overlap.second->name ()));
+#if 0
+            {
+                auto mesh = Mesh::create ();
+                mesh->add(overlap.first);
+                mesh->add (overlap.second);
+                static int cnt;
+                Document::write(mesh, QStringLiteral ("/tmp/3d/overlap%1.nethers").arg (cnt++, 3, 10, QChar('0')));
+            }
+#endif
         }
 
         ret.push_front (QStringLiteral ("  Found %1 triangle overlaps\n").arg (overlaps.count ()));
@@ -899,6 +909,11 @@ CheckResult MeshChecker::checkFlatTriangles ()
     return {CheckFlatTriangles, true, QStringLiteral ("  No flat triangles\n"), badCount};
 }
 
+CheckResult MeshChecker::checkTCount ()
+{
+    return {CheckTCount, true, "", m_mesh->tcount()};
+}
+
 QString MeshChecker::checkName (Checks check)
 {
     switch (check)
@@ -931,6 +946,8 @@ QString MeshChecker::checkName (Checks check)
         return QStringLiteral ("Deleted");
     case CheckVertexLowRefs:
         return QStringLiteral ("VertexLowRefs");
+    case CheckTCount:
+        return QStringLiteral ("TCount");
     default:
         return QStringLiteral ("??");
     }
@@ -973,6 +990,8 @@ QString MeshChecker::description (Checks check)
         return QStringLiteral ("Check for deleted triangles (nethers format only)");
     case CheckVertexLowRefs:
         return QStringLiteral ("Check for vertices with too few references");
+    case CheckTCount:
+        return QStringLiteral ("Check - report number of triangles");
     default:
         return QStringLiteral ("??");
     }

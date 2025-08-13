@@ -54,6 +54,7 @@ private:
     CheckResult checkFlatTriangles ();
     CheckResult checkDeleted ();
     CheckResult checkVertexRefs ();
+    CheckResult checkTCount ();
 };
 
 #endif  // MESHCHECKER_H

@@ -424,6 +424,7 @@ int main (int argc, char** argv)
     //parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("multi-thread") << QStringLiteral ("mt"), QStringLiteral ("Multi threaded execution (experimental).")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("failOnly") << QStringLiteral ("f"), QStringLiteral ("Only print names of incorrect files.")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("all") << QStringLiteral ("a"), QStringLiteral ("Run all checks.")));
+    parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("default") << QStringLiteral ("d"), QStringLiteral ("Run default checks.")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("critical") << QStringLiteral ("c"), QStringLiteral ("Only do critical checks.")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("stl"), QStringLiteral ("STL files only.")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("3mf"), QStringLiteral ("3MF files only.")));
@@ -498,6 +499,10 @@ int main (int argc, char** argv)
     if (parser.isSet (QStringLiteral ("all")))
     {
         flags = All;
+    }
+    if (parser.isSet (QStringLiteral ("default")))
+    {
+        flags = Default;
     }
     else if (parser.isSet (QStringLiteral ("critical")))
     {

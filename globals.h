@@ -29,11 +29,12 @@ enum Checks {
     CheckOverusedHalfEdges      = 1 << 11,
     CheckDeleted                = 1 << 12,
     CheckVertexLowRefs          = 1 << 13,
+    CheckTCount                 = 1 << 14,
 
     //MultiThread                 = 1 << 18,
 
     Default = CheckHoles | CheckDuplicateTriangles | CheckShortEdges | CheckInfo | CheckReversedTriangles | CheckDuplicateVertices | CheckOpenEdges | CheckTriangleOverlap | CheckUnviableTriangles | CheckOverusedHalfEdges | CheckFlatTriangles | CheckDeleted | CheckVertexLowRefs,
-    All = CheckHoles | CheckDuplicateTriangles | CheckShortEdges | CheckInfo | CheckReversedTriangles | CheckDuplicateVertices | CheckOpenEdges | CheckTriangleOverlap | CheckUnviableTriangles | CheckOverusedHalfEdges | CheckFlatTriangles | CheckDeleted | CheckVertexLowRefs,
+    All = CheckHoles | CheckDuplicateTriangles | CheckShortEdges | CheckInfo | CheckReversedTriangles | CheckDuplicateVertices | CheckOpenEdges | CheckTriangleOverlap | CheckUnviableTriangles | CheckOverusedHalfEdges | CheckFlatTriangles | CheckDeleted | CheckVertexLowRefs | CheckTCount,
     Critical = CheckHoles | CheckDuplicateTriangles | CheckReversedTriangles | CheckDuplicateVertices | CheckOpenEdges | CheckTriangleOverlap | CheckOverusedHalfEdges | CheckDeleted | CheckVertexLowRefs,
 };
 
