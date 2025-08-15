@@ -1,3 +1,4 @@
+#include <ColourFactory.h>
 #include <Mesh.h>
 #include <libSculptVersion.h>
 
@@ -43,6 +44,7 @@ static const int levels[NO_VERBOSITY_LEVELS] = {
     FileName | Summary,
     FileName | Summary | Details,
 };
+static bool markFiles{};
 
 static void generateFileList ()
 {
@@ -258,6 +260,21 @@ static void reportBasic (const FileResult& result)
     }
     out.flush ();
 }
+static void callback (Checks check, const MeshPtr& mesh, const TrianglePtr& t1, const TrianglePtr& t2)
+{
+    Q_UNUSED (check)
+    Q_UNUSED (mesh)
+
+    static auto cf = ColourFactory::instance ();
+    static auto col = cf->colour (1.0, 0.0, 1.0);
+    static auto colours = cf->stockColours ();
+    static int idx;
+
+    t1->setColour (colours.at (idx));
+    idx = (idx + 1) % colours.count ();
+    t2->setColour (colours.at (idx));
+    idx = (idx + 1) % colours.count ();
+}
 
 static bool processFile (const QString& path)
 {
@@ -274,6 +291,11 @@ static bool processFile (const QString& path)
     }
 
     MeshChecker checker (mesh, path);
+
+    if (markFiles)
+    {
+        checker.setCallback (callback);
+    }
 
     checker.setCheckFlags (flags);
 
@@ -300,6 +322,14 @@ static bool processFile (const QString& path)
     }
     ok &= res.m_pass;
     out.flush ();
+
+    if (markFiles)
+    {
+        QFileInfo fi (path);
+        auto fname = fi.canonicalPath () + "/" + fi.baseName () + ".nethers";
+        qDebug () << path;
+        Document::write (mesh, path);
+    }
     return res.m_pass;
 }
 
@@ -367,7 +397,7 @@ static void summariseMd ()
 {
     md << "# Overall Summary:\n";
     md << QStringLiteral ("\n%1 failed out of %2 (%3% passed)").arg (failCount).arg (fileCount).arg (100 * (fileCount - failCount) / fileCount) << "\n";
-    if (!(verbosity & Summary) && ! (failCount > 0 && verboseFail))
+    if (!(verbosity & Summary) && !(failCount > 0 && verboseFail))
     {
         return;
     }
@@ -434,6 +464,7 @@ int main (int argc, char** argv)
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("compare"), QStringLiteral ("Compare with last recorded run."), QStringLiteral ("JSON file")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("record"), QStringLiteral ("Record results in file for use with compare."), QStringLiteral ("JSON file")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("folderFilter") << "ff", QStringLiteral ("Only look in subfolders with given name."), QStringLiteral ("folder name")));
+    parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("mark"), QStringLiteral ("Mark bad triangles with colour and save file as .nether type.")));
 
     //parser.setSingleDashWordOptionMode (QCommandLineParser::ParseAsLongOptions);
     const auto& checkList = MeshChecker::checkList ();
@@ -444,6 +475,7 @@ int main (int argc, char** argv)
 
     parser.process (a);
 
+    markFiles = parser.isSet ("mark");
     if (parser.isSet (QStringLiteral ("compare")))
     {
         if (parser.isSet (QStringLiteral ("record")))

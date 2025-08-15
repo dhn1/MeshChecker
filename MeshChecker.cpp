@@ -216,6 +216,16 @@ HalfEdgesPtr MeshChecker::getEdges ()
     return m_edgesPtr;
 }
 
+MeshChecker::CallbackFn MeshChecker::callback () const
+{
+    return m_callback;
+}
+
+void MeshChecker::setCallback (CallbackFn newCallback)
+{
+    m_callback = newCallback;
+}
+
 CheckResult MeshChecker::checkVertexRefs ()
 {
     const auto& byV = getEdges ()->edgeByVertex ();
@@ -751,90 +761,95 @@ CheckResult MeshChecker::checkTriangleOverlap ()
 
     for (const auto& t : qAsConst (*m_mesh))
     {
-        auto box = t->box ();
         auto plane = t->plane ();
-        auto candidates = ttree.find (box);
-        m_mesh->unsetFlag (Triangle::Tagged);
-
-        for (const auto& candidate : qAsConst (candidates))
+        if (plane.isValid ())
         {
-            // if (candidate != t && (t->annotation() == "TT21163" || t->annotation() ==  "TT21387") && (candidate->annotation() == "TT21163" || candidate->annotation() ==  "TT21387"))
-            // {
-            //     int t = 0;
-            // }
-            if (candidate != t && candidate->box ().intersects (box))
+            auto box = t->box ();
+            auto candidates = ttree.find (box);
+            m_mesh->unsetFlag (Triangle::Tagged);
+
+            for (const auto& candidate : qAsConst (candidates))
             {
-                auto p = candidate->plane ();
-
-                auto segOfIntersection = plane.intersection (p, 0.00000000000001);
-                bool intersect = false;
-
-                auto test = [] (const HalfEdge& he1, const HalfEdge& he2) -> bool {
-                    auto res = intersectionOfLines3DMk2 (he1, he2);
-                    return res.type == IntersectionOfLines3DMk2Result::Cross;
-                };
-
-                if (!segOfIntersection.isValid ())
+                if (candidate != t && candidate->box ().intersects (box))
                 {
-                    // No intersection of planes - must be parallel or the same plane, or same plane inverted
-                    if (plane.equal (p))
-                    {
-                        // Coplanar Ts
-                        intersect = test (HalfEdge (candidate, 0), HalfEdge (t, 0)) || test (HalfEdge (candidate, 0), HalfEdge (t, 1)) || test (HalfEdge (candidate, 0), HalfEdge (t, 2)) || test (HalfEdge (candidate, 1), HalfEdge (t, 0)) ||
-                                    test (HalfEdge (candidate, 1), HalfEdge (t, 1)) || test (HalfEdge (candidate, 1), HalfEdge (t, 2)) || test (HalfEdge (candidate, 2), HalfEdge (t, 0)) || test (HalfEdge (candidate, 2), HalfEdge (t, 1)) ||
-                                    test (HalfEdge (candidate, 2), HalfEdge (t, 2));
+                    auto p = candidate->plane ();
 
-                        if (!intersect)
-                        {
-                            auto res = t->containsWithDetails (candidate->centroid ());
-                            intersect = res == Triangle::TriangleContainsResult::Contained;
-                        }
+                    Segment segOfIntersection;
+
+                    if (p.isValid())
+                    {
+                        segOfIntersection = plane.intersection (p, 0.00000000000001);
                     }
-                }
-                else
-                {
-                    tts.clear ();
-                    cts.clear ();
+                    bool intersect = false;
 
-                    for (int e = 0; e < 3; e++)
+                    auto test = [] (const HalfEdge& he1, const HalfEdge& he2) -> bool {
+                        auto res = intersectionOfLines3DMk2 (he1, he2);
+                        return res.type == IntersectionOfLines3DMk2Result::Cross;
+                    };
+
+                    if (!segOfIntersection.isValid ())
                     {
-                        auto tres = intersectionOfLines3DMk2 (segOfIntersection, HalfEdge (t, e));
-                        if (tres.type == IntersectionOfLines3DMk2Result::Cross)
+                        // No intersection of planes - must be parallel or the same plane, or same plane inverted
+                        if (plane.equal (p))
                         {
-                            if (t->contains (tres.intersection1))
+                            // Coplanar Ts
+                            intersect = test (HalfEdge (candidate, 0), HalfEdge (t, 0)) || test (HalfEdge (candidate, 0), HalfEdge (t, 1)) || test (HalfEdge (candidate, 0), HalfEdge (t, 2)) || test (HalfEdge (candidate, 1), HalfEdge (t, 0)) ||
+                                        test (HalfEdge (candidate, 1), HalfEdge (t, 1)) || test (HalfEdge (candidate, 1), HalfEdge (t, 2)) || test (HalfEdge (candidate, 2), HalfEdge (t, 0)) || test (HalfEdge (candidate, 2), HalfEdge (t, 1)) ||
+                                        test (HalfEdge (candidate, 2), HalfEdge (t, 2));
+
+                            if (!intersect)
                             {
-                                tts.push_back (tres.t);
+                                auto res = t->containsWithDetails (candidate->centroid ());
+                                intersect = res == Triangle::TriangleContainsResult::Contained;
                             }
                         }
-                        auto cres = intersectionOfLines3DMk2 (segOfIntersection, HalfEdge (candidate, e));
-                        if (cres.type == IntersectionOfLines3DMk2Result::Cross)
-                        {
-                            if (t->contains (cres.intersection1))
-                            {
-                                cts.push_back (cres.t);
-                            }
-                        }
-                    }
-                    if (!tts.empty () && !cts.empty ())
-                    {
-                        std::sort (tts.begin (), tts.end ());
-                        std::sort (cts.begin (), cts.end ());
-
-                        intersect = !(cts.constLast () < tts.constFirst () || cts.constFirst () > tts.constLast ());
-                    }
-                }
-
-                if (intersect)
-                {
-                    if (t->id () < candidate->id ())
-                    {
-                        overlaps.push_back ({t, candidate});
                     }
                     else
                     {
-                        overlaps.push_back ({candidate, t});
+                        tts.clear ();
+                        cts.clear ();
+
+                        for (int e = 0; e < 3; e++)
+                        {
+                            auto tres = intersectionOfLines3DMk2 (segOfIntersection, HalfEdge (t, e));
+                            if (tres.type == IntersectionOfLines3DMk2Result::Cross)
+                            {
+                                if (t->contains (tres.intersection1))
+                                {
+                                    tts.push_back (tres.t);
+                                }
+                            }
+                            auto cres = intersectionOfLines3DMk2 (segOfIntersection, HalfEdge (candidate, e));
+                            if (cres.type == IntersectionOfLines3DMk2Result::Cross)
+                            {
+                                if (t->contains (cres.intersection1))
+                                {
+                                    cts.push_back (cres.t);
+                                }
+                            }
+                        }
+                        if (!tts.empty () && !cts.empty ())
+                        {
+                            std::sort (tts.begin (), tts.end ());
+                            std::sort (cts.begin (), cts.end ());
+
+                            intersect = !(cts.constLast () < tts.constFirst () || cts.constFirst () > tts.constLast ());
+                        }
+                    }
+
+                    if (intersect)
+                    {
+                        if (t->id () < candidate->id ())
+                        {
+                            overlaps.push_back ({t, candidate});
+                        }
+                        else
+                        {
+                            overlaps.push_back ({candidate, t});
+                        }
                     }
                 }
+                // TODO: what if there is no common intersection of planes (empty T or co-planar Ts);
             }
         }
     }
@@ -848,6 +863,10 @@ CheckResult MeshChecker::checkTriangleOverlap ()
         for (const auto& overlap : overlaps)
         {
             ret.push_back (QStringLiteral ("    Overlap: %1 and %2\n").arg (overlap.first->name (), overlap.second->name ()));
+            if (m_callback)
+            {
+                m_callback (CheckTriangleOverlap, m_mesh, overlap.first, overlap.second);
+            }
 #if 0
             {
                 auto mesh = Mesh::create ();

@@ -13,6 +13,8 @@
 class MeshChecker
 {
 public:
+    typedef void (*CallbackFn) (Checks check, const MeshPtr&, const TrianglePtr&, const TrianglePtr&);
+
     typedef CheckResult (MeshChecker::*CheckFn) ();
     typedef QList<QPair<Checks, MeshChecker::CheckFn>> CheckList;
 
@@ -28,6 +30,8 @@ public:
     void setCheckFlags (uint flags) { m_checks = flags; }
     QString summary () const;
     QString path () const { return m_path; }
+    CallbackFn callback () const;
+    void setCallback (CallbackFn newCallback);
 
 private:
     MeshPtr m_mesh;
@@ -38,6 +42,7 @@ private:
     QFuture<HalfEdgesPtr> m_edgesFuture;
     QFuture<TriangleOctTree*> m_octtreeFuture;
     QString m_path;
+    CallbackFn m_callback {};
     static CheckList m_checkList;
 
     CheckResult checkHoles ();
