@@ -270,6 +270,7 @@ static void callback (Checks check, const MeshPtr& mesh, const TrianglePtr& t1, 
     static auto colours = cf->stockColours ();
     static int idx;
 
+    Q_ASSERT (t1->id () | t2->id());
     t1->setColour (colours.at (idx));
     idx = (idx + 1) % colours.count ();
     t2->setColour (colours.at (idx));
@@ -452,7 +453,7 @@ int main (int argc, char** argv)
     parser.addPositionalArgument (QStringLiteral ("<mesh>"), QStringLiteral ("3D file to examine (STL, 3MF or OBJ)."));
     parser.addOption (QCommandLineOption (QStringLiteral ("verbose"), QStringLiteral ("Show details of errors, 0 = mute, 1 = file name, 2 = + summary, 3 = + details."), QStringLiteral ("verbosity"), QStringLiteral ("1")));
     //parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("multi-thread") << QStringLiteral ("mt"), QStringLiteral ("Multi threaded execution (experimental).")));
-    parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("failOnly") << QStringLiteral ("f"), QStringLiteral ("Only print names of incorrect files.")));
+    parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("fail-only") << QStringLiteral ("f"), QStringLiteral ("Only print names of incorrect files.")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("all") << QStringLiteral ("a"), QStringLiteral ("Run all checks.")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("default") << QStringLiteral ("d"), QStringLiteral ("Run default checks.")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("critical") << QStringLiteral ("c"), QStringLiteral ("Only do critical checks.")));
@@ -460,7 +461,7 @@ int main (int argc, char** argv)
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("3mf"), QStringLiteral ("3MF files only.")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("nethers"), QStringLiteral ("nethers files only.")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("report"), QStringLiteral ("Generate a report in Mark Down format."), QStringLiteral ("file")));
-    parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("verboseFail"), QStringLiteral ("Generate a summery or detailed report only for failed mesh files.")));
+    parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("verbose-fail"), QStringLiteral ("Generate a summery or detailed report only for failed mesh files.")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("compare"), QStringLiteral ("Compare with last recorded run."), QStringLiteral ("JSON file")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("record"), QStringLiteral ("Record results in file for use with compare."), QStringLiteral ("JSON file")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("folderFilter") << "ff", QStringLiteral ("Only look in subfolders with given name."), QStringLiteral ("folder name")));
@@ -510,7 +511,7 @@ int main (int argc, char** argv)
 
     folderFilter = parser.value ("ff");
 
-    verboseFail = parser.isSet (QStringLiteral ("verboseFail"));
+    verboseFail = parser.isSet (QStringLiteral ("verbose-fail"));
     if (parser.isSet (QStringLiteral ("stl")) || parser.isSet (QStringLiteral ("3mf")) || parser.isSet (QStringLiteral ("nethers")))
     {
         suffixes.clear ();
