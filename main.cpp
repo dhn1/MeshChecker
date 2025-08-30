@@ -109,7 +109,7 @@ static void record (const FileResult& result)
             auto file = recordingFiles.value (result.m_path).toObject ();
             if (file.isEmpty ())
             {
-                out << "\n" << result.m_path << " - NEW FILE\n";
+                out << "\n" << result.m_path << " - NEW FILE - " << (result.m_pass ? "PASS" : "FAIL") << '\n';
                 return;
             }
             auto o = file.value (QStringLiteral ("checks")).toObject ();

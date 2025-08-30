@@ -41,19 +41,20 @@ const MeshChecker::CheckList& MeshChecker::checkList ()
     if (m_checkList.isEmpty ())
     {
         m_checkList.push_back ({CheckInfo, &MeshChecker::checkInfo});
-        m_checkList.push_back ({CheckHoles, &MeshChecker::checkHoles});
         m_checkList.push_back ({CheckDuplicateTriangles, &MeshChecker::checkDuplicateTriangles});
-        m_checkList.push_back ({CheckShortEdges, &MeshChecker::checkShortEdges});
+        m_checkList.push_back ({CheckOverusedHalfEdges, &MeshChecker::checkOverusedHalfEdges});
+        m_checkList.push_back ({CheckOpenEdges, &MeshChecker::checkOpenEdges});
+        m_checkList.push_back ({CheckHoles, &MeshChecker::checkHoles});
         m_checkList.push_back ({CheckReversedTriangles, &MeshChecker::checkReversedTriangles});
         m_checkList.push_back ({CheckDuplicateVertices, &MeshChecker::checkDuplicateVertices});
-        m_checkList.push_back ({CheckOpenEdges, &MeshChecker::checkOpenEdges});
         m_checkList.push_back ({CheckTriangleOverlap, &MeshChecker::checkTriangleOverlap});
-        m_checkList.push_back ({CheckUnviableTriangles, &MeshChecker::checkUnviableTriangles});
-        m_checkList.push_back ({CheckOverusedHalfEdges, &MeshChecker::checkOverusedHalfEdges});
-        m_checkList.push_back ({CheckFlatTriangles, &MeshChecker::checkFlatTriangles});
         m_checkList.push_back ({CheckDeleted, &MeshChecker::checkDeleted});
         m_checkList.push_back ({CheckVertexLowRefs, &MeshChecker::checkVertexRefs});
+        m_checkList.push_back ({CheckUnviableTriangles, &MeshChecker::checkUnviableTriangles});
+        m_checkList.push_back ({CheckFlatTriangles, &MeshChecker::checkFlatTriangles});
+        m_checkList.push_back ({CheckShortEdges, &MeshChecker::checkShortEdges});
         m_checkList.push_back ({CheckTCount, &MeshChecker::checkTCount});
+        m_checkList.push_back ({CheckDuplicateAnnotations, &MeshChecker::checkAnnotations});
     }
     return m_checkList;
 }
@@ -194,7 +195,7 @@ FileResult MeshChecker::check ()
         if (m_checks & c.first)
         {
             auto res = (this->*c.second) ();
-            ret.m_pass &= res.m_pass;
+            ret.m_pass &= res.m_pass || !MeshChecker::failable(c.first);
             ret.m_checkResults.push_back (res);
             if (res.m_badCount >= 0)
             {
@@ -962,7 +963,37 @@ CheckResult MeshChecker::checkFlatTriangles ()
 
 CheckResult MeshChecker::checkTCount ()
 {
-    return {CheckTCount, true, "", m_mesh->tcount ()};
+    return {CheckTCount, true, {}, m_mesh->tcount ()};
+}
+
+CheckResult MeshChecker::checkAnnotations ()
+{
+    QString ret;
+    int badCount = 0;
+    QHash <QString, TrianglePtr> hash;
+    for (const auto& t : *m_mesh)
+    {
+        if (!t->annotation().isEmpty())
+        {
+            if (hash.contains(t->annotation()))
+            {
+                auto tt = hash.value(t->annotation());
+                badCount++;
+                ret += QStringLiteral ("    T: %1 & %2  (\"%3\")\n").arg (t->name (), tt->annotation(), t->annotation());
+            }
+            else
+            {
+                hash.insert(t->annotation(), t);
+            }
+        }
+    }
+
+    if (badCount)
+    {
+        ret.push_front (QStringLiteral ("  %1 duplicate triangle annotations\n").arg (badCount));
+        return {CheckDuplicateAnnotations, false, ret, badCount};
+    }
+    return {CheckDuplicateAnnotations, true, QStringLiteral ("  No duplicate triangle annotations\n"), badCount};
 }
 
 QString MeshChecker::checkName (Checks check)
@@ -999,6 +1030,8 @@ QString MeshChecker::checkName (Checks check)
         return QStringLiteral ("VertexLowRefs");
     case CheckTCount:
         return QStringLiteral ("TCount");
+    case CheckDuplicateAnnotations:
+        return QStringLiteral ("DuplicateAnnotations");
     default:
         return QStringLiteral ("??");
     }
@@ -1043,7 +1076,37 @@ QString MeshChecker::description (Checks check)
         return QStringLiteral ("Check for vertices with too few references");
     case CheckTCount:
         return QStringLiteral ("Check - report number of triangles");
+    case CheckDuplicateAnnotations:
+        return QStringLiteral("Check for duplicate triangle annotations (nethers format only)");
     default:
         return QStringLiteral ("??");
     }
+}
+
+bool MeshChecker::failable (Checks check)
+{
+    switch (check)
+    {
+    case CheckNothing:
+    case CheckShortEdges:
+    case CheckInfo:
+    case CheckUnviableTriangles:
+    case CheckFlatTriangles:
+    case CheckTCount:
+        return false;
+
+    case CheckHoles:
+    case CheckDuplicateTriangles:
+    case CheckReversedTriangles:
+    case CheckDuplicateVertices:
+    case CheckOpenEdges:
+    case CheckTriangleOverlap:
+    case CheckOverusedHalfEdges:
+    case CheckDeleted:
+    case CheckVertexLowRefs:
+    case CheckDuplicateAnnotations:
+        return true;
+    }
+    Q_ASSERT (false);
+    return true;
 }

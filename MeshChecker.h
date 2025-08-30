@@ -22,6 +22,7 @@ public:
     static QString checkName (Checks check);
     static QString optionName (Checks check);
     static QString description (Checks check);
+    static bool failable (Checks check);
 
     MeshChecker (const MeshPtr& mesh, const QString& path);
 
@@ -60,6 +61,7 @@ private:
     CheckResult checkDeleted ();
     CheckResult checkVertexRefs ();
     CheckResult checkTCount ();
+    CheckResult checkAnnotations ();
 };
 
 #endif  // MESHCHECKER_H
