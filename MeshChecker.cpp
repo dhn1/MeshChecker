@@ -195,7 +195,7 @@ FileResult MeshChecker::check ()
         if (m_checks & c.first)
         {
             auto res = (this->*c.second) ();
-            ret.m_pass &= res.m_pass || !MeshChecker::failable(c.first);
+            ret.m_pass &= res.m_pass || !MeshChecker::failable (c.first);
             ret.m_checkResults.push_back (res);
             if (res.m_badCount >= 0)
             {
@@ -970,20 +970,20 @@ CheckResult MeshChecker::checkAnnotations ()
 {
     QString ret;
     int badCount = 0;
-    QHash <QString, TrianglePtr> hash;
+    QHash<QString, TrianglePtr> hash;
     for (const auto& t : *m_mesh)
     {
-        if (!t->annotation().isEmpty())
+        if (!t->annotation ().isEmpty ())
         {
-            if (hash.contains(t->annotation()))
+            if (hash.contains (t->annotation ()))
             {
-                auto tt = hash.value(t->annotation());
+                auto tt = hash.value (t->annotation ());
                 badCount++;
-                ret += QStringLiteral ("    T: %1 & %2  (\"%3\")\n").arg (t->name (), tt->annotation(), t->annotation());
+                ret += QStringLiteral ("    T: %1 & %2  (\"%3\")\n").arg (t->name (), tt->annotation (), t->annotation ());
             }
             else
             {
-                hash.insert(t->annotation(), t);
+                hash.insert (t->annotation (), t);
             }
         }
     }
@@ -1077,7 +1077,7 @@ QString MeshChecker::description (Checks check)
     case CheckTCount:
         return QStringLiteral ("Check - report number of triangles");
     case CheckDuplicateAnnotations:
-        return QStringLiteral("Check for duplicate triangle annotations (nethers format only)");
+        return QStringLiteral ("Check for duplicate triangle annotations (nethers format only)");
     default:
         return QStringLiteral ("??");
     }

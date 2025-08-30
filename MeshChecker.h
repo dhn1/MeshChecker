@@ -43,7 +43,7 @@ private:
     QFuture<HalfEdgesPtr> m_edgesFuture;
     QFuture<TriangleOctTree*> m_octtreeFuture;
     QString m_path;
-    CallbackFn m_callback {};
+    CallbackFn m_callback{};
     static CheckList m_checkList;
 
     CheckResult checkHoles ();

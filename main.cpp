@@ -270,7 +270,7 @@ static void callback (Checks check, const MeshPtr& mesh, const TrianglePtr& t1, 
     static auto colours = cf->stockColours ();
     static int idx;
 
-    Q_ASSERT (t1->id () | t2->id());
+    Q_ASSERT (t1->id () | t2->id ());
     t1->setColour (colours.at (idx));
     idx = (idx + 1) % colours.count ();
     t2->setColour (colours.at (idx));
