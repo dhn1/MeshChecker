@@ -62,6 +62,7 @@ private:
     CheckResult checkVertexRefs ();
     CheckResult checkTCount ();
     CheckResult checkAnnotations ();
+    CheckResult checkComponents ();
 };
 
 #endif  // MESHCHECKER_H

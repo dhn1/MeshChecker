@@ -27,7 +27,7 @@ static int failCount = 0;
 static bool failOnly = false;
 static enum { None, Record, Compare } recordMode{None};
 static int summaryResult[64] = {};
-static int compareSummery[64] = {};
+static int diffSum[64] = {};
 static constexpr int NO_VERBOSITY_LEVELS = 4;
 static QString rootFolder;
 static bool verboseFail = false;
@@ -110,7 +110,7 @@ static void record (const FileResult& result)
             if (file.isEmpty ())
             {
                 out << "\n" << result.m_path << " - NEW FILE - " << (result.m_pass ? "PASS" : "FAIL") << '\n';
-                return;
+                //return;
             }
             auto o = file.value (QStringLiteral ("checks")).toObject ();
 
@@ -122,7 +122,7 @@ static void record (const FileResult& result)
                 }
                 auto old = o.value (MeshChecker::checkName (result.m_check)).toDouble ();
                 auto diff = result.m_badCount - old;
-                compareSummery[check2idx (result.m_check)] += diff;
+                diffSum[check2idx (result.m_check)] += diff;
                 if (result.m_badCount != old)
                 {
                     changes = true;
@@ -650,12 +650,12 @@ int main (int argc, char** argv)
             if (t & flags)
             {
                 auto check = (Checks)(flags & t);
-                auto r = compareSummery[check2idx (check)];
+                auto r = diffSum[check2idx (check)];
                 if (r != 0)
                 {
                     const auto name = MeshChecker::checkName (check);
-                    int idx = check2idx (check);
-                    out << "  " << name << QString (padding - name.length (), QChar ('.')) << ": " << summaryResult[idx] - compareSummery[idx] << " -> " << summaryResult[idx] << " (" << diffNo (compareSummery[idx]) << ")\n";
+                    int const idx = check2idx (check);
+                    out << "  " << name << QString (padding - name.length (), QChar ('.')) << ": " << summaryResult[idx] - diffSum[idx] << " -> " << summaryResult[idx] << " (" << diffNo (diffSum[idx]) << ")\n";
                 }
             }
             t <<= 1;

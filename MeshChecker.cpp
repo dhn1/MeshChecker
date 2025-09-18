@@ -55,6 +55,7 @@ const MeshChecker::CheckList& MeshChecker::checkList ()
         m_checkList.push_back ({CheckShortEdges, &MeshChecker::checkShortEdges});
         m_checkList.push_back ({CheckTCount, &MeshChecker::checkTCount});
         m_checkList.push_back ({CheckDuplicateAnnotations, &MeshChecker::checkAnnotations});
+        m_checkList.push_back ({CheckComponents, &MeshChecker::checkComponents});
     }
     return m_checkList;
 }
@@ -966,6 +967,13 @@ CheckResult MeshChecker::checkTCount ()
     return {CheckTCount, true, {}, m_mesh->tcount ()};
 }
 
+
+CheckResult MeshChecker::checkComponents ()
+{
+    auto no = (int)m_mesh->splitComponents().count();
+    return {CheckComponents, true, {}, no};
+}
+
 CheckResult MeshChecker::checkAnnotations ()
 {
     QString ret;
@@ -1032,6 +1040,8 @@ QString MeshChecker::checkName (Checks check)
         return QStringLiteral ("TCount");
     case CheckDuplicateAnnotations:
         return QStringLiteral ("DuplicateAnnotations");
+    case CheckComponents:
+        return QStringLiteral("Components");
     default:
         return QStringLiteral ("??");
     }
@@ -1078,6 +1088,8 @@ QString MeshChecker::description (Checks check)
         return QStringLiteral ("Check - report number of triangles");
     case CheckDuplicateAnnotations:
         return QStringLiteral ("Check for duplicate triangle annotations (nethers format only)");
+    case CheckComponents:
+        return QStringLiteral("Component count");
     default:
         return QStringLiteral ("??");
     }
@@ -1093,8 +1105,8 @@ bool MeshChecker::failable (Checks check)
     case CheckUnviableTriangles:
     case CheckFlatTriangles:
     case CheckTCount:
+    case CheckComponents:
         return false;
-
     case CheckHoles:
     case CheckDuplicateTriangles:
     case CheckReversedTriangles:
