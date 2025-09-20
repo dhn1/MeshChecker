@@ -86,7 +86,6 @@ static void record (const FileResult& result)
     case Record:
         {
             QJsonObject file;
-            file.insert (QStringLiteral ("file"), result.m_path);
             QJsonObject o;
             for (const auto& result : result.m_checkResults)
             {
@@ -493,6 +492,11 @@ int main (int argc, char** argv)
         }
         recordMode = Compare;
         recording = QJsonDocument::fromJson (in.readAll ()).object ();
+        if (recording.isEmpty())
+        {
+            qDebug ().nospace ().noquote () << "Unable t open: \"" << in.fileName () << "\"";
+            exit (100);
+        }
         recordingFiles = recording.value ("files").toObject ();
 
         generateFileList ();
