@@ -572,31 +572,50 @@ CheckResult MeshChecker::checkTriangleOverlap ()
                         tts.clear ();
                         cts.clear ();
 
+                        bool resolved = false;
                         for (int e = 0; e < 3; e++)
                         {
-                            auto tres = intersectionOfLines3DMk2 (segOfIntersection, HalfEdge (t, e));
-                            if (tres.type == IntersectionOfLines3DMk2Result::Cross)
+                            auto tres = intersectionOfLines3D (segOfIntersection, HalfEdge (t, e));
+                            //qDebug () << "target" << tres.toString ();
+                            if (tres.intersects1() == IntersectionOfLinesResult3D::Colinear)
                             {
-                                if (t->contains (tres.intersection1))
+                                // Ts are no in the same plane, but this one shares and edge with out plane intersect - cannot overlap
+                                resolved = true;
+                                break;
+                            }
+                            if (tres.vertexOfIntersection && 0.0 < tres.t2 && tres.t2 < 1.0)
+                            {
+                                //qDebug () << t->containsWithDetails(tres.vertexOfIntersection);
+                                if (t->contains (tres.vertexOfIntersection))
                                 {
-                                    tts.push_back (tres.t);
+                                    tts.push_back (tres.t1);
                                 }
                             }
-                            auto cres = intersectionOfLines3DMk2 (segOfIntersection, HalfEdge (candidate, e));
-                            if (cres.type == IntersectionOfLines3DMk2Result::Cross)
+                            auto cres = intersectionOfLines3D (segOfIntersection, HalfEdge (candidate, e));
+                            //qDebug () << "candidate" << cres.toString ();
+                            if (cres.intersects1() == IntersectionOfLinesResult3D::Colinear)
                             {
-                                if (t->contains (cres.intersection1))
+                                // Ts are no in the same plane, but this one shares and edge with out plane intersect - cannot overlap
+                                resolved = true;
+                                break;
+                            }
+                            if (cres.vertexOfIntersection && 0.0 < cres.t2 && cres.t2 < 1.0)
+                            {
+                                if (candidate->contains(cres.vertexOfIntersection))
                                 {
-                                    cts.push_back (cres.t);
+                                    cts.push_back (cres.t1);
                                 }
                             }
                         }
-                        if (!tts.empty () && !cts.empty ())
+                        if (!resolved && !tts.empty () && !cts.empty ())
                         {
                             std::sort (tts.begin (), tts.end ());
                             std::sort (cts.begin (), cts.end ());
+                            constexpr double E = 0.00000000001;
 
-                            intersect = !(cts.constLast () < tts.constFirst () || cts.constFirst () > tts.constLast ());
+                            // qDebug() << tts.constFirst() << tts.constLast() <<  tts.constFirst() - tts.constLast();
+                            // qDebug() << cts.constFirst() << cts.constLast() <<  cts.constFirst() - cts.constLast();
+                            intersect = !(cts.constLast () < tts.constFirst () + E || cts.constFirst () > tts.constLast () - E);
                         }
                     }
 
@@ -854,7 +873,8 @@ bool MeshChecker::failable (Checks check)
     case CheckVertexLowRefs:
     case CheckDuplicateAnnotations:
         return true;
+    default:
+        Q_ASSERT (false);
+        return true;
     }
-    Q_ASSERT (false);
-    return true;
 }

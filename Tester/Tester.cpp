@@ -1,4 +1,5 @@
 #include <Document.h>
+#include <DocumentNethers.h>
 #include <LibMeshCheckerVersion.h>
 #include <Matrix.h>
 #include <Mesh.h>
@@ -705,7 +706,43 @@ static TestRes useCase12 ()
 
     t1->reverse ();
     res = mc.checkTriangleOverlap ();
-   VERIFY (res.m_badCount == 0)
+    VERIFY (res.m_badCount == 0)
     return Passed;
 }
 REGISTER_TEST (useCase12)
+
+static TestRes useCase13     ()
+{
+    auto t1 = Triangle::create (Vertex::create (0, 40, 0), Vertex::create (19.999999999999996447, 34.641016151377549193, 40), Vertex::create (39.125904029352227553, -8.3164676327103652653, 40));
+    auto t2 = Triangle::create (Vertex::create (-38.042260651806145688, 12.360679774997889169, 0), Vertex::create (-26.765224254354350819, 29.725793019095746672, 40), Vertex::create (19.999999999999996447, 34.641016151377549193, 40));
+    auto vp = VertexPool::create ();
+
+    vp->update (t1);
+    vp->update (t2);
+
+    auto mesh = Mesh::create ();
+    mesh->colourise ();
+    mesh->push_back (t1);
+    mesh->push_back (t2);
+
+    auto segOfIntersection = t1->plane().intersection(t2->plane());
+    DocumentNethers doc (mesh);
+    doc.add(Segment::create(segOfIntersection));
+    doc.write (outputFileName (gTestName, "nethers"));
+
+    MeshChecker mc (mesh);
+    auto res = mc.checkTriangleOverlap ();
+
+    VERIFY (res.m_badCount == 0)
+
+    mesh->push_back (mesh->takeFirst ());
+    res = mc.checkTriangleOverlap ();
+
+    VERIFY (res.m_badCount == 0)
+
+    t1->reverse ();
+    res = mc.checkTriangleOverlap ();
+    VERIFY (res.m_badCount == 0)
+    return Passed;
+}
+REGISTER_TEST(useCase13)
