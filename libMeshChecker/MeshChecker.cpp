@@ -66,122 +66,6 @@ MeshChecker::~MeshChecker ()
     m_edgesFuture.waitForFinished ();
     delete m_octtreeFuture.result ();
 }
-#if 0
-bool MeshChecker::checkMultiThreaded ()
-{
-    QList<QFuture<CheckResult>> futures;
-
-    if (m_checks & CheckInfo)
-    {
-        auto res = QtConcurrent::run ([this] {
-            return checkInfo ();
-        });
-        futures.push_back (res);
-    }
-
-    if (m_checks & CheckHoles)
-    {
-        auto res = QtConcurrent::run ([this] {
-            return checkHoles ();
-        });
-        futures.push_back (res);
-    }
-
-    if (m_checks & CheckDuplicateTriangles)
-    {
-        auto res = QtConcurrent::run ([this] {
-            return checkDuplicateTriangles ();
-        });
-        futures.push_back (res);
-    }
-
-    if (m_checks & CheckShortEdges)
-    {
-        auto res = QtConcurrent::run ([this] {
-            return checkShortEdges ();
-        });
-        futures.push_back (res);
-    }
-
-    if (m_checks & CheckReversedTriangles)
-    {
-        auto res = QtConcurrent::run ([this] {
-            return checkReversedTriangles ();
-        });
-        futures.push_back (res);
-    }
-
-    if (m_checks & CheckDuplicateVertices)
-    {
-        auto res = QtConcurrent::run ([this] {
-            return checkDuplicateVertices ();
-        });
-        futures.push_back (res);
-    }
-
-    if (m_checks & CheckOpenEdges)
-    {
-        auto res = QtConcurrent::run ([this] {
-            return checkOpenEdges ();
-        });
-        futures.push_back (res);
-    }
-
-    if (m_checks & CheckHalfEdgeOverlap)
-    {
-        auto res = QtConcurrent::run ([this] {
-            return checkHalfEdgeOverlap ();
-        });
-        futures.push_back (res);
-    }
-
-    if (m_checks & CheckTriangleOverlap)
-    {
-        auto res = QtConcurrent::run ([this] {
-            return checkTriangleOverlap ();
-        });
-        futures.push_back (res);
-    }
-
-    if (m_checks & CheckUnviableTriangles)
-    {
-        auto res = QtConcurrent::run ([this] {
-            return checkUnviableTriangles ();
-        });
-        futures.push_back (res);
-    }
-
-    if (m_checks & CheckOverusedHalfEdges)
-    {
-        auto res = QtConcurrent::run ([this] {
-            return checkOverusedHalfEdges ();
-        });
-        futures.push_back (res);
-    }
-
-    if (m_checks & CheckFlatTriangles)
-    {
-        auto res = QtConcurrent::run ([this] {
-            return checkFlatTriangles ();
-        });
-        futures.push_back (res);
-    }
-
-    bool ret = true;
-    for (const auto& f : futures)
-    {
-        auto res = f.result ();
-        report (res);
-        ret &= f.result ().m_pass;
-    }
-
-    m_octtreeFuture.waitForFinished ();
-    m_edgesFuture.waitForFinished ();
-
-    QThread::usleep (20);  // TODO: remove?
-    return ret;
-}
-#endif
 
 FileResult MeshChecker::check ()
 {
@@ -631,128 +515,6 @@ CheckResult MeshChecker::checkDuplicateVertices ()
     return {CheckDuplicateVertices, true, QStringLiteral ("  No duplicate vertices\n"), badCount};
 }
 
-#if 0
-CheckResult MeshChecker::checkHalfEdgeOverlap ()
-{
-    QString ret;
-
-#    if 0
-    SegmentList segs;
-
-
-    for (const auto& t : qAsConst (m_mesh->triangles ()))
-    {
-        if (!t->testFlag (Triangle::Delete | Triangle::PreDelete))
-        {
-            for (int e = 0; e < 3; e++)
-            {
-                auto seg = Segment::create (HalfEdge (t, e));
-                segs.push_back (seg);
-            }
-        }
-    }
-    // Remove reversed duplicates (half edges)
-    for (int i = 0; i < segs.count (); i++)
-    {
-        for (int j = i + 1; j < segs.count (); j++)
-        {
-            if (segs.at (i)->start () == segs.at (j)->end () && segs.at (i)->end () == segs.at (j)->start ())
-            {
-                segs.removeAt (j);
-                j--;
-            }
-        }
-    }
-
-    int badCount = 0;
-    for (int i = 0; i < segs.count (); i++)
-    {
-        auto& seg1 = segs.at (i);  //Segment::create (HalfEdge (t, i));
-        for (int j = i + 1; j < segs.count (); j++)
-        {
-            auto& seg2 = segs.at (j);
-
-            auto res = intersectionOfLines3DMk2 (seg1, seg2);
-            switch (res.type)
-            {
-            case IntersectionOfLines3DMk2Result::None:
-            case IntersectionOfLines3DMk2Result::Ends:
-                break;
-            case IntersectionOfLines3DMk2Result::TJunct:
-                badCount++;
-                ret += QStringLiteral ("    T junction edges: %1 -> %2 and %3 -> %4\n").arg (vname (seg1->start ())).arg (vname (seg1->end ())).arg (vname (seg2->start ())).arg (vname (seg2->end ()));
-                break;
-            case IntersectionOfLines3DMk2Result::Cross:
-            case IntersectionOfLines3DMk2Result::InLine:
-                 badCount++;
-                ret.push_back(QStringLiteral ("    Intersecting edges: %1 -> %2 and %3 -> %4\n").arg (vname (seg1->start ())).arg (vname (seg1->end ())).arg (vname (seg2->start ())).arg (vname (seg2->end ())));
-                break;
-            }
-        }
-    }
-#    else
-    int badCount = 0;
-    const auto& ttree = *m_octtreeFuture.result ();
-    //QSet <QPair<SegmentPtr, SegmentPtr>> reported;
-    for (const auto& t : qAsConst (*m_mesh))
-    {
-        if (t->testFlag (Triangle::Delete | Triangle::PreDelete))
-        {
-            continue;
-        }
-
-        const auto candidates = ttree.find (t->box ());
-        SegmentPtr segs[3];
-        segs[0] = Segment::create (t->vertexAt (0), t->vertexAt (1));
-        segs[1] = Segment::create (t->vertexAt (1), t->vertexAt (2));
-        segs[2] = Segment::create (t->vertexAt (2), t->vertexAt (0));
-
-        for (const auto& tt : candidates)
-        {
-            if (t == tt)
-            {
-                continue;
-            }
-            for (int ee = 0; ee < 3; ee++)
-            {
-                auto seg = Segment::create (tt->vertexAt (ee), tt->vertexAt ((ee + 1) % 3));
-                for (int e = 0; e < 3; e++)
-                {
-                    if (seg->start () == segs[e]->end () && seg->end () == segs[e]->start ())
-                    {
-                        continue;
-                    }
-                    auto res = intersectionOfLines3DMk2 (segs[e], seg);
-                    switch (res.type)
-                    {
-                    case IntersectionOfLines3DMk2Result::None:
-                    case IntersectionOfLines3DMk2Result::Ends:
-                        break;
-                    case IntersectionOfLines3DMk2Result::InLine:  // Unreliable
-                    case IntersectionOfLines3DMk2Result::TJunct:  // Unreliable
-                        // badCount++;
-                        // ret += QStringLiteral ("    T junction edges: %1 -> %2 and %3 -> %4\n").arg (vname (segs[e]->start ())).arg (vname (segs[e]->end ())).arg (vname (seg->start ())).arg (vname (seg->end ()));
-                        break;
-                    case IntersectionOfLines3DMk2Result::Cross:
-                        // if (reported.contains({seg, segs[e]}))
-                        // {
-                        //     continue;
-                        // }
-                        badCount++;
-                        ret.push_back (QStringLiteral ("    Intersecting edges: %1 -> %2 and %3 -> %4\n").arg (segs[ee]->start ()->name ()).arg (segs[ee]->end ()->name ()).arg (seg->start ()->name ()).arg (seg->end ()->name ()));
-                        //reported.insert ({seg, segs[e]});
-                        break;
-                    }
-                }
-            }
-        }
-    }
-#    endif
-    ret.push_front (QStringLiteral ("  Found %1 overlapping halfEdges (currently each reported twice).\n").arg (badCount / 2));
-    return {CheckHalfEdgeOverlap, badCount == 0, ret, badCount / 2};
-}
-#endif
-
 CheckResult MeshChecker::checkTriangleOverlap ()
 {
     QString ret;
@@ -768,7 +530,6 @@ CheckResult MeshChecker::checkTriangleOverlap ()
         {
             auto box = t->box ();
             auto candidates = ttree.find (box);
-            m_mesh->unsetFlag (Triangle::Tagged);
 
             for (const auto& candidate : qAsConst (candidates))
             {
@@ -776,9 +537,9 @@ CheckResult MeshChecker::checkTriangleOverlap ()
                 {
                     auto p = candidate->plane ();
 
-                Segment segOfIntersection;
+                    Segment segOfIntersection;
 
-                    if (p.isValid())
+                    if (p.isValid ())
                     {
                         segOfIntersection = plane.intersection (p, 0.00000000000001);
                     }
