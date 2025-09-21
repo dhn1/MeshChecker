@@ -2,3 +2,6 @@
 	path = libSculpt
 	url = ../libsculpt.git
 	branch = trunk
+[submodule "libtest"]
+	path = libtest
+	url = ../libtest.git

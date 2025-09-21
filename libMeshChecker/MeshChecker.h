@@ -12,6 +12,8 @@
 
 class MeshChecker
 {
+    friend class Tester;
+
 public:
     typedef void (*CallbackFn) (Checks check, const MeshPtr&, const TrianglePtr&, const TrianglePtr&);
 
@@ -24,7 +26,7 @@ public:
     static QString description (Checks check);
     static bool failable (Checks check);
 
-    MeshChecker (const MeshPtr& mesh, const QString& path);
+    MeshChecker (const MeshPtr& mesh, const QString& path = {});
 
     virtual ~MeshChecker ();
     FileResult check ();
@@ -46,6 +48,7 @@ private:
     CallbackFn m_callback{};
     static CheckList m_checkList;
 
+public:
     CheckResult checkHoles ();
     CheckResult checkDuplicateTriangles ();
     CheckResult checkShortEdges ();

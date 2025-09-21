@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.14)
 
-project (MeshChecker LANGUAGES CXX VERSION 0.4.10)
+project (libMeshChecker LANGUAGES CXX VERSION 0.0.0)
 
 find_program(CCACHE_FOUND ccache)
 if(CCACHE_FOUND)
@@ -67,28 +67,29 @@ endif ()
 
 set (INSTALL_LIB OFF)
 
-add_subdirectory (libSculpt)
-add_subdirectory (BadMeshes)
-add_subdirectory (Tester)
-add_subdirectory (libMeshChecker)
-add_subdirectory (libtest)
-
-add_executable (${PROJECT_NAME}
-    main.cpp
-    README.md
+add_library (${PROJECT_NAME} 
+    globals.h
+    LibMeshCheckerVersion.h LibMeshCheckerVersion.cpp
+    MeshChecker.h MeshChecker.cpp
+    CheckResult.h CheckResult.cpp
+    FileResult.h FileResult.cpp
     )
 
 set_target_properties (${PROJECT_NAME} PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
+set_target_properties (${PROJECT_NAME} PROPERTIES
+    PREFIX "")
+
+target_include_directories (${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_LIST_DIR})
+
 target_link_libraries (${PROJECT_NAME}
         Qt${QT_VERSION_MAJOR}::Core
         Qt${QT_VERSION_MAJOR}::Gui
         Qt${QT_VERSION_MAJOR}::Concurrent
-        libSculpt
-        libMeshChecker)
+        libSculpt)
 
-set_property (SOURCE main.cpp PROPERTY COMPILE_DEFINITIONS VERSION="${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}")
+set_property (SOURCE LibMeshCheckerVersion.cpp PROPERTY COMPILE_DEFINITIONS VERSION="${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}")
 
 # Install app
 install (
@@ -97,18 +98,4 @@ install (
     RUNTIME
     DESTINATION /usr/bin)
 
-#cpack stuff
-include(InstallRequiredSystemLibraries)
 
-#set (CPACK_PACKAGE_NAME "${PROJECT_NAME}")
-set (CPACK_PACKAGE_DESCRIPTION_SUMMARY "${PROJECT_NAME} - 3d triangular mesh checker")
-set (CPACK_PACKAGE_VENDOR "David Netherwood")
-set (CPACK_PACKAGE_VERSION_MAJOR "${PROJECT_VERSION_MAJOR}")
-set (CPACK_PACKAGE_VERSION_MINOR "${PROJECT_VERSION_MINOR}")
-set (CPACK_PACKAGE_VERSION_PATCH "${PROJECT_VERSION_PATCH}")
-set (CPACK_PACKAGE_CONTACT "david_netherwood@hotmail.com")
-set (CPACK_GENERATOR "DEB")
-set (CPACK_DEBIAN_PACKAGE_DEPENDS "libqt6gui6, libqt6core6, libqt6concurrent6, libqt6xml6, libzip4,  libqt6svg6, ${SCULPTLIB_DEP_NAME} (>= 0.10.0)")
-set (CPACK_PACKAGE_FILE_NAME ${PROJECT_NAME})
-
-include(CPack)
