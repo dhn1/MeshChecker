@@ -753,34 +753,13 @@ CheckResult MeshChecker::checkHalfEdgeOverlap ()
 }
 #endif
 
-struct Intersection
-{
-    Intersection (double t1, double t2, int e) : m_edgeT (t1), m_segmentOfIntersectionT (t2), m_edge (e) {}
-    double m_edgeT;
-    double m_segmentOfIntersectionT;
-    int m_edge;
-};
-
-struct Intersections : public QList<Intersection*>
-{
-    ~Intersections () { qDeleteAll (*this); }
-    double minT () const { return at (0)->m_segmentOfIntersectionT; }
-    double maxT () const { return at (size () - 1)->m_segmentOfIntersectionT; }
-    void sortT2 ()
-    {
-        std::sort (begin (), end (), [] (const Intersection* a, const Intersection* b) -> bool {
-            return a->m_segmentOfIntersectionT < b->m_segmentOfIntersectionT;
-        });
-    }
-};
-
 CheckResult MeshChecker::checkTriangleOverlap ()
 {
     QString ret;
-    const auto& ttree = *m_octtreeFuture.result ();
-    QList<QPair<TrianglePtr, TrianglePtr>> overlaps;
     QList<double> tts;
     QList<double> cts;
+    const auto& ttree = *m_octtreeFuture.result ();
+    QList<QPair<TrianglePtr, TrianglePtr>> overlaps;
 
     for (const auto& t : qAsConst (*m_mesh))
     {
@@ -788,31 +767,21 @@ CheckResult MeshChecker::checkTriangleOverlap ()
         if (plane.isValid ())
         {
             auto box = t->box ();
-            auto plane = t->plane ();
             auto candidates = ttree.find (box);
             m_mesh->unsetFlag (Triangle::Tagged);
 
             for (const auto& candidate : qAsConst (candidates))
             {
-                if (candidate == t)
-                {
-                    continue;
-                }
-
-                auto p = candidate->plane ();
-
-                Segment segOfIntersection;
-
-                if (p.isValid ())
-                {
-                    segOfIntersection = plane.intersection (p, 0.00000000000001);
-                }
-
-                if (candidate->box ().intersects (box))
+                if (candidate != t && candidate->box ().intersects (box))
                 {
                     auto p = candidate->plane ();
 
-                    auto segOfIntersection = plane.intersection (p);
+                Segment segOfIntersection;
+
+                    if (p.isValid())
+                    {
+                        segOfIntersection = plane.intersection (p, 0.00000000000001);
+                    }
                     bool intersect = false;
 
                     auto test = [] (const HalfEdge& he1, const HalfEdge& he2) -> bool {
@@ -841,41 +810,27 @@ CheckResult MeshChecker::checkTriangleOverlap ()
                     {
                         tts.clear ();
                         cts.clear ();
-                        bool resolved = false;
+
                         for (int e = 0; e < 3; e++)
                         {
-                            auto tres = intersectionOfLines3D (segOfIntersection, HalfEdge (t, e));
-                            //qDebug () << "target" << tres.toString ();
-                            if (tres.intersects1() == IntersectionOfLinesResult3D::Colinear)
+                            auto tres = intersectionOfLines3DMk2 (segOfIntersection, HalfEdge (t, e));
+                            if (tres.type == IntersectionOfLines3DMk2Result::Cross)
                             {
-                                // Ts are no in the same plane, but this one shares and edge with out plane intersect - cannot overlap
-                                 resolved = true;
-                                break;
-                            }
-                            if (tres.vertexOfIntersection && 0.0 < tres.t2 && tres.t2 < 1.0)
-                            {
-                                if (t->contains(tres.vertexOfIntersection))
+                                if (t->contains (tres.intersection1))
                                 {
-                                    tts.push_back (tres.t1);
+                                    tts.push_back (tres.t);
                                 }
                             }
-                            auto cres = intersectionOfLines3D (segOfIntersection, HalfEdge (candidate, e));
-                            //qDebug () << "candidate" << cres.toString ();
-                            if (cres.intersects1() == IntersectionOfLinesResult3D::Colinear)
+                            auto cres = intersectionOfLines3DMk2 (segOfIntersection, HalfEdge (candidate, e));
+                            if (cres.type == IntersectionOfLines3DMk2Result::Cross)
                             {
-                                // Ts are no in the same plane, but this one shares and edge with out plane intersect - cannot overlap
-                                resolved = true;
-                                break;
-                            }
-                            if (cres.vertexOfIntersection && 0.0 < cres.t2 && cres.t2 < 1.0)
-                            {
-                                if (candidate->contains(cres.vertexOfIntersection))
+                                if (t->contains (cres.intersection1))
                                 {
-                                    cts.push_back (cres.t1);
+                                    cts.push_back (cres.t);
                                 }
                             }
                         }
-                        if (!resolved && !tts.empty () && !cts.empty ())
+                        if (!tts.empty () && !cts.empty ())
                         {
                             std::sort (tts.begin (), tts.end ());
                             std::sort (cts.begin (), cts.end ());
@@ -883,6 +838,7 @@ CheckResult MeshChecker::checkTriangleOverlap ()
                             intersect = !(cts.constLast () < tts.constFirst () || cts.constFirst () > tts.constLast ());
                         }
                     }
+
                     if (intersect)
                     {
                         if (t->id () < candidate->id ())
@@ -895,6 +851,7 @@ CheckResult MeshChecker::checkTriangleOverlap ()
                         }
                     }
                 }
+                // TODO: what if there is no common intersection of planes (empty T or co-planar Ts);
             }
         }
     }
