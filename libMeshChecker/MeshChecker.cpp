@@ -862,6 +862,7 @@ bool MeshChecker::failable (Checks check)
     case CheckTCount:
     case CheckComponents:
         return false;
+
     case CheckHoles:
     case CheckDuplicateTriangles:
     case CheckReversedTriangles:
@@ -873,6 +874,7 @@ bool MeshChecker::failable (Checks check)
     case CheckVertexLowRefs:
     case CheckDuplicateAnnotations:
         return true;
+
     default:
         Q_ASSERT (false);
         return true;
