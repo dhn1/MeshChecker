@@ -53,16 +53,11 @@ endif()
 add_compile_options (-gsplit-dwarf)
 add_link_options($<$<CONFIG:RELEASE>:-s>)
 
-find_program (MOLD "mold")
-if (MOLD)
-    add_link_options ("-fuse-ld=mold")
-    message (STATUS "Using mold linker")
-else ()
-    find_program (LLD "lld")
-    if (LLD)
-        add_link_options ("-fuse-ld=lld")
-        message (STATUS "Using lld linker")
-    endif ()
+
+find_program (LLD "lld")
+if (LLD)
+    add_link_options ("-fuse-ld=lld")
+    message (STATUS "Using lld linker")
 endif ()
 
 set (INSTALL_LIB OFF)
@@ -91,11 +86,11 @@ target_link_libraries (${PROJECT_NAME}
 
 set_property (SOURCE LibMeshCheckerVersion.cpp PROPERTY COMPILE_DEFINITIONS VERSION="${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}")
 
-# Install app
-install (
-    TARGETS ${PROJECT_NAME}
-    CONFIGURATIONS Release
-    RUNTIME
-    DESTINATION /usr/bin)
+# # Install app
+# install (
+#     TARGETS ${PROJECT_NAME}
+#     CONFIGURATIONS Release
+#     RUNTIME
+#     DESTINATION /usr/bin)
 
 
