@@ -299,7 +299,7 @@ static bool processFile (const QString& path)
 
     checker.setCheckFlags (flags);
 
-    auto res = checker.check ();
+    const auto res = checker.check ();
     for (const auto& c : res.m_checkResults)
     {
         summaryResult[check2idx (c.m_check)] += c.m_badCount;
@@ -325,8 +325,8 @@ static bool processFile (const QString& path)
 
     if (markFiles)
     {
-        QFileInfo fi (path);
-        auto fname = fi.canonicalPath () + "/" + fi.baseName () + ".nethers";
+        const QFileInfo fi (path);
+        auto fname = fi.canonicalPath () + QStringLiteral ("/") + fi.baseName () + QStringLiteral (".nethers");
         qDebug () << path;
         Document::write (mesh, path);
     }
@@ -438,7 +438,7 @@ int main (int argc, char** argv)
 
 #ifdef QT_DEBUG
     QDir dir;
-    dir.mkpath ("/tmp/3d");
+    dir.mkpath (QStringLiteral ("/tmp/3d"));
 #endif
 
     QCoreApplication::setApplicationName (QStringLiteral ("MeshChecker"));
@@ -463,7 +463,7 @@ int main (int argc, char** argv)
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("verbose-fail"), QStringLiteral ("Generate a summery or detailed report only for failed mesh files.")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("compare"), QStringLiteral ("Compare with last recorded run."), QStringLiteral ("JSON file")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("record"), QStringLiteral ("Record results in file for use with compare."), QStringLiteral ("JSON file")));
-    parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("folderFilter") << "ff", QStringLiteral ("Only look in subfolders with given name."), QStringLiteral ("folder name")));
+    parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("folderFilter") << QStringLiteral ("ff"), QStringLiteral ("Only look in subfolders with given name."), QStringLiteral ("folder name")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("mark"), QStringLiteral ("Mark bad triangles with colour and save file as .nether type.")));
 
     //parser.setSingleDashWordOptionMode (QCommandLineParser::ParseAsLongOptions);
@@ -475,7 +475,7 @@ int main (int argc, char** argv)
 
     parser.process (a);
 
-    markFiles = parser.isSet ("mark");
+    markFiles = parser.isSet (QStringLiteral ("mark"));
     if (parser.isSet (QStringLiteral ("compare")))
     {
         if (parser.isSet (QStringLiteral ("record")))
@@ -497,7 +497,7 @@ int main (int argc, char** argv)
             qDebug ().nospace ().noquote () << "Unable t open: \"" << in.fileName () << "\"";
             exit (100);
         }
-        recordingFiles = recording.value ("files").toObject ();
+        recordingFiles = recording.value (QStringLiteral ("files")).toObject ();
 
         generateFileList ();
     }
@@ -510,10 +510,10 @@ int main (int argc, char** argv)
             return 106;
         }
         recordMode = Record;
-        recording.insert ("version", qApp->applicationVersion ());
+        recording.insert (QStringLiteral ("version"), qApp->applicationVersion ());
     }
 
-    folderFilter = parser.value ("ff");
+    folderFilter = parser.value (QStringLiteral ("ff"));
 
     verboseFail = parser.isSet (QStringLiteral ("verbose-fail"));
     if (parser.isSet (QStringLiteral ("stl")) || parser.isSet (QStringLiteral ("3mf")) || parser.isSet (QStringLiteral ("nethers")))
