@@ -579,7 +579,7 @@ CheckResult MeshChecker::checkTriangleOverlap ()
                             //qDebug () << "target" << tres.toString ();
                             if (tres.intersects1() == IntersectionOfLinesResult3D::Colinear)
                             {
-                                // Ts are no in the same plane, but this one shares and edge with out plane intersect - cannot overlap
+                                // Ts are not in the same plane, but this one shares and edge with out plane intersect - cannot overlap
                                 resolved = true;
                                 break;
                             }
@@ -616,6 +616,12 @@ CheckResult MeshChecker::checkTriangleOverlap ()
                             // qDebug() << tts.constFirst() << tts.constLast() <<  tts.constFirst() - tts.constLast();
                             // qDebug() << cts.constFirst() << cts.constLast() <<  cts.constFirst() - cts.constLast();
                             intersect = !(cts.constLast () < tts.constFirst () + E || cts.constFirst () > tts.constLast () - E);
+
+                            if (std::abs (cts.constFirst() - cts.constLast()) < E || std::abs (tts.constFirst() - tts.constLast()) < E)
+                            {
+                                // Must be tip touch - which is ok
+                                intersect = false;
+                            }
                         }
                     }
 
