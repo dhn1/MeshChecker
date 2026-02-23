@@ -45,6 +45,7 @@ static const int levels[NO_VERBOSITY_LEVELS] = {
     FileName | Summary | Details,
 };
 static bool markFiles{};
+static bool markIslands{};
 
 static void generateFileList ()
 {
@@ -294,6 +295,7 @@ static bool processFile (const QString& path)
 
     if (markFiles)
     {
+        mesh->removeColour ();
         checker.setCallback (callback);
     }
 
@@ -323,11 +325,27 @@ static bool processFile (const QString& path)
     ok &= res.m_pass;
     out.flush ();
 
-    if (markFiles)
+    if (markIslands)
+    {
+        mesh->removeColour ();
+        auto cols = ColourFactory::instance ()->stockColours ();
+        int colIdx = 0;
+        auto hes = HalfEdges::create (mesh);
+        auto holes = hes->holes ();
+        for (const auto& hole : std::as_const (holes))
+        {
+            if (hole.isIslandMk2 ())
+            {
+                hole.colourHole (cols.at (colIdx++));
+                colIdx %= cols.size ();
+            }
+        }
+    }
+    if (markFiles || markIslands)
     {
         const QFileInfo fi (path);
         auto fname = fi.canonicalPath () + QStringLiteral ("/") + fi.baseName () + QStringLiteral (".nethers");
-        qDebug () << path;
+        //qDebug () << path;
         Document::write (mesh, path);
     }
     return res.m_pass;
@@ -465,6 +483,7 @@ int main (int argc, char** argv)
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("record"), QStringLiteral ("Record results in file for use with compare."), QStringLiteral ("JSON file")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("folderFilter") << QStringLiteral ("ff"), QStringLiteral ("Only look in subfolders with given name."), QStringLiteral ("folder name")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("mark"), QStringLiteral ("Mark bad triangles with colour and save file as .nether type.")));
+    parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("mark-islands"), QStringLiteral ("Mark islands with colours and save file as .nether type.")));
 
     //parser.setSingleDashWordOptionMode (QCommandLineParser::ParseAsLongOptions);
     const auto& checkList = MeshChecker::checkList ();
@@ -476,6 +495,8 @@ int main (int argc, char** argv)
     parser.process (a);
 
     markFiles = parser.isSet (QStringLiteral ("mark"));
+    markIslands = parser.isSet (QStringLiteral ("mark-islands"));
+
     if (parser.isSet (QStringLiteral ("compare")))
     {
         if (parser.isSet (QStringLiteral ("record")))
@@ -492,7 +513,7 @@ int main (int argc, char** argv)
         }
         recordMode = Compare;
         recording = QJsonDocument::fromJson (in.readAll ()).object ();
-        if (recording.isEmpty())
+        if (recording.isEmpty ())
         {
             qDebug ().nospace ().noquote () << "Unable t open: \"" << in.fileName () << "\"";
             exit (100);
