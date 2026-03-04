@@ -46,7 +46,10 @@ private:
     QFuture<TriangleOctTree*> m_octtreeFuture;
     QString m_path;
     CallbackFn m_callback{};
+    static bool m_viewerHyperlinks;
     static CheckList m_checkList;
+    QString fmtName (const TrianglePtr& t);
+    QString fmtName (const VertexPtr& t);
 
 public:
     CheckResult checkHoles ();
@@ -66,6 +69,7 @@ public:
     CheckResult checkTCount ();
     CheckResult checkAnnotations ();
     CheckResult checkComponents ();
+    static void setViewerHyperlinks (bool newViewerHyperlinks) { m_viewerHyperlinks = newViewerHyperlinks; }
 };
 
 #endif  // MESHCHECKER_H

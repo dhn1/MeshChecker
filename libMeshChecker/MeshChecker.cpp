@@ -18,6 +18,7 @@
 
 static QMutex flagMutex;  // Used to control access to triangle flags
 MeshChecker::CheckList MeshChecker::m_checkList;
+bool MeshChecker::m_viewerHyperlinks;
 
 MeshChecker::MeshChecker (const MeshPtr& mesh, const QString& path) : m_mesh (mesh), m_path (path)
 {
@@ -35,6 +36,36 @@ MeshChecker::MeshChecker (const MeshPtr& mesh, const QString& path) : m_mesh (me
         return ret;
     });
 }
+
+QString MeshChecker::fmtName (const TrianglePtr& t)
+{
+    if (m_viewerHyperlinks)
+    {
+        return QStringLiteral ("![%1](/t/%2)").arg (t->name (false)).arg (t->id ());
+    }
+    return t->name (false);
+}
+
+QString MeshChecker::fmtName (const VertexPtr& v)
+{
+    if (m_viewerHyperlinks)
+    {
+        return QStringLiteral ("![%1](/v/%2)").arg (v->name (false)).arg (v->fileIdx ());
+    }
+    return v->name (false);
+}
+
+// QString MeshChecker::fmtHoles (const Hole& h)
+// {
+//     if (m_viewerHyperlinks)
+//     {
+//         return QStringLiteral ("![%1](/h/%2)").arg(h->id (false)).arg(v->name (false));
+//     }
+//     else
+//     {
+//         return v->name (false);
+//     }
+// }
 
 const MeshChecker::CheckList& MeshChecker::checkList ()
 {
@@ -156,7 +187,7 @@ CheckResult MeshChecker::checkDeleted ()
         if (t->testFlag (Triangle::Delete))
         {
             badCount++;
-            str += QStringLiteral ("    %1\n").arg (t->name ());
+            str += QStringLiteral ("    %1\n").arg (fmtName (t));
         }
     }
     if (badCount)
@@ -185,7 +216,7 @@ CheckResult MeshChecker::checkOpenEdges ()
     {
         if (!e->testFlag (HalfEdge::Delete))
         {
-            str += QStringLiteral ("    T: %1, Edge: %2 -> %3\n").arg (e->triangle ()->name ()).arg (e->v1 ()->name ()).arg (e->v2 ()->name ());
+            str += QStringLiteral ("    T: %1, Edge: %2 -> %3\n").arg (fmtName (e->triangle())).arg (fmtName(e->v1 ())).arg (fmtName (e->v2 ()));
             badCount++;
         }
     }
@@ -274,7 +305,7 @@ CheckResult MeshChecker::checkDuplicateTriangles ()
             {
                 if (!thash.contains (t))
                 {
-                    r += QStringLiteral ("    T: %1 and T: %2\n").arg (t->name (), tt->name ());
+                    r += QStringLiteral ("    T: %1 and T: %2\n").arg (fmtName(t), fmtName (tt));
                     badCount++;
                     thash.insert (TriangleKey (t), 0);
                 }
@@ -321,13 +352,13 @@ CheckResult MeshChecker::checkShortEdges ()
                 foundShortEdge++;
                 if (edge->pair ())
                 {
-                    ret += QStringLiteral ("    Short edge ") + QString::number (sqrt (mag2)) + QStringLiteral ("mm. Between vertex: ") + edge->v1 ()->name () + QStringLiteral (" and ") + edge->v2 ()->name () + QStringLiteral (". Ts ") +
-                           edge->triangle ()->name () + QStringLiteral (" and ") + edge->pair ()->triangle ()->name () + QStringLiteral (" \n");
+                    ret += QStringLiteral ("    Short edge ") + QString::number (sqrt (mag2)) + QStringLiteral ("mm. Between vertex: ") + fmtName (edge->v1 ()) + QStringLiteral (" and ") + fmtName (edge->v2 ()) + QStringLiteral (". Ts ") +
+                           fmtName (edge->triangle ()) + QStringLiteral (" and ") + fmtName (edge->pair ()->triangle ()) + QStringLiteral (" \n");
                 }
                 else
                 {
-                    ret += QStringLiteral ("    Short edge ") + QString::number (sqrt (mag2)) + QStringLiteral ("mm. Between vertex: ") + edge->v1 ()->name () + QStringLiteral (" and ") + edge->v2 ()->name () + QStringLiteral (". Ts ") +
-                           edge->triangle ()->name () + QByteArrayLiteral (" and None\n");
+                    ret += QStringLiteral ("    Short edge ") + QString::number (sqrt (mag2)) + QStringLiteral ("mm. Between vertex: ") + fmtName (edge->v1 ()) + QStringLiteral (" and ") + fmtName (edge->v2 ()) + QStringLiteral (". Ts ") +
+                           fmtName (edge->triangle ()) + QByteArrayLiteral (" and None\n");
                 }
             }
             if (mag2 < smallest2)
@@ -402,7 +433,7 @@ CheckResult MeshChecker::checkReversedTriangles ()
         auto count = reversedTriangles.count (t);
         if (count == 3)
         {
-            ret += QStringLiteral ("    triangle: %1\n").arg (t->name ());
+            ret += QStringLiteral ("    triangle: %1\n").arg (fmtName (t));
             badCount++;
         }
         i += count;
@@ -434,10 +465,10 @@ CheckResult MeshChecker::checkOverusedHalfEdges ()
         {
             badCount++;
             const auto& e = values.constFirst ();
-            ret.push_back (QStringLiteral ("    edge: %1 -> %2\n").arg (e->v1 ()->name (), e->v2 ()->name ()));
+            ret.push_back (QStringLiteral ("    edge: %1 -> %2\n").arg (fmtName (e->v1 ()), fmtName(e->v2 ())));
             for (const auto& match : values)
             {
-                ret.push_back (QStringLiteral ("      Used by T: %1\n").arg (match->triangle ()->name ()));
+                ret.push_back (QStringLiteral ("      Used by T: %1\n").arg (fmtName(match->triangle ())));
             }
         }
     }
@@ -504,7 +535,7 @@ CheckResult MeshChecker::checkDuplicateVertices ()
         if (res != v)
         {
             badCount++;
-            ret += QStringLiteral ("    %1 and %2\n").arg (v->name ()).arg (res->name ());
+            ret += QStringLiteral ("    %1 and %2\n").arg (fmtName (v)).arg (fmtName (res));
         }
     }
     if (badCount)
@@ -579,15 +610,25 @@ CheckResult MeshChecker::checkTriangleOverlap ()
                             //qDebug () << "target" << tres.toString ();
                             if (tres.intersects1() == IntersectionOfLinesResult3D::Colinear)
                             {
-                                // Ts are not in the same plane, but this one shares and edge with out plane intersect - cannot overlap
+                                // Ts are not in the same plane, but share this one shares and edge with out plane intersect - cannot overlap
                                 resolved = true;
                                 break;
                             }
                             if (tres.vertexOfIntersection && 0.0 < tres.t2 && tres.t2 < 1.0)
                             {
-                                //qDebug () << t->containsWithDetails(tres.vertexOfIntersection);
-                                if (t->contains (tres.vertexOfIntersection))
+                                auto res = t->containsWithDetails (tres.vertexOfIntersection);
+                                switch (res)
                                 {
+                                case Triangle::TriangleContainsResult::External:
+                                case Triangle::TriangleContainsResult::Edge0:
+                                case Triangle::TriangleContainsResult::Edge1:
+                                case Triangle::TriangleContainsResult::Edge2:
+                                case Triangle::TriangleContainsResult::Vertex0:
+                                case Triangle::TriangleContainsResult::Vertex1:
+                                case Triangle::TriangleContainsResult::Vertex2:
+                                    // Nothing
+                                    break;
+                                case Triangle::TriangleContainsResult::Contained:
                                     tts.push_back (tres.t1);
                                 }
                             }
@@ -657,7 +698,7 @@ CheckResult MeshChecker::checkTriangleOverlap ()
 
         for (const auto& overlap : overlaps)
         {
-            ret.push_back (QStringLiteral ("    Overlap: %1 and %2\n").arg (overlap.first->name (), overlap.second->name ()));
+            ret.push_back (QStringLiteral ("    Overlap: %1 and %2\n").arg (fmtName (overlap.first), fmtName (overlap.second)));
             if (m_callback)
             {
                 m_callback (CheckTriangleOverlap, m_mesh, overlap.first, overlap.second);
@@ -690,7 +731,7 @@ CheckResult MeshChecker::checkUnviableTriangles ()
     {
         if (!t->isViable ())
         {
-            ret += QStringLiteral ("    T: %1\n").arg (t->name ());
+            ret += QStringLiteral ("    T: %1\n").arg (fmtName (t));
             badCount++;
         }
     }
@@ -712,7 +753,7 @@ CheckResult MeshChecker::checkFlatTriangles ()
         if (!tnorm)
         {
             badCount++;
-            ret += QStringLiteral ("    T: %1\n").arg (t->name ());
+            ret += QStringLiteral ("    T: %1\n").arg (fmtName (t));
         }
     }
     if (badCount)
@@ -748,7 +789,7 @@ CheckResult MeshChecker::checkAnnotations ()
             {
                 auto tt = hash.value (t->annotation ());
                 badCount++;
-                ret += QStringLiteral ("    T: %1 & %2  (\"%3\")\n").arg (t->name (), tt->annotation (), t->annotation ());
+                ret += QStringLiteral ("    T: %1 & %2  (\"%3\")\n").arg (fmtName(t), fmtName (tt), t->annotation ());
             }
             else
             {

@@ -46,6 +46,7 @@ static const int levels[NO_VERBOSITY_LEVELS] = {
 };
 static bool markFiles{};
 static bool markIslands{};
+static bool viewerHyperlinks{};
 
 static void generateFileList ()
 {
@@ -300,6 +301,7 @@ static bool processFile (const QString& path)
     }
 
     checker.setCheckFlags (flags);
+    checker.setViewerHyperlinks (viewerHyperlinks);
 
     const auto res = checker.check ();
     for (const auto& c : res.m_checkResults)
@@ -484,6 +486,7 @@ int main (int argc, char** argv)
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("folderFilter") << QStringLiteral ("ff"), QStringLiteral ("Only look in subfolders with given name."), QStringLiteral ("folder name")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("mark"), QStringLiteral ("Mark bad triangles with colour and save file as .nether type.")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("mark-islands"), QStringLiteral ("Mark islands with colours and save file as .nether type.")));
+    parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("hyperlinks"), QStringLiteral ("Produce markdown text with hyperlinks")));
 
     //parser.setSingleDashWordOptionMode (QCommandLineParser::ParseAsLongOptions);
     const auto& checkList = MeshChecker::checkList ();
@@ -496,7 +499,7 @@ int main (int argc, char** argv)
 
     markFiles = parser.isSet (QStringLiteral ("mark"));
     markIslands = parser.isSet (QStringLiteral ("mark-islands"));
-
+    viewerHyperlinks = parser.isSet ("hyperlinks");
     if (parser.isSet (QStringLiteral ("compare")))
     {
         if (parser.isSet (QStringLiteral ("record")))
