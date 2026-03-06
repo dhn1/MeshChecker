@@ -336,9 +336,9 @@ static bool processFile (const QString& path)
         auto holes = hes->holes ();
         for (const auto& hole : std::as_const (holes))
         {
-            if (hole.isIslandMk2 ())
+            if (hole->isIslandMk2 ())
             {
-                hole.colourHole (cols.at (colIdx++));
+                hole->colourHole (cols.at (colIdx++));
                 colIdx %= cols.size ();
             }
         }

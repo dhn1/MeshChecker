@@ -244,7 +244,7 @@ CheckResult MeshChecker::checkHoles ()
     for (const auto& hole : qAsConst (holes))
     {
         //idx++;
-        auto area = hole.area ();
+        auto area = hole->area ();
         r += QStringLiteral ("    Hole: (") + QString::number (area) + QStringLiteral ("sq)\n");
     }
     return {CheckHoles, holes.isEmpty (), r, (int)holes.count ()};
