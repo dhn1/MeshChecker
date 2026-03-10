@@ -707,24 +707,27 @@ CheckResult MeshChecker::checkTriangleOverlap ()
         for (auto& overlap : overlaps)
         {
             PolygonCorefiner pcr;
-            pcr.corefine (overlap.first->toPolygon (), overlap.second->toPolygon ());
-
-            auto res = pcr.boolIntersection ();
-            if (!res.isEmpty ())
+            try
             {
-                overlap.area = res.constFirst ().area ();
+                pcr.corefine (overlap.first->toPolygon (), overlap.second->toPolygon ());
+
+                auto res = pcr.boolIntersection ();
+                if (!res.isEmpty ())
+                {
+                    overlap.area = res.constFirst ().area ();
+                }
             }
-        }
+            catch (...)
+            {
+            }
+         }
 
         std::sort (overlaps.begin (), overlaps.end (), [] (const auto& a, const auto& b) -> bool {
-            return ! a.area < b.area;
+            return  a.area > b.area;
         });
 
         for (const auto& overlap : overlaps)
         {
-            PolygonCorefiner pcr;
-            pcr.corefine (overlap.first->toPolygon (), overlap.second->toPolygon ());
-
             ret.push_back (QStringLiteral ("    Overlap: %1 and %2 (%3sq)\n").arg (fmtName (overlap.first), fmtName (overlap.second)).arg (overlap.area));
             if (m_callback)
             {
