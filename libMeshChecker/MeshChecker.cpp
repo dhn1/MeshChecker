@@ -7,6 +7,7 @@
 #include <Mesh.h>
 #include <Plane.h>
 #include <Polygon2DList.h>
+#include <PolygonCorefiner.h>
 #include <SegmentList.h>
 #include <TriangleOctTree/TriangleOctTree.h>
 
@@ -552,7 +553,14 @@ CheckResult MeshChecker::checkTriangleOverlap ()
     QList<double> tts;
     QList<double> cts;
     const auto& ttree = *m_octtreeFuture.result ();
-    QList<QPair<TrianglePtr, TrianglePtr>> overlaps;
+
+    struct OverlapPair
+    {
+        TrianglePtr first;
+        TrianglePtr second;
+        double area {};
+    };
+    QList<OverlapPair> overlaps;
 
     for (const auto& t : qAsConst (*m_mesh))
     {
@@ -684,21 +692,40 @@ CheckResult MeshChecker::checkTriangleOverlap ()
     }
     if (!overlaps.isEmpty ())
     {
-        std::sort (overlaps.begin (), overlaps.end (), [] (const QPair<TrianglePtr, TrianglePtr>& a, const QPair<TrianglePtr, TrianglePtr>& b) -> bool {
+        std::sort (overlaps.begin (), overlaps.end (), [] (const auto& a, const auto& b) -> bool {
             if (a.first->id () != b.first->id ())
             {
                 return a.first->id () < b.first->id ();
             }
             return a.second->id () < b.second->id ();
         });
-        auto it = std::unique (overlaps.begin (), overlaps.end (), [] (const QPair<TrianglePtr, TrianglePtr>& a, const QPair<TrianglePtr, TrianglePtr>& b) -> bool {
+        auto it = std::unique (overlaps.begin (), overlaps.end (), [] (const auto& a, const auto& b) -> bool {
             return a.first->id () == b.first->id () && a.second->id () == b.second->id ();
         });
         overlaps.erase (it, overlaps.end ());
 
+        for (auto& overlap : overlaps)
+        {
+            PolygonCorefiner pcr;
+            pcr.corefine (overlap.first->toPolygon (), overlap.second->toPolygon ());
+
+            auto res = pcr.boolIntersection ();
+            if (!res.isEmpty ())
+            {
+                overlap.area = res.constFirst ().area ();
+            }
+        }
+
+        std::sort (overlaps.begin (), overlaps.end (), [] (const auto& a, const auto& b) -> bool {
+            return ! a.area < b.area;
+        });
+
         for (const auto& overlap : overlaps)
         {
-            ret.push_back (QStringLiteral ("    Overlap: %1 and %2\n").arg (fmtName (overlap.first), fmtName (overlap.second)));
+            PolygonCorefiner pcr;
+            pcr.corefine (overlap.first->toPolygon (), overlap.second->toPolygon ());
+
+            ret.push_back (QStringLiteral ("    Overlap: %1 and %2 (%3sq)\n").arg (fmtName (overlap.first), fmtName (overlap.second)).arg (overlap.area));
             if (m_callback)
             {
                 m_callback (CheckTriangleOverlap, m_mesh, overlap.first, overlap.second);
