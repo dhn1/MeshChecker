@@ -562,6 +562,7 @@ CheckResult MeshChecker::checkTriangleOverlap ()
     };
     QList<OverlapPair> overlaps;
 
+    double maxArea = 0;
     for (const auto& t : qAsConst (*m_mesh))
     {
         auto plane = t->plane ();
@@ -715,6 +716,7 @@ CheckResult MeshChecker::checkTriangleOverlap ()
                 if (!res.isEmpty ())
                 {
                     overlap.area = res.constFirst ().area ();
+                    maxArea = std::max (maxArea, overlap.area);
                 }
             }
             catch (...)
@@ -750,7 +752,7 @@ CheckResult MeshChecker::checkTriangleOverlap ()
     {
         ret += QStringLiteral ("  No triangle overlap\n");
     }
-    return {CheckTriangleOverlap, overlaps.isEmpty (), ret, (int)overlaps.count ()};
+    return {CheckTriangleOverlap, maxArea < 0.01, ret, (int)overlaps.count ()};
 }
 
 CheckResult MeshChecker::checkUnviableTriangles ()
