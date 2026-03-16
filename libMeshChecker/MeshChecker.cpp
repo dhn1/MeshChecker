@@ -24,7 +24,9 @@ bool MeshChecker::m_viewerHyperlinks;
 MeshChecker::MeshChecker (const MeshPtr& mesh, const QString& path) : m_mesh (mesh), m_path (path)
 {
     m_edgesFuture = QtConcurrent::run ([this] {
-        return HalfEdges::create (m_mesh);
+        auto ret =  HalfEdges::create (m_mesh);
+        ret->matchHalfEdges();
+        return ret;
     });
 
     m_octtreeFuture = QtConcurrent::run ([this] {
@@ -781,8 +783,7 @@ CheckResult MeshChecker::checkFlatTriangles ()
     int badCount = 0;
     for (const auto& t : *m_mesh)
     {
-        auto tnorm = t->unitNormal ();
-        if (!tnorm)
+        if (t->isFlat ())
         {
             badCount++;
             ret += QStringLiteral ("    T: %1\n").arg (fmtName (t));
