@@ -25,7 +25,6 @@ MeshChecker::MeshChecker (const MeshPtr& mesh, const QString& path) : m_mesh (me
 {
     m_edgesFuture = QtConcurrent::run ([this] {
         auto ret =  HalfEdges::create (m_mesh);
-        ret->matchHalfEdges();
         return ret;
     });
 
@@ -57,18 +56,6 @@ QString MeshChecker::fmtName (const VertexPtr& v)
     }
     return v->name (false);
 }
-
-// QString MeshChecker::fmtHoles (const Hole& h)
-// {
-//     if (m_viewerHyperlinks)
-//     {
-//         return QStringLiteral ("![%1](/h/%2)").arg(h->id (false)).arg(v->name (false));
-//     }
-//     else
-//     {
-//         return v->name (false);
-//     }
-// }
 
 const MeshChecker::CheckList& MeshChecker::checkList ()
 {
@@ -773,7 +760,7 @@ CheckResult MeshChecker::checkUnviableTriangles ()
     {
         return {CheckUnviableTriangles, true, QStringLiteral ("  No unviable triangles\n"), badCount};
     }
-    ret.push_front (QStringLiteral ("  %1 unviable (small or flat) triangles\n").arg (badCount));
+    ret.push_front (QStringLiteral ("  %1 unviable (small) triangles\n").arg (badCount));
     return {CheckUnviableTriangles, true, ret, badCount};
 }
 
