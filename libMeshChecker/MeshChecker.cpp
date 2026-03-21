@@ -23,20 +23,21 @@ bool MeshChecker::m_viewerHyperlinks;
 
 MeshChecker::MeshChecker (const MeshPtr& mesh, const QString& path) : m_mesh (mesh), m_path (path)
 {
-    m_edgesFuture = QtConcurrent::run ([this] {
-        auto ret =  HalfEdges::create (m_mesh);
+    auto future = QtConcurrent::run ([this] {
+        auto ret = HalfEdges::create (m_mesh);
         return ret;
     });
 
-    m_octtreeFuture = QtConcurrent::run ([this] {
-        if (m_mesh->isEmpty ())
-        {
-            return new TriangleOctTree (Box (10, 10, 10, 10, 10, 10));
-        }
-        auto ret = new TriangleOctTree (m_mesh->box ());
-        ret->add (m_mesh);
-        return ret;
-    });
+    if (m_mesh->isEmpty ())
+    {
+        m_octtree = new TriangleOctTree (Box (10, 10, 10, 10, 10, 10));
+    }
+    else
+    {
+        m_octtree = new TriangleOctTree (m_mesh->box ());
+        m_octtree->add (m_mesh);
+    }
+    m_edges = future.result();
 }
 
 QString MeshChecker::fmtName (const TrianglePtr& t)
@@ -83,9 +84,7 @@ const MeshChecker::CheckList& MeshChecker::checkList ()
 
 MeshChecker::~MeshChecker ()
 {
-    m_octtreeFuture.waitForFinished ();
-    m_edgesFuture.waitForFinished ();
-    delete m_octtreeFuture.result ();
+    delete m_octtree;
 }
 
 FileResult MeshChecker::check ()
@@ -116,11 +115,7 @@ FileResult MeshChecker::check ()
 
 HalfEdgesPtr MeshChecker::getEdges ()
 {
-    if (!m_edgesPtr)
-    {
-        m_edgesPtr = m_edgesFuture.result ();
-    }
-    return m_edgesPtr;
+    return m_edges;
 }
 
 MeshChecker::CallbackFn MeshChecker::callback () const
@@ -263,7 +258,6 @@ static size_t qHash (const TriangleKey& tk)
 CheckResult MeshChecker::checkDuplicateTriangles ()
 {
     auto count = m_mesh->count ();
-    const auto& ttree = m_octtreeFuture.result ();
     QString r;
     int badCount = 0;
 
@@ -273,7 +267,7 @@ CheckResult MeshChecker::checkDuplicateTriangles ()
     {
         const auto t = m_mesh->at (i);
 
-        auto candidates = ttree->find (t->box ());
+        auto candidates = m_octtree->find (t->box ());
         for (const auto& tt : std::as_const (candidates))
         {
             if (t == tt)
@@ -541,7 +535,6 @@ CheckResult MeshChecker::checkTriangleOverlap ()
     QString ret;
     QList<double> tts;
     QList<double> cts;
-    const auto& ttree = *m_octtreeFuture.result ();
 
     struct OverlapPair
     {
@@ -558,7 +551,7 @@ CheckResult MeshChecker::checkTriangleOverlap ()
         if (plane.isValid ())
         {
             auto box = t->box ();
-            auto candidates = ttree.find (box);
+            auto candidates = m_octtree->find (box);
 
             for (const auto& candidate : qAsConst (candidates))
             {

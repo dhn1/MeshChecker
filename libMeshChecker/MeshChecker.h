@@ -42,8 +42,8 @@ private:
     HalfEdgesPtr getEdges ();
     HalfEdgesPtr m_edgesPtr;
     QString m_summary;
-    QFuture<HalfEdgesPtr> m_edgesFuture;
-    QFuture<TriangleOctTree*> m_octtreeFuture;
+    HalfEdgesPtr m_edges;
+    TriangleOctTree* m_octtree;
     QString m_path;
     CallbackFn m_callback{};
     static bool m_viewerHyperlinks;
