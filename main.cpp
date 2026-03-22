@@ -301,12 +301,15 @@ static bool processFile (const QString& path)
     }
 
     checker.setCheckFlags (flags);
-    checker.setViewerHyperlinks (viewerHyperlinks);
+    MeshChecker::setViewerHyperlinks (viewerHyperlinks);
 
     const auto res = checker.check ();
     for (const auto& c : res.m_checkResults)
     {
-        summaryResult[check2idx (c.m_check)] += c.m_badCount;
+        if (c.m_badCount > 0)
+        {
+            summaryResult[check2idx (c.m_check)] += c.m_badCount;
+        }
     }
 
     if (genReport)
@@ -475,6 +478,7 @@ int main (int argc, char** argv)
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("fail-only") << QStringLiteral ("f"), QStringLiteral ("Only print names of incorrect files.")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("all") << QStringLiteral ("a"), QStringLiteral ("Run all checks.")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("default") << QStringLiteral ("d"), QStringLiteral ("Run default checks.")));
+    parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("cmpDefault") << QStringLiteral ("d"), QStringLiteral ("Run default checks for comparisons.")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("critical") << QStringLiteral ("c"), QStringLiteral ("Only do critical checks.")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("stl"), QStringLiteral ("STL files only.")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("3mf"), QStringLiteral ("3MF files only.")));
@@ -564,6 +568,10 @@ int main (int argc, char** argv)
     if (parser.isSet (QStringLiteral ("default")))
     {
         flags = Default;
+    }
+    if (parser.isSet (QStringLiteral ("cmpDefault")))
+    {
+        flags = CmpDefault;
     }
     else if (parser.isSet (QStringLiteral ("critical")))
     {
@@ -678,12 +686,16 @@ int main (int argc, char** argv)
             if (t & flags)
             {
                 auto check = (Checks)(flags & t);
+                const auto name = MeshChecker::checkName (check);
+                int const idx = check2idx (check);
                 auto r = diffSum[check2idx (check)];
                 if (r != 0)
                 {
-                    const auto name = MeshChecker::checkName (check);
-                    int const idx = check2idx (check);
                     out << "  " << name << QString (padding - name.length (), QChar ('.')) << ": " << summaryResult[idx] - diffSum[idx] << " -> " << summaryResult[idx] << " (" << diffNo (diffSum[idx]) << ")\n";
+                }
+                else
+                {
+                    out << "  " << name << QString (padding - name.length (), QChar ('.')) << ": " << summaryResult[idx] << "\n";
                 }
             }
             t <<= 1;

@@ -28,16 +28,17 @@ MeshChecker::MeshChecker (const MeshPtr& mesh, const QString& path) : m_mesh (me
         return ret;
     });
 
+    m_meshBox = m_mesh->box ();
     if (m_mesh->isEmpty ())
     {
         m_octtree = new TriangleOctTree (Box (10, 10, 10, 10, 10, 10));
     }
     else
     {
-        m_octtree = new TriangleOctTree (m_mesh->box ());
+        m_octtree = new TriangleOctTree (m_meshBox);
         m_octtree->add (m_mesh);
     }
-    m_edges = future.result();
+    m_edges = future.result ();
 }
 
 QString MeshChecker::fmtName (const TrianglePtr& t)
@@ -78,6 +79,7 @@ const MeshChecker::CheckList& MeshChecker::checkList ()
         m_checkList.push_back ({CheckTCount, &MeshChecker::checkTCount});
         m_checkList.push_back ({CheckDuplicateAnnotations, &MeshChecker::checkAnnotations});
         m_checkList.push_back ({CheckComponents, &MeshChecker::checkComponents});
+        m_checkList.push_back ({CheckBadlyFormedTriangles, &MeshChecker::checkBadlyFormedTriangles});
     }
     return m_checkList;
 }
@@ -201,7 +203,7 @@ CheckResult MeshChecker::checkOpenEdges ()
     {
         if (!e->testFlag (HalfEdge::Delete))
         {
-            str += QStringLiteral ("    T: %1, Edge: %2 -> %3\n").arg (fmtName (e->triangle())).arg (fmtName(e->v1 ())).arg (fmtName (e->v2 ()));
+            str += QStringLiteral ("    T: %1, Edge: %2 -> %3\n").arg (fmtName (e->triangle ())).arg (fmtName (e->v1 ())).arg (fmtName (e->v2 ()));
             badCount++;
         }
     }
@@ -289,7 +291,7 @@ CheckResult MeshChecker::checkDuplicateTriangles ()
             {
                 if (!thash.contains (t))
                 {
-                    r += QStringLiteral ("    T: %1 and T: %2\n").arg (fmtName(t), fmtName (tt));
+                    r += QStringLiteral ("    T: %1 and T: %2\n").arg (fmtName (t), fmtName (tt));
                     badCount++;
                     thash.insert (TriangleKey (t), 0);
                 }
@@ -310,6 +312,7 @@ CheckResult MeshChecker::checkShortEdges ()
     QString ret;
 
     bool ok = true;
+    int badCount = 0;
     int foundShortEdge = 0;
     int foundNullEdge = 0;
     double smallest2 = INF;
@@ -328,6 +331,7 @@ CheckResult MeshChecker::checkShortEdges ()
             {
                 foundNullEdge++;
                 ok = false;
+                badCount ++;
                 ret += QStringLiteral ("    Null edge (repeating vertex): ") + edge->v1 ()->toString () + QStringLiteral ("\n");
             }
             auto mag2 = edge->magnitude2 ();
@@ -372,7 +376,7 @@ CheckResult MeshChecker::checkShortEdges ()
     {
         ret.push_front (QStringLiteral ("  No null edges\n"));
     }
-    return {CheckShortEdges, ok, ret, -1};
+    return {CheckShortEdges, ok, ret, badCount};
 }
 
 CheckResult MeshChecker::checkReversedTriangles ()
@@ -449,10 +453,10 @@ CheckResult MeshChecker::checkOverusedHalfEdges ()
         {
             badCount++;
             const auto& e = values.constFirst ();
-            ret.push_back (QStringLiteral ("    edge: %1 -> %2\n").arg (fmtName (e->v1 ()), fmtName(e->v2 ())));
+            ret.push_back (QStringLiteral ("    edge: %1 -> %2\n").arg (fmtName (e->v1 ()), fmtName (e->v2 ())));
             for (const auto& match : values)
             {
-                ret.push_back (QStringLiteral ("      Used by T: %1\n").arg (fmtName(match->triangle ())));
+                ret.push_back (QStringLiteral ("      Used by T: %1\n").arg (fmtName (match->triangle ())));
             }
         }
     }
@@ -511,7 +515,7 @@ CheckResult MeshChecker::checkDuplicateVertices ()
 {
     QString ret;
     int badCount = 0;
-    OctTree tree (m_mesh->box ());
+    OctTree tree (m_meshBox);
     auto vs = m_mesh->vertexList ();
     for (const auto& v : std::as_const (vs))
     {
@@ -540,7 +544,7 @@ CheckResult MeshChecker::checkTriangleOverlap ()
     {
         TrianglePtr first;
         TrianglePtr second;
-        double area {};
+        double area{};
     };
     QList<OverlapPair> overlaps;
 
@@ -599,7 +603,7 @@ CheckResult MeshChecker::checkTriangleOverlap ()
                         {
                             auto tres = intersectionOfLines3D (segOfIntersection, HalfEdge (t, e));
                             //qDebug () << "target" << tres.toString ();
-                            if (tres.intersects1() == IntersectionOfLinesResult3D::Colinear)
+                            if (tres.intersects1 () == IntersectionOfLinesResult3D::Colinear)
                             {
                                 // Ts are not in the same plane, but share this one shares and edge with out plane intersect - cannot overlap
                                 resolved = true;
@@ -625,7 +629,7 @@ CheckResult MeshChecker::checkTriangleOverlap ()
                             }
                             auto cres = intersectionOfLines3D (segOfIntersection, HalfEdge (candidate, e));
                             //qDebug () << "candidate" << cres.toString ();
-                            if (cres.intersects1() == IntersectionOfLinesResult3D::Colinear)
+                            if (cres.intersects1 () == IntersectionOfLinesResult3D::Colinear)
                             {
                                 // Ts are no in the same plane, but this one shares and edge with out plane intersect - cannot overlap
                                 resolved = true;
@@ -633,7 +637,7 @@ CheckResult MeshChecker::checkTriangleOverlap ()
                             }
                             if (cres.vertexOfIntersection && 0.0 < cres.t2 && cres.t2 < 1.0)
                             {
-                                if (candidate->contains(cres.vertexOfIntersection))
+                                if (candidate->contains (cres.vertexOfIntersection))
                                 {
                                     cts.push_back (cres.t1);
                                 }
@@ -649,7 +653,7 @@ CheckResult MeshChecker::checkTriangleOverlap ()
                             // qDebug() << cts.constFirst() << cts.constLast() <<  cts.constFirst() - cts.constLast();
                             intersect = !(cts.constLast () < tts.constFirst () + E || cts.constFirst () > tts.constLast () - E);
 
-                            if (std::abs (cts.constFirst() - cts.constLast()) < E || std::abs (tts.constFirst() - tts.constLast()) < E)
+                            if (std::abs (cts.constFirst () - cts.constLast ()) < E || std::abs (tts.constFirst () - tts.constLast ()) < E)
                             {
                                 // Must be tip touch - which is ok
                                 intersect = false;
@@ -704,10 +708,10 @@ CheckResult MeshChecker::checkTriangleOverlap ()
             catch (...)
             {
             }
-         }
+        }
 
         std::sort (overlaps.begin (), overlaps.end (), [] (const auto& a, const auto& b) -> bool {
-            return  a.area > b.area;
+            return a.area > b.area;
         });
 
         for (const auto& overlap : overlaps)
@@ -777,15 +781,34 @@ CheckResult MeshChecker::checkFlatTriangles ()
     return {CheckFlatTriangles, true, QStringLiteral ("  No flat triangles\n"), badCount};
 }
 
+CheckResult MeshChecker::checkBadlyFormedTriangles ()
+{
+    QString ret;
+    int badCount = 0;
+    for (const auto& t : *m_mesh)
+    {
+        if (t->v1 () == t->v2 () || t->v2 () == t->v3 () || t->v3 () == t->v1 ())
+        {
+            badCount++;
+            ret += QStringLiteral ("    T: %1\n").arg (fmtName (t));
+        }
+    }
+    if (badCount)
+    {
+        ret.push_front (QStringLiteral ("  %1 badly formed triangles\n").arg (badCount));
+        return {CheckBadlyFormedTriangles, false, ret, badCount};
+    }
+    return {CheckBadlyFormedTriangles, true, QStringLiteral ("  No flat triangles\n"), badCount};
+}
+
 CheckResult MeshChecker::checkTCount ()
 {
     return {CheckTCount, true, {}, m_mesh->tcount ()};
 }
 
-
 CheckResult MeshChecker::checkComponents ()
 {
-    auto no = (int)m_mesh->splitComponents().count();
+    auto no = (int)m_mesh->splitComponents ().count ();
     return {CheckComponents, true, {}, no};
 }
 
@@ -802,7 +825,7 @@ CheckResult MeshChecker::checkAnnotations ()
             {
                 auto tt = hash.value (t->annotation ());
                 badCount++;
-                ret += QStringLiteral ("    T: %1 & %2  (\"%3\")\n").arg (fmtName(t), fmtName (tt), t->annotation ());
+                ret += QStringLiteral ("    T: %1 & %2  (\"%3\")\n").arg (fmtName (t), fmtName (tt), t->annotation ());
             }
             else
             {
@@ -856,7 +879,9 @@ QString MeshChecker::checkName (Checks check)
     case CheckDuplicateAnnotations:
         return QStringLiteral ("DuplicateAnnotations");
     case CheckComponents:
-        return QStringLiteral("Components");
+        return QStringLiteral ("Components");
+    case CheckBadlyFormedTriangles:
+        return QStringLiteral ("BadlyFormedTriangles");
     default:
         return QStringLiteral ("??");
     }
@@ -904,7 +929,9 @@ QString MeshChecker::description (Checks check)
     case CheckDuplicateAnnotations:
         return QStringLiteral ("Check for duplicate triangle annotations (nethers format only)");
     case CheckComponents:
-        return QStringLiteral("Component count");
+        return QStringLiteral ("Component count");
+    case CheckBadlyFormedTriangles:
+        return QStringLiteral ("Check for triangles that use the same vertex more than once");
     default:
         return QStringLiteral ("??");
     }
@@ -921,6 +948,7 @@ bool MeshChecker::failable (Checks check)
     case CheckFlatTriangles:
     case CheckTCount:
     case CheckComponents:
+    case CheckBadlyFormedTriangles:
         return false;
 
     case CheckHoles:

@@ -46,8 +46,11 @@ private:
     TriangleOctTree* m_octtree;
     QString m_path;
     CallbackFn m_callback{};
+    Box m_meshBox;
+
     static bool m_viewerHyperlinks;
     static CheckList m_checkList;
+
     QString fmtName (const TrianglePtr& t);
     QString fmtName (const VertexPtr& t);
 
@@ -69,6 +72,8 @@ public:
     CheckResult checkTCount ();
     CheckResult checkAnnotations ();
     CheckResult checkComponents ();
+    CheckResult checkBadlyFormedTriangles ();
+
     static void setViewerHyperlinks (bool newViewerHyperlinks) { m_viewerHyperlinks = newViewerHyperlinks; }
 };
 

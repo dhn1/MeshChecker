@@ -6,7 +6,7 @@ class CheckResult;
 
 extern QTextStream out;
 
-enum Verbosity
+enum Verbosity : uint8_t
 {
     Mute        = 0,
     FileName    = 1,
@@ -32,13 +32,12 @@ enum Checks {
     CheckTCount                 = 1 << 14,
     CheckDuplicateAnnotations   = 1 << 15,
     CheckComponents             = 1 << 16,
+    CheckBadlyFormedTriangles   = 1 << 17,
 
-    //MultiThread                 = 1 << 18,
-
-    Default = CheckHoles | CheckDuplicateTriangles | CheckShortEdges | CheckInfo | CheckReversedTriangles | CheckDuplicateVertices | CheckOpenEdges | CheckTriangleOverlap | CheckUnviableTriangles | CheckOverusedHalfEdges | CheckFlatTriangles | CheckDeleted | CheckVertexLowRefs | CheckDuplicateAnnotations,
-    All = CheckHoles | CheckDuplicateTriangles | CheckShortEdges | CheckInfo | CheckReversedTriangles | CheckDuplicateVertices | CheckOpenEdges | CheckTriangleOverlap | CheckUnviableTriangles | CheckOverusedHalfEdges | CheckFlatTriangles | CheckDeleted | CheckVertexLowRefs | CheckTCount | CheckDuplicateAnnotations | CheckComponents,
-    Critical = CheckHoles | CheckDuplicateTriangles | CheckReversedTriangles | CheckDuplicateVertices | CheckOpenEdges | CheckTriangleOverlap | CheckOverusedHalfEdges | CheckDeleted | CheckVertexLowRefs,
+    CmpDefault = CheckHoles | CheckDuplicateTriangles | CheckShortEdges | CheckReversedTriangles | CheckDuplicateVertices | CheckOpenEdges | CheckTriangleOverlap | CheckUnviableTriangles | CheckOverusedHalfEdges | CheckFlatTriangles | CheckDeleted | CheckVertexLowRefs | CheckDuplicateAnnotations | CheckBadlyFormedTriangles,
+    Default = CheckHoles | CheckDuplicateTriangles | CheckShortEdges | CheckReversedTriangles | CheckDuplicateVertices | CheckOpenEdges | CheckTriangleOverlap | CheckUnviableTriangles | CheckOverusedHalfEdges | CheckFlatTriangles | CheckDeleted | CheckVertexLowRefs | CheckDuplicateAnnotations | CheckBadlyFormedTriangles | CheckInfo,
+    All = CheckHoles | CheckDuplicateTriangles | CheckShortEdges | CheckInfo | CheckReversedTriangles | CheckDuplicateVertices | CheckOpenEdges | CheckTriangleOverlap | CheckUnviableTriangles | CheckOverusedHalfEdges | CheckFlatTriangles | CheckDeleted | CheckVertexLowRefs | CheckTCount | CheckDuplicateAnnotations | CheckComponents | CheckBadlyFormedTriangles,
+    Critical = CheckHoles | CheckDuplicateTriangles | CheckReversedTriangles | CheckDuplicateVertices | CheckOpenEdges | CheckTriangleOverlap | CheckOverusedHalfEdges | CheckDeleted | CheckVertexLowRefs | CheckBadlyFormedTriangles,
 };
 
 constexpr int padding = 20;
-
