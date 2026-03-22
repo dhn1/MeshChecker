@@ -478,7 +478,7 @@ int main (int argc, char** argv)
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("fail-only") << QStringLiteral ("f"), QStringLiteral ("Only print names of incorrect files.")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("all") << QStringLiteral ("a"), QStringLiteral ("Run all checks.")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("default") << QStringLiteral ("d"), QStringLiteral ("Run default checks.")));
-    parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("cmpDefault") << QStringLiteral ("d"), QStringLiteral ("Run default checks for comparisons.")));
+    parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("cmpDefault"), QStringLiteral ("Run default checks for comparisons.")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("critical") << QStringLiteral ("c"), QStringLiteral ("Only do critical checks.")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("stl"), QStringLiteral ("STL files only.")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("3mf"), QStringLiteral ("3MF files only.")));
