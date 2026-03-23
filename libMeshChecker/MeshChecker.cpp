@@ -798,7 +798,7 @@ CheckResult MeshChecker::checkBadlyFormedTriangles ()
         ret.push_front (QStringLiteral ("  %1 badly formed triangles\n").arg (badCount));
         return {CheckBadlyFormedTriangles, false, ret, badCount};
     }
-    return {CheckBadlyFormedTriangles, true, QStringLiteral ("  No flat triangles\n"), badCount};
+    return {CheckBadlyFormedTriangles, true, QStringLiteral ("  No badly formed triangles\n"), badCount};
 }
 
 CheckResult MeshChecker::checkTCount ()
