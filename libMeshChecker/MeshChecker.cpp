@@ -201,11 +201,8 @@ CheckResult MeshChecker::checkOpenEdges ()
 
     for (const auto& e : edges->openEdges ())
     {
-        if (!e->testFlag (HalfEdge::Delete))
-        {
-            str += QStringLiteral ("    T: %1, Edge: %2 -> %3\n").arg (fmtName (e->triangle ())).arg (fmtName (e->v1 ())).arg (fmtName (e->v2 ()));
-            badCount++;
-        }
+        str += QStringLiteral ("    T: %1, Edge: %2 -> %3\n").arg (fmtName (e->triangle ())).arg (fmtName (e->v1 ())).arg (fmtName (e->v2 ()));
+        badCount++;
     }
     if (badCount == 0)
     {
@@ -322,10 +319,6 @@ CheckResult MeshChecker::checkShortEdges ()
         for (int ee = 0; ee < 3; ee++)
         {
             const auto& edge = t->halfEdge (ee);
-            if (edge->testFlag (HalfEdge::Delete))
-            {
-                continue;
-            }
 
             if (edge->v1 () == edge->v2 ())
             {
@@ -391,11 +384,6 @@ CheckResult MeshChecker::checkReversedTriangles ()
         for (int ee = 0; ee < 3; ee++)
         {
             auto const & hedge = t->halfEdge (ee);
-
-            if (hedge->testFlag (HalfEdge::Delete))
-            {
-                continue;
-            }
 
             auto values = hash.values ({hedge});
             //Q_ASSERT (values.count () == 1 || values.count() == 2);
