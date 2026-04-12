@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.14)
 
-project (MeshChecker LANGUAGES CXX VERSION 0.5.24)
+project (MeshChecker LANGUAGES CXX VERSION 0.6.1)
 
 find_program(CCACHE_FOUND ccache)
 if(CCACHE_FOUND)
@@ -51,7 +51,9 @@ else()
     add_compile_options (-lm -mavx)
 endif()
 
-add_compile_options (-gsplit-dwarf)
+set(CMAKE_INSTALL_RPATH "/usr/local/qt6.11.0/lib")
+
+#add_compile_options (-gsplit-dwarf)
 add_link_options($<$<CONFIG:RELEASE>:-s>)
 
 find_program (MOLD "mold")
@@ -109,7 +111,8 @@ set (CPACK_PACKAGE_VERSION_MINOR "${PROJECT_VERSION_MINOR}")
 set (CPACK_PACKAGE_VERSION_PATCH "${PROJECT_VERSION_PATCH}")
 set (CPACK_PACKAGE_CONTACT "david_netherwood@hotmail.com")
 set (CPACK_GENERATOR "DEB")
-set (CPACK_DEBIAN_PACKAGE_DEPENDS "libqt6gui6, libqt6core6, libqt6concurrent6, libqt6xml6, libzip4,  libqt6svg6, ${SCULPTLIB_DEP_NAME} (>= 0.14.13)")
+#set (CPACK_DEBIAN_PACKAGE_DEPENDS "libqt6gui6, libqt6core6, libqt6concurrent6, libqt6xml6, libzip4,  libqt6svg6, ${SCULPTLIB_DEP_NAME} (>= 0.14.13)")
+set (CPACK_DEBIAN_PACKAGE_DEPENDS "homebrewqtcore6.11.0, ${SCULPTLIB_DEP_NAME} (>=0.15.00)")
 set (CPACK_PACKAGE_FILE_NAME ${PROJECT_NAME})
 
 include(CPack)
