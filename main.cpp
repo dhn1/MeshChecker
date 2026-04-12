@@ -460,7 +460,7 @@ int main (int argc, char** argv)
     QGuiApplication const a (argc, argv);
 
 #ifdef QT_DEBUG
-    QDir dir;
+    const QDir dir;
     dir.mkpath (QStringLiteral ("/tmp/3d"));
 #endif
 
@@ -503,7 +503,7 @@ int main (int argc, char** argv)
 
     markFiles = parser.isSet (QStringLiteral ("mark"));
     markIslands = parser.isSet (QStringLiteral ("mark-islands"));
-    viewerHyperlinks = parser.isSet ("hyperlinks");
+    viewerHyperlinks = parser.isSet (QStringLiteral ("hyperlinks"));
     if (parser.isSet (QStringLiteral ("compare")))
     {
         if (parser.isSet (QStringLiteral ("record")))
@@ -512,8 +512,8 @@ int main (int argc, char** argv)
             return 106;
         }
         QFile in (parser.value (QStringLiteral ("compare")));
-        in.open (QFile::ReadOnly);
-        if (!in.isOpen ())
+
+        if (!in.open (QFile::ReadOnly))
         {
             qDebug ().nospace ().noquote () << "Unable to open \"" << parser.value (QStringLiteral ("compare")) << "\"";
             return 105;
@@ -603,8 +603,7 @@ int main (int argc, char** argv)
     if (genReport)
     {
         markdown.setFileName (parser.value (QStringLiteral ("report")));
-        markdown.open (QFile::WriteOnly);
-        if (!markdown.isOpen ())
+        if (!markdown.open (QFile::WriteOnly))
         {
             qDebug () << "Unable to open report output file: " << parser.value (QStringLiteral ("report"));
             return 100;
@@ -659,8 +658,7 @@ int main (int argc, char** argv)
         recording.insert (QStringLiteral ("files"), recordingFiles);
 
         QFile out (parser.value (QStringLiteral ("record")));
-        out.open (QFile::WriteOnly);
-        if (!out.isOpen ())
+        if (!out.open (QFile::WriteOnly))
         {
             qDebug ().nospace ().noquote () << "Unable to open \"" << parser.value (QStringLiteral ("record")) << "\"";
             return 105;

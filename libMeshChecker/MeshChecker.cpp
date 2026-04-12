@@ -225,7 +225,7 @@ CheckResult MeshChecker::checkHoles ()
     r = QStringLiteral ("  %1 Open holes found\n").arg (holes.count ());
 
     //int idx = -1;
-    for (const auto& hole : qAsConst (holes))
+    for (const auto& hole : std::as_const (holes))
     {
         //idx++;
         auto area = hole->area ();
@@ -537,7 +537,7 @@ CheckResult MeshChecker::checkTriangleOverlap ()
     QList<OverlapPair> overlaps;
 
     double maxArea = 0;
-    for (const auto& t : qAsConst (*m_mesh))
+    for (const auto& t : std::as_const (*m_mesh))
     {
         auto plane = t->plane ();
         if (plane.isValid ())
@@ -545,7 +545,7 @@ CheckResult MeshChecker::checkTriangleOverlap ()
             auto box = t->box ();
             auto candidates = m_octtree->find (box);
 
-            for (const auto& candidate : qAsConst (candidates))
+            for (const auto& candidate : std::as_const (candidates))
             {
                 if (candidate != t && candidate->box ().intersects (box))
                 {
