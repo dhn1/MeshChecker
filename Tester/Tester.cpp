@@ -776,17 +776,10 @@ REGISTER_TEST (overlapTestCase01)
 static TestRes overlapTestCase02 ()
 {
     auto t1 = Triangle::create (
-        Vertex::create (9.7740789473684213107, 100, -19.010605263157913214),
-        Vertex::create (9.2681831578947395656, 100, -19.512842105263178638),
-        Vertex::create (9.393421052631580892, 100, -18.642105263157912276),
-        "T1", 17472);
+        Vertex::create (9.7740789473684213107, 100, -19.010605263157913214), Vertex::create (9.2681831578947395656, 100, -19.512842105263178638), Vertex::create (9.393421052631580892, 100, -18.642105263157912276), QStringLiteral ("T1"), 17472);
 
     auto t2 = Triangle::create (
-            Vertex::create (9.3459936842105264532, 95, -19.01263157894738498),
-            Vertex::create (9.393421052631580892, 95, -18.642105263157912276),
-            Vertex::create (9.3697073684210536726, 100, -18.827368421052646852),
-        "T2", 50240);
-
+        Vertex::create (9.3459936842105264532, 95, -19.01263157894738498), Vertex::create (9.393421052631580892, 95, -18.642105263157912276), Vertex::create (9.3697073684210536726, 100, -18.827368421052646852), QStringLiteral ("T2"), 50240);
 
     auto mesh = Mesh::create ();
     mesh->add (t1);
@@ -802,3 +795,24 @@ static TestRes overlapTestCase02 ()
     return Passed;
 }
 REGISTER_TEST(overlapTestCase02)
+
+static TestRes CheckPockets01 ()
+{
+    auto t1 = Triangle::createIsosceles (100);
+    auto t2 = Triangle::create (t1->v1(), t1->v3(), t1->v2());
+
+    auto mesh = Mesh::create ();
+    mesh->add (t1);
+    mesh->add (t2);
+
+    Document::write (mesh, outputFileName (gTestName, "nethers"));
+
+    MeshChecker mc (mesh);
+    auto res = mc.checkPockets ();
+
+    //qDebug ().nospace().noquote() << res.m_report;
+    VERIFY (res.m_badCount == 1)
+
+    return Passed;
+}
+REGISTER_TEST(CheckPockets01)

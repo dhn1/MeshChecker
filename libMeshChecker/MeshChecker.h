@@ -73,6 +73,7 @@ public:
     CheckResult checkAnnotations ();
     CheckResult checkComponents ();
     CheckResult checkBadlyFormedTriangles ();
+    CheckResult checkPockets ();
 
     static void setViewerHyperlinks (bool newViewerHyperlinks) { m_viewerHyperlinks = newViewerHyperlinks; }
 };

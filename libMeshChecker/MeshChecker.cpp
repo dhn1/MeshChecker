@@ -80,6 +80,7 @@ const MeshChecker::CheckList& MeshChecker::checkList ()
         m_checkList.push_back ({CheckDuplicateAnnotations, &MeshChecker::checkAnnotations});
         m_checkList.push_back ({CheckComponents, &MeshChecker::checkComponents});
         m_checkList.push_back ({CheckBadlyFormedTriangles, &MeshChecker::checkBadlyFormedTriangles});
+        m_checkList.push_back ({CheckPockets, &MeshChecker::checkPockets});
     }
     return m_checkList;
 }
@@ -150,7 +151,10 @@ CheckResult MeshChecker::checkVertexRefs ()
             }
             if (count < 6)
             {
-                str += QStringLiteral ("    %1 referenced by half edges only %2 times\n").arg (v->name ()).arg (count);
+                if (badCount < 20)
+                {
+                    str += QStringLiteral ("    %1 referenced by half edges only %2 times\n").arg (fmtName (v)).arg (count);
+                }
                 badCount++;
             }
         }
@@ -159,6 +163,10 @@ CheckResult MeshChecker::checkVertexRefs ()
     {
         str.push_front (QStringLiteral ("  %1 low ref vertices found\n").arg (badCount));
 
+        if (badCount > 20)
+        {
+            str.push_back ("    ...\n");
+        }
         return {CheckVertexLowRefs, false, str, badCount};
     }
     str.push_front (QStringLiteral ("  No low ref vertices found\n"));
@@ -324,7 +332,7 @@ CheckResult MeshChecker::checkShortEdges ()
             {
                 foundNullEdge++;
                 ok = false;
-                badCount ++;
+                badCount++;
                 ret += QStringLiteral ("    Null edge (repeating vertex): ") + edge->v1 ()->toString () + QStringLiteral ("\n");
             }
             auto mag2 = edge->magnitude2 ();
@@ -830,6 +838,57 @@ CheckResult MeshChecker::checkAnnotations ()
     return {CheckDuplicateAnnotations, true, QStringLiteral ("  No duplicate triangle annotations\n"), badCount};
 }
 
+CheckResult MeshChecker::checkPockets ()
+{
+    m_edges->matchHalfEdges (true);
+
+    QString log;
+    QTextStream ts (&log);
+    int badCount = 0;
+    QSet<size_t> notedHash;
+    for (const auto& t : *m_mesh)
+    {
+        const auto& un = t->unitNormal ();
+        if (un)
+        {
+            for (int e = 0; e < 3; e++)
+            {
+                auto edge = t->halfEdge (e);
+                if (edge->pair ())
+                {
+                    auto t2 = edge->pair ()->triangle ();
+                    auto un2 = t2->unitNormal ();
+                    if (un2 && un2->magnitude2 (un) > 3.99)
+                    {
+                        auto hash = qHash (std::min (t->id (), t2->id ()), std::max (t->id (), t2->id ()));
+                        if (notedHash.contains (hash))
+                        {
+                            break;
+                        }
+                        notedHash.insert (hash);
+                        badCount++;
+                        if (badCount < 20)
+                        {
+                            ts << "    T: " << fmtName (t) << " - T: " << fmtName (edge->pair ()->triangle ()) << '\n';
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    if (badCount == 0)
+    {
+        return {CheckPockets, true, QStringLiteral ("No pockets found\n"), badCount};
+    }
+    if (badCount >= 20)
+    {
+        ts << "    ...\n";
+    }
+    log.push_front (QStringLiteral ("Found %1 pockets\n").arg (badCount));
+    return {CheckPockets, false, log, badCount};
+}
+
 QString MeshChecker::checkName (Checks check)
 {
     switch (check)
@@ -870,6 +929,8 @@ QString MeshChecker::checkName (Checks check)
         return QStringLiteral ("Components");
     case CheckBadlyFormedTriangles:
         return QStringLiteral ("BadlyFormedTriangles");
+    case CheckPockets:
+        return QStringLiteral ("Pockets");
     default:
         return QStringLiteral ("??");
     }
@@ -920,6 +981,8 @@ QString MeshChecker::description (Checks check)
         return QStringLiteral ("Component count");
     case CheckBadlyFormedTriangles:
         return QStringLiteral ("Check for triangles that use the same vertex more than once");
+    case CheckPockets:
+        return QStringLiteral ("Check for pocket folds that create flat pockets");
     default:
         return QStringLiteral ("??");
     }
@@ -937,6 +1000,8 @@ bool MeshChecker::failable (Checks check)
     case CheckTCount:
     case CheckComponents:
     case CheckBadlyFormedTriangles:
+    case CheckDuplicateAnnotations:
+    case CheckPockets:
         return false;
 
     case CheckHoles:
@@ -948,7 +1013,6 @@ bool MeshChecker::failable (Checks check)
     case CheckOverusedHalfEdges:
     case CheckDeleted:
     case CheckVertexLowRefs:
-    case CheckDuplicateAnnotations:
         return true;
 
     default:
