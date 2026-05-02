@@ -103,7 +103,7 @@ FileResult MeshChecker::check ()
         if (m_checks & c.first)
         {
             auto res = (this->*c.second) ();
-            ret.m_pass &= res.m_pass || !MeshChecker::failable (c.first);
+            ret.m_pass &= res.m_pass /*|| !MeshChecker::failable (c.first)*/;
             ret.m_checkResults.push_back (res);
             if (res.m_badCount >= 0)
             {
@@ -316,7 +316,6 @@ CheckResult MeshChecker::checkShortEdges ()
 {
     QString ret;
 
-    bool ok = true;
     int badCount = 0;
     int foundShortEdge = 0;
     int foundNullEdge = 0;
@@ -331,7 +330,6 @@ CheckResult MeshChecker::checkShortEdges ()
             if (edge->v1 () == edge->v2 ())
             {
                 foundNullEdge++;
-                ok = false;
                 badCount++;
                 ret += QStringLiteral ("    Null edge (repeating vertex): ") + edge->v1 ()->toString () + QStringLiteral ("\n");
             }
@@ -377,7 +375,7 @@ CheckResult MeshChecker::checkShortEdges ()
     {
         ret.push_front (QStringLiteral ("  No null edges\n"));
     }
-    return {CheckShortEdges, ok, ret, badCount};
+    return {CheckShortEdges, true, ret, badCount};
 }
 
 CheckResult MeshChecker::checkReversedTriangles ()
@@ -745,7 +743,14 @@ CheckResult MeshChecker::checkUnviableTriangles ()
     {
         if (!t->isViable ())
         {
-            ret += QStringLiteral ("    T: %1\n").arg (fmtName (t));
+            if (badCount < 20)
+            {
+                ret += QStringLiteral ("    T: %1\n").arg (fmtName (t));
+            }
+            if (badCount == 20)
+            {
+                ret += "    ...\n";
+            }
             badCount++;
         }
     }
@@ -772,7 +777,7 @@ CheckResult MeshChecker::checkFlatTriangles ()
     if (badCount)
     {
         ret.push_front (QStringLiteral ("  %1 flat triangles\n").arg (badCount));
-        return {CheckFlatTriangles, false, ret, badCount};
+        return {CheckFlatTriangles, true, ret, badCount};
     }
     return {CheckFlatTriangles, true, QStringLiteral ("  No flat triangles\n"), badCount};
 }
@@ -799,7 +804,8 @@ CheckResult MeshChecker::checkBadlyFormedTriangles ()
 
 CheckResult MeshChecker::checkTCount ()
 {
-    return {CheckTCount, true, {}, m_mesh->tcount ()};
+    auto cnt = m_mesh->tcount();
+    return {CheckTCount, cnt > 0, {}, cnt};
 }
 
 CheckResult MeshChecker::checkComponents ()
@@ -886,7 +892,7 @@ CheckResult MeshChecker::checkPockets ()
         ts << "    ...\n";
     }
     log.push_front (QStringLiteral ("Found %1 pockets\n").arg (badCount));
-    return {CheckPockets, false, log, badCount};
+    return {CheckPockets, true, log, badCount};
 }
 
 QString MeshChecker::checkName (Checks check)
