@@ -29,7 +29,7 @@ static TestRes overlap01 ()
     MeshChecker mc (mesh);
     auto res = mc.checkTriangleOverlap ();
 
-    VERIFY (res.m_badCount == 0)
+    VERIFY (res.badCount ()== 0)
 
     return Passed;
 }
@@ -52,7 +52,7 @@ static TestRes overlap02 ()
     MeshChecker mc (mesh);
     auto res = mc.checkTriangleOverlap ();
 
-    VERIFY (res.m_badCount == 0)
+    VERIFY (res.badCount () == 0)
 
     return Passed;
 }
@@ -80,7 +80,7 @@ static TestRes overlap03 ()
     MeshChecker mc (mesh);
     auto res = mc.checkTriangleOverlap ();
 
-    VERIFY (res.m_badCount == 0)
+    VERIFY (res.badCount () == 0)
 
     return Passed;
 }
@@ -104,7 +104,7 @@ static TestRes pentratingT ()
     MeshChecker mc (mesh);
     auto res = mc.checkTriangleOverlap ();
 
-    VERIFY (res.m_badCount == 1)
+    VERIFY (res.badCount () == 1)
 
     return Passed;
 }
@@ -132,7 +132,7 @@ static TestRes overlap05 ()
     MeshChecker mc (mesh);
     auto res = mc.checkTriangleOverlap ();
 
-    VERIFY (res.m_badCount == 1)
+    VERIFY (res.badCount () == 1)
 
     return Passed;
 }
@@ -161,7 +161,7 @@ static TestRes overlap06 ()
     MeshChecker mc (mesh);
     auto res = mc.checkTriangleOverlap ();
 
-    VERIFY (res.m_badCount == 0)
+    VERIFY (res.badCount () == 0)
 
     return Passed;
 }
@@ -187,7 +187,7 @@ static TestRes sharedEdgeNoneOverlap ()
     MeshChecker mc (mesh);
     auto res = mc.checkTriangleOverlap ();
 
-    VERIFY (res.m_badCount == 0)
+    VERIFY (res.badCount () == 0)
 
     return Passed;
 }
@@ -212,7 +212,7 @@ static TestRes duplicates ()
     MeshChecker mc (mesh);
     auto res = mc.checkTriangleOverlap ();
 
-    VERIFY (res.m_badCount == 1)
+    VERIFY (res.badCount () == 1)
 
     return Passed;
 }
@@ -237,7 +237,7 @@ static TestRes sharedEdgeOverlappingContained ()
     MeshChecker mc (mesh);
     auto res = mc.checkTriangleOverlap ();
 
-    VERIFY (res.m_badCount == 1)
+    VERIFY (res.badCount () == 1)
 
     return Passed;
 }
@@ -263,7 +263,7 @@ static TestRes sharedEdgeOverlappingContaning ()
     MeshChecker mc (mesh);
     auto res = mc.checkTriangleOverlap ();
 
-    VERIFY (res.m_badCount == 1)
+    VERIFY (res.badCount () == 1)
 
     return Passed;
 }
@@ -287,7 +287,7 @@ static TestRes useCase01 ()
     MeshChecker mc (mesh);
     auto res = mc.checkTriangleOverlap ();
 
-    VERIFY (res.m_badCount == 0)
+    VERIFY (res.badCount () == 0)
 
     return Passed;
 }
@@ -310,7 +310,7 @@ static TestRes useCase02 ()
     MeshChecker mc (mesh);
     auto res = mc.checkTriangleOverlap ();
 
-    VERIFY (res.m_badCount == 0)
+    VERIFY (res.badCount () == 0)
 
     return Passed;
 }
@@ -335,7 +335,7 @@ static TestRes useCase03 ()
     MeshChecker mc (mesh);
     auto res = mc.checkTriangleOverlap ();
 
-    VERIFY (res.m_badCount == 0)
+    VERIFY (res.badCount () == 0)
 
     return Passed;
 }
@@ -360,7 +360,7 @@ static TestRes useCase04 ()
     MeshChecker mc (mesh);
     auto res = mc.checkTriangleOverlap ();
 
-    VERIFY (res.m_badCount == 0)
+    VERIFY (res.badCount () == 0)
 
     return Passed;
 }
@@ -385,7 +385,7 @@ static TestRes useCase05 ()
     MeshChecker mc (mesh);
     auto res = mc.checkTriangleOverlap ();
 
-    VERIFY (res.m_badCount == 0)
+    VERIFY (res.badCount () == 0)
 
     return Passed;
 }
@@ -410,7 +410,7 @@ static TestRes useCase06 ()
     MeshChecker mc (mesh);
     auto res = mc.checkTriangleOverlap ();
 
-    VERIFY (res.m_badCount == 0)
+    VERIFY (res.badCount () == 0)
 
     return Passed;
 }
@@ -435,7 +435,7 @@ static TestRes useCase07 ()
     MeshChecker mc (mesh);
     auto res = mc.checkTriangleOverlap ();
 
-    VERIFY (res.m_badCount == 0)
+    VERIFY (res.badCount () == 0)
 
     return Passed;
 }
@@ -460,7 +460,7 @@ static TestRes useCase08 ()
     MeshChecker mc (mesh);
     auto res = mc.checkTriangleOverlap ();
 
-    VERIFY (res.m_badCount == 0)
+    VERIFY (res.badCount () == 0)
 
     return Passed;
 }
@@ -485,7 +485,7 @@ static TestRes useCase09 ()
     MeshChecker mc (mesh);
     auto res = mc.checkTriangleOverlap ();
 
-    VERIFY (res.m_badCount == 0)
+    VERIFY (res.badCount () == 0)
 
     return Passed;
 }
@@ -522,12 +522,12 @@ static TestRes sharedEdge01 ()
     MeshChecker mc (mesh);
     auto res = mc.checkTriangleOverlap ();
 
-    VERIFY (res.m_badCount == 0)
+    VERIFY (res.badCount () == 0)
 
     target->reverse ();
     res = mc.checkTriangleOverlap ();
 
-    VERIFY (res.m_badCount == 0)
+    VERIFY (res.badCount () == 0)
 
     return Passed;
 }
@@ -564,12 +564,12 @@ static TestRes sharedEdge02 ()
     MeshChecker mc (mesh);
     auto res = mc.checkTriangleOverlap ();
 
-    VERIFY (res.m_badCount == 0)
+    VERIFY (res.badCount () == 0)
 
     target->reverse ();
     res = mc.checkTriangleOverlap ();
 
-    VERIFY (res.m_badCount == 0)
+    VERIFY (res.badCount () == 0)
 
     return Passed;
 }
@@ -598,12 +598,12 @@ static TestRes sharedEdge03 ()
     MeshChecker mc (mesh);
     auto res = mc.checkTriangleOverlap ();
 
-    VERIFY (res.m_badCount == 1)
+    VERIFY (res.badCount () == 1)
 
     target->reverse ();
     res = mc.checkTriangleOverlap ();
 
-    VERIFY (res.m_badCount == 1)
+    VERIFY (res.badCount () == 1)
 
     return Passed;
 }
@@ -629,16 +629,16 @@ static TestRes useCase10 ()
     MeshChecker mc (mesh);
     auto res = mc.checkTriangleOverlap ();
 
-    VERIFY (res.m_badCount == 0)
+    VERIFY (res.badCount () == 0)
 
     mesh->push_back (mesh->takeFirst ());
     res = mc.checkTriangleOverlap ();
 
-    VERIFY (res.m_badCount == 0)
+    VERIFY (res.badCount () == 0)
     t1->reverse ();
     res = mc.checkTriangleOverlap ();
 
-    VERIFY (res.m_badCount == 0)
+    VERIFY (res.badCount () == 0)
 
     return Passed;
 }
@@ -665,17 +665,17 @@ static TestRes useCase11 ()
     MeshChecker mc (mesh);
     auto res = mc.checkTriangleOverlap ();
 
-    VERIFY (res.m_badCount == 0)
+    VERIFY (res.badCount () == 0)
 
     mesh->push_back (mesh->takeFirst ());
     res = mc.checkTriangleOverlap ();
 
-    VERIFY (res.m_badCount == 0)
+    VERIFY (res.badCount () == 0)
 
     t1->reverse ();
     res = mc.checkTriangleOverlap ();
 
-    VERIFY (res.m_badCount == 0)
+    VERIFY (res.badCount () == 0)
 
     return Passed;
 }
@@ -700,16 +700,16 @@ static TestRes useCase12 ()
     MeshChecker mc (mesh);
     auto res = mc.checkTriangleOverlap ();
 
-    VERIFY (res.m_badCount == 0)
+    VERIFY (res.badCount () == 0)
 
     mesh->push_back (mesh->takeFirst ());
     res = mc.checkTriangleOverlap ();
 
-    VERIFY (res.m_badCount == 0)
+    VERIFY (res.badCount () == 0)
 
     t1->reverse ();
     res = mc.checkTriangleOverlap ();
-    VERIFY (res.m_badCount == 0)
+    VERIFY (res.badCount () == 0)
     return Passed;
 }
 REGISTER_TEST (useCase12)
@@ -736,16 +736,16 @@ static TestRes useCase13 ()
     MeshChecker mc (mesh);
     auto res = mc.checkTriangleOverlap ();
 
-    VERIFY (res.m_badCount == 0)
+    VERIFY (res.badCount () == 0)
 
     mesh->push_back (mesh->takeFirst ());
     res = mc.checkTriangleOverlap ();
 
-    VERIFY (res.m_badCount == 0)
+    VERIFY (res.badCount () == 0)
 
     t1->reverse ();
     res = mc.checkTriangleOverlap ();
-    VERIFY (res.m_badCount == 0)
+    VERIFY (res.badCount () == 0)
     return Passed;
 }
 REGISTER_TEST (useCase13)
@@ -767,7 +767,7 @@ static TestRes overlapTestCase01 ()
     MeshChecker mc (mesh);
     auto res = mc.checkTriangleOverlap ();
 
-    VERIFY (res.m_badCount == 1)
+    VERIFY (res.badCount () == 1)
 
     return Passed;
 }
@@ -790,7 +790,7 @@ static TestRes overlapTestCase02 ()
     MeshChecker mc (mesh);
     auto res = mc.checkTriangleOverlap ();
 
-    VERIFY (res.m_badCount == 0)
+    VERIFY (res.badCount () == 0)
 
     return Passed;
 }
@@ -811,7 +811,7 @@ static TestRes CheckPockets01 ()
     auto res = mc.checkPockets ();
 
     //qDebug ().nospace().noquote() << res.m_report;
-    VERIFY (res.m_badCount == 1)
+    VERIFY (res.badCount () == 1)
 
     return Passed;
 }

@@ -78,7 +78,7 @@ static int check2idx (Checks check)
     return idx;
 }
 
-static void record (const FileResult& result)
+static void record (const FileResult& fileResult)
 {
     switch (recordMode)
     {
@@ -89,68 +89,70 @@ static void record (const FileResult& result)
         {
             QJsonObject file;
             QJsonObject o;
-            for (const auto& result : result.m_checkResults)
+            for (const auto& result : fileResult.checkResults ())
             {
-                o.insert (MeshChecker::checkName (result.m_check), result.m_badCount);
+                o.insert (MeshChecker::checkName (result.check ()), result.badCount ());
             }
             file.insert (QStringLiteral ("checks"), o);
-            file.insert (QStringLiteral ("pass"), result.m_pass);
-            recordingFiles.insert (result.m_path, file);
+            file.insert (QStringLiteral ("pass"), fileResult.pass ());
+            recordingFiles.insert (fileResult.path (), file);
         }
         break;
 
     case Compare:
         {
-            const QFileInfo fi (result.m_path);
+            const QFileInfo fi (fileResult.path ());
             if (fi.lastModified ().secsTo (QDateTime::currentDateTime ()) > 40 * 60)
             {
-                qDebug ().noquote ().nospace () << "Out of date file? \"" << result.m_path << "\"";
+                qDebug ().noquote ().nospace () << "Out of date file? \"" << fileResult.path () << "\"";
             }
             bool changes = false;
-            auto file = recordingFiles.value (result.m_path).toObject ();
+            auto file = recordingFiles.value (fileResult.path ()).toObject ();
             if (file.isEmpty ())
             {
-                out << "\n" << result.m_path << " - NEW FILE - " << (result.m_pass ? "PASS" : "FAIL") << '\n';
+                out << "\n" << fileResult.path () << " - NEW FILE - " << (fileResult.pass () ? "PASS" : "FAIL") << '\n';
                 //return;
             }
             auto o = file.value (QStringLiteral ("checks")).toObject ();
 
-            for (const auto& result : result.m_checkResults)
+            for (const auto& result : fileResult.checkResults ())
             {
-                if (result.m_badCount == -1)
+                if (result.badCount () == -1)
                 {
                     continue;
                 }
-                auto old = o.value (MeshChecker::checkName (result.m_check)).toDouble ();
-                auto diff = result.m_badCount - old;
-                diffSum[check2idx (result.m_check)] += diff;
-                if (result.m_badCount != old)
+                auto old = o.value (result.name ()).toDouble ();
+                auto diff = result.badCount () - old;
+
+                diffSum[check2idx (result.check ())] += diff;
+                if (result.badCount () != old)
                 {
                     changes = true;
                 }
             }
-            changes |= (result.m_pass != file.value (QStringLiteral ("pass")).toBool ());
+            changes |= (fileResult.pass () != file.value (QStringLiteral ("pass")).toBool ());
             if (changes)
             {
-                out << '\n' << result.m_path;
-                if (result.m_pass != file.value (QStringLiteral ("pass")).toBool ())
+                out << '\n' << fileResult.path ();
+                //if (!fileResult.m_pass != file.value (QStringLiteral ("pass")).toBool ())
                 {
-                    out << " " << (file.value (QStringLiteral ("pass")).toBool () ? "PASS" : "FAIL") << " -> " << (result.m_pass ? "PASS" : "FAIL");
+                    out << " " << (file.value (QStringLiteral ("pass")).toBool () ? "PASS" : "FAIL") << " -> " << (fileResult.pass () ? "PASS" : "FAIL");
                 }
                 out << "\n";
-                for (const auto& result : result.m_checkResults)
+
+                for (const auto& result : fileResult.checkResults ())
                 {
-                    if (result.m_badCount == -1)
+                    if (result.badCount () == -1)
                     {
                         continue;
                     }
-                    auto name = MeshChecker::checkName (result.m_check);
+                    auto name = result.name ();
                     auto old = o.value (name).toInt ();
 
-                    auto diff = result.m_badCount - old;
+                    auto diff = result.badCount () - old;
                     if (diff != 0)
                     {
-                        out << "  " << name << QString (padding - name.length (), QChar ('.')) << ": " << old << " -> " << result.m_badCount << " " << diffNo (diff) << '\n';
+                        out << "  " << name << QString (padding - name.length (), QChar ('.')) << ": " << old << " -> " << result.badCount () << " " << diffNo (diff) << '\n';
                     }
                 }
             }
@@ -161,11 +163,11 @@ static void record (const FileResult& result)
 
 static void reportMd (const FileResult& result)
 {
-    if (result.m_pass && failOnly)
+    if (result.pass ()&& failOnly)
     {
         return;
     }
-    auto path = result.m_path;
+    auto path = result.path ();
     if (path.startsWith (rootFolder))
     {
         path = path.mid (rootFolder.length ());
@@ -174,46 +176,54 @@ static void reportMd (const FileResult& result)
             path = QStringLiteral ("./") + path.mid (1);
         }
     }
-    md << "## " << path << (result.m_pass ? " - PASS\n" : " - FAIL\n");
-    if (result.m_pass && verboseFail)
+    md << "## " << path << (result.pass () ? " - PASS\n" : " - FAIL\n");
+    if (result.pass () && verboseFail)
     {
         return;
     }
 
-    if ((verbosity & Details))
+    if (verbosity & Details)
     {
-        for (const auto& res : result.m_checkResults)
+        for (const auto& res : result.checkResults ())
         {
-            if (res.m_check == CheckInfo /*|| res.m_check == CheckShortEdges*/)
+            if (res.check () == CheckInfo)  // Info first
             {
-                auto report = res.m_report.trimmed ();
+                auto report = res.report ().trimmed ();
                 report = report.mid (4).trimmed ();
                 md << "    " << report << "\n";
             }
         }
     }
 
-    if (verbosity & Summary || (!result.m_pass && verboseFail))
+    if (verbosity & Summary || (!result.pass () && verboseFail))
     {
         md << "|Check|Result|\n|---|---|\n";
 
-        for (const auto& res : result.m_checkResults)
+        for (const auto& res : result.checkResults ())
         {
-            if (res.m_check == CheckInfo || res.m_check == CheckShortEdges)
+            if (res.check () == CheckInfo /*|| res.m_check == CheckShortEdges*/)
             {
                 continue;
             }
-            switch (res.m_badCount)
+            if (!res.pass ())
+            {
+                md << "==";
+            }
+            switch (res.badCount ())
             {
             case -1:
-                md << "|" << res.m_report.split ('\n').constFirst () << "||\n";
+                md << "|" << res.report ().split ('\n').constFirst () << "||\n";
                 break;
             case 0:
                 md << "|" << res.name () << "|None|\n";
                 break;
             default:
-                md << "|" << res.name () << "|" << QString::number (res.m_badCount) << "|\n";
+                md << "|" << res.name () << "|" << QString::number (res.badCount ()) << "|\n";
                 break;
+            }
+            if (!res.pass ())
+            {
+                md << "==";
             }
         }
         md << '\n';
@@ -222,24 +232,24 @@ static void reportMd (const FileResult& result)
 
 static void reportBasic (const FileResult& result)
 {
-    if (result.m_pass && failOnly)
+    if (result.pass ()&& failOnly)
     {
         return;
     }
     if (verbosity > FileName)
     {
-        out << result.m_path << (result.m_pass ? " - PASS\n" : " - FAIL\n");
+        out << result.path () << (result.pass () ? " - PASS\n" : " - FAIL\n");
     }
 
-    for (const auto& res : result.m_checkResults)
+    for (const auto& res : result.checkResults ())
     {
         if (verbosity & Details)
         {
-            out << res.m_report;
+            out << res.report ();
         }
         else if (verbosity & Summary)
         {
-            out << res.m_report.split ('\n').constFirst () << '\n';
+            out << res.report ().split ('\n').constFirst () << '\n';
         }
     }
 
@@ -248,14 +258,14 @@ static void reportBasic (const FileResult& result)
         out << "  SUMMARY:\n";
     }
     QLocale const locale;
-    for (const auto& res : result.m_checkResults)
+    for (const auto& res : result.checkResults ())
     {
         if (verbosity & Summary)
         {
-            if (res.m_badCount > -1)
+            if (res.badCount () > -1)
             {
                 auto name = res.name ();
-                out << "    " << name + QString (padding - name.length (), QChar ('.')) << QStringLiteral (": ") + locale.toString (res.m_badCount) + QStringLiteral ("\n");
+                out << "    " << name + QString (padding - name.length (), QChar ('.')) << QStringLiteral (": ") + locale.toString (res.badCount ()) + (res.pass () ? " pass\n" : " FAIL\n");
             }
         }
     }
@@ -304,11 +314,11 @@ static bool processFile (const QString& path)
     MeshChecker::setViewerHyperlinks (viewerHyperlinks);
 
     const auto res = checker.check ();
-    for (const auto& c : res.m_checkResults)
+    for (const auto& c : res.checkResults ())
     {
-        if (c.m_badCount > 0)
+        if (c.badCount () > 0)
         {
-            summaryResult[check2idx (c.m_check)] += c.m_badCount;
+            summaryResult[check2idx (c.check ())] += c.badCount ();
         }
     }
 
@@ -323,11 +333,11 @@ static bool processFile (const QString& path)
 
     record (res);
 
-    if (!res.m_pass)
+    if (!res.pass ())
     {
         failCount++;
     }
-    ok &= res.m_pass;
+    ok &= res.pass ();
     out.flush ();
 
     if (markIslands)
@@ -353,7 +363,7 @@ static bool processFile (const QString& path)
         //qDebug () << path;
         Document::write (mesh, path);
     }
-    return res.m_pass;
+    return res.pass ();
 }
 
 static void files (const QString& path)
@@ -523,7 +533,7 @@ int main (int argc, char** argv)
         if (recording.isEmpty ())
         {
             qDebug ().nospace ().noquote () << "Unable t open: \"" << in.fileName () << "\"";
-            exit (100);
+            return 100;
         }
         recordingFiles = recording.value (QStringLiteral ("files")).toObject ();
 

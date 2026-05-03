@@ -93,26 +93,25 @@ MeshChecker::~MeshChecker ()
 FileResult MeshChecker::check ()
 {
     QLocale const locale;
-    FileResult ret;
-    ret.m_path = m_path;
-    ret.m_pass = true;
+    FileResult ret (m_path);
     m_summary.clear ();
 
+    bool pass = true;
     for (const auto& c : std::as_const (m_checkList))
     {
         if (m_checks & c.first)
         {
             auto res = (this->*c.second) ();
-            ret.m_pass &= res.m_pass /*|| !MeshChecker::failable (c.first)*/;
-            ret.m_checkResults.push_back (res);
-            if (res.m_badCount >= 0)
+            pass &= res.pass ();
+            ret.checkResults ().push_back (res);
+            if (!res.pass () || res.badCount () >= 0)
             {
                 const auto& name = checkName (c.first);
-                m_summary += QStringLiteral ("    ") + name + QString (padding - name.length (), QChar ('.')) + QStringLiteral (": ") + locale.toString (res.m_badCount) + QStringLiteral ("\n");
+                m_summary += QStringLiteral ("    ") + name + QString (padding - name.length (), QChar ('.')) + QStringLiteral (": ") + locale.toString (res.badCount ()) + QStringLiteral (" FAIL\n");
             }
         }
     }
-
+    ret.setPass (pass);
     return ret;
 }
 
@@ -165,7 +164,7 @@ CheckResult MeshChecker::checkVertexRefs ()
 
         if (badCount > 20)
         {
-            str.push_back ("    ...\n");
+            str.push_back (QStringLiteral ("    ...\n"));
         }
         return {CheckVertexLowRefs, false, str, badCount};
     }
@@ -615,6 +614,7 @@ CheckResult MeshChecker::checkTriangleOverlap ()
                                 case Triangle::TriangleContainsResult::Vertex0:
                                 case Triangle::TriangleContainsResult::Vertex1:
                                 case Triangle::TriangleContainsResult::Vertex2:
+                                case Triangle::TriangleContainsResult::VertexAny:
                                     // Nothing
                                     break;
                                 case Triangle::TriangleContainsResult::Contained:
@@ -749,7 +749,7 @@ CheckResult MeshChecker::checkUnviableTriangles ()
             }
             if (badCount == 20)
             {
-                ret += "    ...\n";
+                ret += QStringLiteral ("    ...\n");
             }
             badCount++;
         }
@@ -804,14 +804,14 @@ CheckResult MeshChecker::checkBadlyFormedTriangles ()
 
 CheckResult MeshChecker::checkTCount ()
 {
-    auto cnt = m_mesh->tcount();
-    return {CheckTCount, cnt > 0, {}, cnt};
+    auto cnt = m_mesh->tcount ();
+    return {CheckTCount, cnt > 0, cnt == 0 ? "Empty" : "", cnt};
 }
 
 CheckResult MeshChecker::checkComponents ()
 {
-    auto no = (int)m_mesh->splitComponents ().count ();
-    return {CheckComponents, true, {}, no};
+    auto cnt = (int)m_mesh->splitComponents ().count ();
+    return {CheckComponents, cnt > 0, cnt == 0 ? "Empty" : "", cnt};
 }
 
 CheckResult MeshChecker::checkAnnotations ()
