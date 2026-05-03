@@ -26,8 +26,8 @@ public:
     static QString description (Checks check);
     static bool failable (Checks check);
 
+    MeshChecker ();
     MeshChecker (const MeshPtr& mesh, const QString& path = {});
-
     virtual ~MeshChecker ();
     FileResult check ();
     void setCheckFlags (uint flags) { m_checks = flags; }
@@ -35,6 +35,7 @@ public:
     QString path () const { return m_path; }
     CallbackFn callback () const;
     void setCallback (CallbackFn newCallback);
+    void setData (const MeshPtr& mesh, const QString& path);
 
 private:
     MeshPtr m_mesh;
@@ -53,6 +54,7 @@ private:
 
     QString fmtName (const TrianglePtr& t);
     QString fmtName (const VertexPtr& t);
+    void genMetaData ();
 
 public:
     CheckResult checkHoles ();

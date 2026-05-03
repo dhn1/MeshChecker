@@ -1,6 +1,7 @@
 #include <ColourFactory.h>
 #include <Mesh.h>
 #include <libSculptVersion.h>
+#include <QtConcurrent>
 
 #include <QCommandLineParser>
 #include <QDir>
@@ -47,6 +48,8 @@ static const int levels[NO_VERBOSITY_LEVELS] = {
 static bool markFiles{};
 static bool markIslands{};
 static bool viewerHyperlinks{};
+static QFutureSynchronizer<void> synchroniser;
+static QMutex updateMutex;
 
 static void generateFileList ()
 {
@@ -288,10 +291,9 @@ static void callback (Checks check, const MeshPtr& mesh, const TrianglePtr& t1, 
     idx = (idx + 1) % colours.count ();
 }
 
-static bool processFile (const QString& path)
+static void processFile (const QString& path)
 {
     fileList.removeAll (path);
-
     fileCount++;
     Triangle::resetID ();  // May need to mutex this if we multi thread
     auto mesh = Document::readMesh (path);
@@ -299,71 +301,79 @@ static bool processFile (const QString& path)
     {
         qDebug ().nospace ().noquote () << "Unable to open: \"" << path << "\"\n";
         failCount++;
-        return false;
+        return;
     }
 
-    MeshChecker checker (mesh, path);
+    auto checker = new MeshChecker;
+    auto future = QtConcurrent::run ([mesh, path, checker] {
 
-    if (markFiles)
-    {
-        mesh->removeColour ();
-        checker.setCallback (callback);
-    }
+        checker->setData (mesh, path);
 
-    checker.setCheckFlags (flags);
-    MeshChecker::setViewerHyperlinks (viewerHyperlinks);
-
-    const auto res = checker.check ();
-    for (const auto& c : res.checkResults ())
-    {
-        if (c.badCount () > 0)
+        if (markFiles)
         {
-            summaryResult[check2idx (c.check ())] += c.badCount ();
+            mesh->removeColour ();
+            checker->setCallback (callback);
         }
-    }
 
-    if (genReport)
-    {
-        reportMd (res);
-    }
-    else
-    {
-        reportBasic (res);
-    }
+        checker->setCheckFlags (flags);
 
-    record (res);
+        const auto res = checker->check ();
 
-    if (!res.pass ())
-    {
-        failCount++;
-    }
-    ok &= res.pass ();
-    out.flush ();
 
-    if (markIslands)
-    {
-        mesh->removeColour ();
-        auto cols = ColourFactory::instance ()->stockColours ();
-        int colIdx = 0;
-        auto hes = HalfEdges::create (mesh);
-        auto holes = hes->holes ();
-        for (const auto& hole : std::as_const (holes))
+        QMutexLocker locker (&updateMutex);
+        for (const auto& c : res.checkResults ())
         {
-            if (hole->isIsland ())
+            if (c.badCount () > 0)
             {
-                hole->colourHole (cols.at (colIdx++));
-                colIdx %= cols.size ();
+                summaryResult[check2idx (c.check ())] += c.badCount ();
             }
         }
-    }
-    if (markFiles || markIslands)
-    {
-        const QFileInfo fi (path);
-        auto fname = fi.canonicalPath () + QStringLiteral ("/") + fi.baseName () + QStringLiteral (".nethers");
-        //qDebug () << path;
-        Document::write (mesh, path);
-    }
-    return res.pass ();
+
+        if (genReport)
+        {
+            reportMd (res);
+        }
+        else
+        {
+            reportBasic (res);
+        }
+
+        record (res);
+
+        if (!res.pass ())
+        {
+            failCount++;
+        }
+        ok &= res.pass ();
+        out.flush ();
+
+        if (markIslands)
+        {
+            mesh->removeColour ();
+            auto cols = ColourFactory::instance ()->stockColours ();
+            int colIdx = 0;
+            auto hes = HalfEdges::create (mesh);
+            auto holes = hes->holes ();
+            for (const auto& hole : std::as_const (holes))
+            {
+                if (hole->isIsland ())
+                {
+                    hole->colourHole (cols.at (colIdx++));
+                    colIdx %= cols.size ();
+                }
+            }
+        }
+        if (markFiles || markIslands)
+        {
+            const QFileInfo fi (path);
+            auto fname = fi.canonicalPath () + QStringLiteral ("/") + fi.baseName () + QStringLiteral (".nethers");
+            //qDebug () << path;
+            Document::write (mesh, path);
+        }
+        delete checker;
+
+    });
+    synchroniser.addFuture (future);
 }
 
 static void files (const QString& path)
@@ -514,6 +524,8 @@ int main (int argc, char** argv)
     markFiles = parser.isSet (QStringLiteral ("mark"));
     markIslands = parser.isSet (QStringLiteral ("mark-islands"));
     viewerHyperlinks = parser.isSet (QStringLiteral ("hyperlinks"));
+    MeshChecker::setViewerHyperlinks (viewerHyperlinks);
+
     if (parser.isSet (QStringLiteral ("compare")))
     {
         if (parser.isSet (QStringLiteral ("record")))
@@ -650,6 +662,8 @@ int main (int argc, char** argv)
     {
         rootFiles (f);
     }
+
+    synchroniser.waitForFinished ();
 
     if (genReport)
     {

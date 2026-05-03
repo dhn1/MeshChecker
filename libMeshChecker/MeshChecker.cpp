@@ -17,11 +17,26 @@
 
 #include "globals.h"
 
-static QMutex flagMutex;  // Used to control access to triangle flags
 MeshChecker::CheckList MeshChecker::m_checkList;
 bool MeshChecker::m_viewerHyperlinks;
 
+MeshChecker::MeshChecker ()
+{
+}
+
 MeshChecker::MeshChecker (const MeshPtr& mesh, const QString& path) : m_mesh (mesh), m_path (path)
+{
+    genMetaData ();
+}
+
+void MeshChecker::setData (const MeshPtr& mesh, const QString& path)
+{
+    m_mesh = mesh;
+    m_path = path;
+    genMetaData ();
+}
+
+void MeshChecker::genMetaData ()
 {
     auto future = QtConcurrent::run ([this] {
         auto ret = HalfEdges::create (m_mesh);
