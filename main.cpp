@@ -137,9 +137,13 @@ static void record (const FileResult& fileResult)
             if (changes)
             {
                 out << '\n' << fileResult.path ();
-                //if (!fileResult.m_pass != file.value (QStringLiteral ("pass")).toBool ())
+                if (fileResult.pass() != file.value (QStringLiteral ("pass")).toBool ())
                 {
                     out << " " << (file.value (QStringLiteral ("pass")).toBool () ? "PASS" : "FAIL") << " -> " << (fileResult.pass () ? "PASS" : "FAIL");
+                }
+                else
+                {
+                    out << " " << (file.value (QStringLiteral ("pass")).toBool () ? "PASS" : "FAIL");
                 }
                 out << "\n";
 
@@ -204,13 +208,9 @@ static void reportMd (const FileResult& result)
 
         for (const auto& res : result.checkResults ())
         {
-            if (res.check () == CheckInfo /*|| res.m_check == CheckShortEdges*/)
+            if (res.check () == CheckInfo)
             {
                 continue;
-            }
-            if (!res.pass ())
-            {
-                md << "==";
             }
             switch (res.badCount ())
             {
@@ -218,15 +218,11 @@ static void reportMd (const FileResult& result)
                 md << "|" << res.report ().split ('\n').constFirst () << "||\n";
                 break;
             case 0:
-                md << "|" << res.name () << "|None|\n";
+                md << "|" << (!res.pass () ? "**" : "") << res.name () << (!res.pass () ? "**" : "")  << "|" << (!res.pass () ? "**None|\n" : "None|\n");
                 break;
             default:
-                md << "|" << res.name () << "|" << QString::number (res.badCount ()) << "|\n";
+                md << "|" << (!res.pass () ? "**" : "") << res.name () << (!res.pass () ? "**" : "")<< "|" << (!res.pass () ? "**" : "") << QString::number (res.badCount ()) << (!res.pass () ? "**" : "")<< "|\n";
                 break;
-            }
-            if (!res.pass ())
-            {
-                md << "==";
             }
         }
         md << '\n';
