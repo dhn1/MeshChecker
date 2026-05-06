@@ -44,7 +44,7 @@ private:
     HalfEdgesPtr m_edgesPtr;
     QString m_summary;
     HalfEdgesPtr m_edges;
-    TriangleOctTree* m_octtree;
+    TriangleOctTree* m_octtree{};
     QString m_path;
     CallbackFn m_callback{};
     Box m_meshBox;

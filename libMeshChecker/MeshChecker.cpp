@@ -20,6 +20,8 @@
 MeshChecker::CheckList MeshChecker::m_checkList;
 bool MeshChecker::m_viewerHyperlinks;
 
+constexpr int maxMessages = 20;
+
 MeshChecker::MeshChecker ()
 {
 }
@@ -165,7 +167,7 @@ CheckResult MeshChecker::checkVertexRefs ()
             }
             if (count < 6)
             {
-                if (badCount < 20)
+                if (badCount < maxMessages)
                 {
                     str += QStringLiteral ("    %1 referenced by half edges only %2 times\n").arg (fmtName (v)).arg (count);
                 }
@@ -177,7 +179,7 @@ CheckResult MeshChecker::checkVertexRefs ()
     {
         str.push_front (QStringLiteral ("  %1 low ref vertices found\n").arg (badCount));
 
-        if (badCount > 20)
+        if (badCount > maxMessages)
         {
             str.push_back (QStringLiteral ("    ...\n"));
         }
@@ -331,6 +333,7 @@ CheckResult MeshChecker::checkShortEdges ()
     QString ret;
 
     int badCount = 0;
+    int warnCount = 0;
     int foundShortEdge = 0;
     int foundNullEdge = 0;
     double smallest2 = INF;
@@ -351,15 +354,25 @@ CheckResult MeshChecker::checkShortEdges ()
             if (mag2 <= Constants::minEdge2)
             {
                 foundShortEdge++;
-                if (edge->pair ())
+
+                if (warnCount < maxMessages)
                 {
-                    ret += QStringLiteral ("    Short edge ") + QString::number (sqrt (mag2)) + QStringLiteral ("mm. Between vertex: ") + fmtName (edge->v1 ()) + QStringLiteral (" and ") + fmtName (edge->v2 ()) + QStringLiteral (". Ts ") +
-                           fmtName (edge->triangle ()) + QStringLiteral (" and ") + fmtName (edge->pair ()->triangle ()) + QStringLiteral (" \n");
+                    warnCount++;
+                    if (edge->pair ())
+                    {
+                        ret += QStringLiteral ("    Short edge ") + QString::number (sqrt (mag2)) + QStringLiteral ("mm. Between vertex: ") + fmtName (edge->v1 ()) + QStringLiteral (" and ") + fmtName (edge->v2 ()) + QStringLiteral (". Ts ") +
+                               fmtName (edge->triangle ()) + QStringLiteral (" and ") + fmtName (edge->pair ()->triangle ()) + QStringLiteral (" \n");
+                    }
+                    else
+                    {
+                        ret += QStringLiteral ("    Short edge ") + QString::number (sqrt (mag2)) + QStringLiteral ("mm. Between vertex: ") + fmtName (edge->v1 ()) + QStringLiteral (" and ") + fmtName (edge->v2 ()) + QStringLiteral (". Ts ") +
+                               fmtName (edge->triangle ()) + QByteArrayLiteral (" and None\n");
+                    }
                 }
-                else
+                else if (warnCount == maxMessages)
                 {
-                    ret += QStringLiteral ("    Short edge ") + QString::number (sqrt (mag2)) + QStringLiteral ("mm. Between vertex: ") + fmtName (edge->v1 ()) + QStringLiteral (" and ") + fmtName (edge->v2 ()) + QStringLiteral (". Ts ") +
-                           fmtName (edge->triangle ()) + QByteArrayLiteral (" and None\n");
+                    ret += "    ...\n";
+                    warnCount++;
                 }
             }
             if (mag2 < smallest2)
@@ -373,6 +386,7 @@ CheckResult MeshChecker::checkShortEdges ()
     {
         ret += QStringLiteral ("  Shortest edge value: %1\n").arg (sqrt (smallest2));
     }
+
     if (foundShortEdge)
     {
         ret.push_front (QStringLiteral ("  %1 short half edges found\n").arg (foundShortEdge));
@@ -381,6 +395,7 @@ CheckResult MeshChecker::checkShortEdges ()
     {
         ret.push_front (QStringLiteral ("  No short edges\n"));
     }
+
     if (foundNullEdge)
     {
         ret.push_front (QStringLiteral ("  %1 null edges found (connected by same vertex)\n").arg (foundNullEdge));
@@ -389,7 +404,8 @@ CheckResult MeshChecker::checkShortEdges ()
     {
         ret.push_front (QStringLiteral ("  No null edges\n"));
     }
-    return {CheckShortEdges, true, ret, badCount};
+
+    return {CheckShortEdges, badCount == 0, ret, badCount};
 }
 
 CheckResult MeshChecker::checkReversedTriangles ()
@@ -758,11 +774,11 @@ CheckResult MeshChecker::checkUnviableTriangles ()
     {
         if (!t->isViable ())
         {
-            if (badCount < 20)
+            if (badCount < maxMessages)
             {
                 ret += QStringLiteral ("    T: %1\n").arg (fmtName (t));
             }
-            if (badCount == 20)
+            if (badCount == maxMessages)
             {
                 ret += QStringLiteral ("    ...\n");
             }
@@ -785,8 +801,20 @@ CheckResult MeshChecker::checkFlatTriangles ()
     {
         if (t->isFlat ())
         {
-            badCount++;
-            ret += QStringLiteral ("    T: %1\n").arg (fmtName (t));
+            if (badCount < maxMessages)
+            {
+                badCount++;
+                ret += QStringLiteral ("    T: %1\n").arg (fmtName (t));
+            }
+            else if (badCount == maxMessages)
+            {
+                ret += QStringLiteral ("    ...\n");
+                badCount++;
+            }
+            else
+            {
+                badCount++;
+            }
         }
     }
     if (badCount)
@@ -888,7 +916,7 @@ CheckResult MeshChecker::checkPockets ()
                         }
                         notedHash.insert (hash);
                         badCount++;
-                        if (badCount < 20)
+                        if (badCount < maxMessages)
                         {
                             ts << "    T: " << fmtName (t) << " - T: " << fmtName (edge->pair ()->triangle ()) << '\n';
                             break;
@@ -902,7 +930,7 @@ CheckResult MeshChecker::checkPockets ()
     {
         return {CheckPockets, true, QStringLiteral ("No pockets found\n"), badCount};
     }
-    if (badCount >= 20)
+    if (badCount >= maxMessages)
     {
         ts << "    ...\n";
     }
