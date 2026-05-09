@@ -19,6 +19,7 @@
 
 MeshChecker::CheckList MeshChecker::m_checkList;
 bool MeshChecker::m_viewerHyperlinks;
+bool MeshChecker::m_allowOverusedEdges;
 
 constexpr int maxMessages = 20;
 
@@ -111,7 +112,6 @@ FileResult MeshChecker::check ()
 {
     QLocale const locale;
     FileResult ret (m_path);
-    m_summary.clear ();
 
     bool pass = true;
     for (const auto& c : std::as_const (m_checkList))
@@ -124,7 +124,6 @@ FileResult MeshChecker::check ()
             if (!res.pass () || res.badCount () >= 0)
             {
                 const auto& name = checkName (c.first);
-                m_summary += QStringLiteral ("    ") + name + QString (padding - name.length (), QChar ('.')) + QStringLiteral (": ") + locale.toString (res.badCount ()) + QStringLiteral (" FAIL\n");
             }
         }
     }
@@ -209,11 +208,6 @@ CheckResult MeshChecker::checkDeleted ()
     }
     str.push_front (QStringLiteral ("  No deleted triangles found\n"));
     return {CheckDeleted, true, str, badCount};
-}
-
-QString MeshChecker::summary () const
-{
-    return m_summary;
 }
 
 CheckResult MeshChecker::checkOpenEdges ()
@@ -463,34 +457,67 @@ CheckResult MeshChecker::checkOverusedHalfEdges ()
 {
     QString ret;
     int badCount = 0;
-    const auto& edgeByEdge = getEdges ()->edgeByEdge ();
 
-    auto keys = edgeByEdge.keys ();
-    std::sort (keys.begin (), keys.end ());
-    auto it = std::unique (keys.begin (), keys.end ());
-    keys.erase (it, keys.end ());
-
-    for (const auto& key : std::as_const (keys))
+    if (m_allowOverusedEdges)
     {
-        const auto values = edgeByEdge.values (key);
-        if (values.count () > 2)
+        const auto& edgeByEdge = getEdges ()->edgeByEdge ();
+
+        auto keys = edgeByEdge.keys ();
+        std::sort (keys.begin (), keys.end ());
+        auto it = std::unique (keys.begin (), keys.end ());
+        keys.erase (it, keys.end ());
+
+        for (const auto& key : std::as_const (keys))
         {
-            badCount++;
-            const auto& e = values.constFirst ();
-            ret.push_back (QStringLiteral ("    edge: %1 -> %2\n").arg (fmtName (e->v1 ()), fmtName (e->v2 ())));
-            for (const auto& match : values)
+            const auto values = edgeByEdge.values (key);
+            if (values.count () > 2)
             {
-                ret.push_back (QStringLiteral ("      Used by T: %1\n").arg (fmtName (match->triangle ())));
+                badCount++;
+                const auto& e = values.constFirst ();
+                ret.push_back (QStringLiteral ("    edge: %1 -> %2\n").arg (fmtName (e->v1 ()), fmtName (e->v2 ())));
+                for (const auto& match : values)
+                {
+                    ret.push_back (QStringLiteral ("      Used by T: %1\n").arg (fmtName (match->triangle ())));
+                }
+            }
+        }
+
+        if (badCount)
+        {
+            ret.push_front (QStringLiteral ("  %1 overused half edges\n").arg (badCount));
+            return {CheckOverusedHalfEdges, false, ret, badCount};
+        }
+        ret += QStringLiteral ("  No overused half edges\n");
+        return {CheckOverusedHalfEdges, true, ret, badCount};
+    }
+    else
+    {
+        Q_ASSERT (m_edges->testFlag (HalfEdges::EdgeMatched));
+
+        for (const auto& e : m_edges->problemEdges2 ())
+        {
+            if (badCount < maxMessages)
+            {
+                ret.push_back (QStringLiteral ("    edge: %1 -> %2\n").arg (fmtName (e->v1 ()), fmtName (e->v2 ())));
+                badCount++;
+            }
+            else if (badCount == maxMessages)
+            {
+                ret.push_back (QStringLiteral ("    ...\n"));
+                badCount++;
+            }
+            else
+            {
+                badCount++;
             }
         }
     }
-
     if (badCount)
     {
-        ret.push_front (QStringLiteral ("  %1 overused half edges\n").arg (badCount));
+        ret.push_front (QStringLiteral ("  %1 excess (single) half edges\n").arg (badCount));
         return {CheckOverusedHalfEdges, false, ret, badCount};
     }
-    ret += QStringLiteral ("  No overused half edges\n");
+    ret += QStringLiteral ("  No excess half edges\n");
     return {CheckOverusedHalfEdges, true, ret, badCount};
 }
 

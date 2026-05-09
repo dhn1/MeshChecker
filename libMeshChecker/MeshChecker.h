@@ -31,32 +31,11 @@ public:
     virtual ~MeshChecker ();
     FileResult check ();
     void setCheckFlags (uint flags) { m_checks = flags; }
-    QString summary () const;
     QString path () const { return m_path; }
     CallbackFn callback () const;
     void setCallback (CallbackFn newCallback);
     void setData (const MeshPtr& mesh, const QString& path);
 
-private:
-    MeshPtr m_mesh;
-    uint m_checks = Default;
-    HalfEdgesPtr getEdges ();
-    HalfEdgesPtr m_edgesPtr;
-    QString m_summary;
-    HalfEdgesPtr m_edges;
-    TriangleOctTree* m_octtree{};
-    QString m_path;
-    CallbackFn m_callback{};
-    Box m_meshBox;
-
-    static bool m_viewerHyperlinks;
-    static CheckList m_checkList;
-
-    QString fmtName (const TrianglePtr& t);
-    QString fmtName (const VertexPtr& t);
-    void genMetaData ();
-
-public:
     CheckResult checkHoles ();
     CheckResult checkDuplicateTriangles ();
     CheckResult checkShortEdges ();
@@ -78,6 +57,26 @@ public:
     CheckResult checkPockets ();
 
     static void setViewerHyperlinks (bool newViewerHyperlinks) { m_viewerHyperlinks = newViewerHyperlinks; }
+    static void setAllowOverusedEdges (bool newAllowOverusedEdges) { m_allowOverusedEdges = newAllowOverusedEdges; }
+
+private:
+    MeshPtr m_mesh;
+    uint m_checks = Default;
+    HalfEdgesPtr getEdges ();
+    HalfEdgesPtr m_edgesPtr;
+    HalfEdgesPtr m_edges;
+    TriangleOctTree* m_octtree{};
+    QString m_path;
+    CallbackFn m_callback{};
+    Box m_meshBox;
+    static bool m_allowOverusedEdges;
+
+    static bool m_viewerHyperlinks;
+    static CheckList m_checkList;
+
+    QString fmtName (const TrianglePtr& t);
+    QString fmtName (const VertexPtr& t);
+    void genMetaData ();
 };
 
 #endif  // MESHCHECKER_H

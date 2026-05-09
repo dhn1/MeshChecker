@@ -1,7 +1,6 @@
 #include <ColourFactory.h>
 #include <Mesh.h>
 #include <libSculptVersion.h>
-#include <QtConcurrent>
 
 #include <QCommandLineParser>
 #include <QDir>
@@ -11,6 +10,7 @@
 #include <QJsonDocument>
 #include <QTextCursor>
 #include <QTextDocument>
+#include <QtConcurrent>
 
 #include "Document.h"
 #include "FileResult.h"
@@ -47,7 +47,6 @@ static const int levels[NO_VERBOSITY_LEVELS] = {
 };
 static bool markFiles{};
 static bool markIslands{};
-static bool viewerHyperlinks{};
 static QFutureSynchronizer<void> synchroniser;
 static QMutex updateMutex;
 
@@ -137,7 +136,7 @@ static void record (const FileResult& fileResult)
             if (changes)
             {
                 out << '\n' << fileResult.path ();
-                if (fileResult.pass() != file.value (QStringLiteral ("pass")).toBool ())
+                if (fileResult.pass () != file.value (QStringLiteral ("pass")).toBool ())
                 {
                     out << " " << (file.value (QStringLiteral ("pass")).toBool () ? "PASS" : "FAIL") << " -> " << (fileResult.pass () ? "PASS" : "FAIL");
                 }
@@ -170,7 +169,7 @@ static void record (const FileResult& fileResult)
 
 static void reportMd (const FileResult& result)
 {
-    if (result.pass ()&& failOnly)
+    if (result.pass () && failOnly)
     {
         return;
     }
@@ -218,10 +217,10 @@ static void reportMd (const FileResult& result)
                 md << "|" << res.report ().split ('\n').constFirst () << "||\n";
                 break;
             case 0:
-                md << "|" << (!res.pass () ? "**" : "") << res.name () << (!res.pass () ? "**" : "")  << "|" << (!res.pass () ? "**None|\n" : "None|\n");
+                md << "|" << (!res.pass () ? "**" : "") << res.name () << (!res.pass () ? "**" : "") << "|" << (!res.pass () ? "**None|\n" : "None|\n");
                 break;
             default:
-                md << "|" << (!res.pass () ? "**" : "") << res.name () << (!res.pass () ? "**" : "")<< "|" << (!res.pass () ? "**" : "") << QString::number (res.badCount ()) << (!res.pass () ? "**" : "")<< "|\n";
+                md << "|" << (!res.pass () ? "**" : "") << res.name () << (!res.pass () ? "**" : "") << "|" << (!res.pass () ? "**" : "") << QString::number (res.badCount ()) << (!res.pass () ? "**" : "") << "|\n";
                 break;
             }
         }
@@ -231,7 +230,7 @@ static void reportMd (const FileResult& result)
 
 static void reportBasic (const FileResult& result)
 {
-    if (result.pass ()&& failOnly)
+    if (result.pass () && failOnly)
     {
         return;
     }
@@ -302,7 +301,6 @@ static void processFile (const QString& path)
 
     auto checker = new MeshChecker;
     auto future = QtConcurrent::run ([mesh, path, checker] {
-
         checker->setData (mesh, path);
 
         if (markFiles)
@@ -314,7 +312,6 @@ static void processFile (const QString& path)
         checker->setCheckFlags (flags);
 
         const auto res = checker->check ();
-
 
         QMutexLocker locker (&updateMutex);
         for (const auto& c : res.checkResults ())
@@ -367,7 +364,6 @@ static void processFile (const QString& path)
             Document::write (mesh, path);
         }
         delete checker;
-
     });
     synchroniser.addFuture (future);
 }
@@ -507,6 +503,7 @@ int main (int argc, char** argv)
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("mark"), QStringLiteral ("Mark bad triangles with colour and save file as .nether type.")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("mark-islands"), QStringLiteral ("Mark islands with colours and save file as .nether type.")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("hyperlinks"), QStringLiteral ("Produce markdown text with hyperlinks")));
+    parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("multi-use-edges"), QStringLiteral ("Allow edges to be used in more than just a pair")));
 
     //parser.setSingleDashWordOptionMode (QCommandLineParser::ParseAsLongOptions);
     const auto& checkList = MeshChecker::checkList ();
@@ -519,8 +516,8 @@ int main (int argc, char** argv)
 
     markFiles = parser.isSet (QStringLiteral ("mark"));
     markIslands = parser.isSet (QStringLiteral ("mark-islands"));
-    viewerHyperlinks = parser.isSet (QStringLiteral ("hyperlinks"));
-    MeshChecker::setViewerHyperlinks (viewerHyperlinks);
+    MeshChecker::setViewerHyperlinks (parser.isSet (QStringLiteral ("hyperlinks")));
+    MeshChecker::setAllowOverusedEdges (parser.isSet (QStringLiteral ("multi-use-edges")));
 
     if (parser.isSet (QStringLiteral ("compare")))
     {
