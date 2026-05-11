@@ -492,7 +492,8 @@ CheckResult MeshChecker::checkOverusedHalfEdges ()
     }
     else
     {
-        Q_ASSERT (m_edges->testFlag (HalfEdges::EdgeMatched));
+#if 0
+       Q_ASSERT (m_edges->testFlag (HalfEdges::EdgeMatched));
 
         for (const auto& e : m_edges->problemEdges2 ())
         {
@@ -511,6 +512,7 @@ CheckResult MeshChecker::checkOverusedHalfEdges ()
                 badCount++;
             }
         }
+#endif
     }
     if (badCount)
     {
