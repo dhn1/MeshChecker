@@ -219,7 +219,14 @@ CheckResult MeshChecker::checkOpenEdges ()
 
     for (const auto& e : edges->openEdges ())
     {
-        str += QStringLiteral ("    T: %1, Edge: %2 -> %3\n").arg (fmtName (e->triangle ())).arg (fmtName (e->v1 ())).arg (fmtName (e->v2 ()));
+        if (badCount < maxMessages)
+        {
+            str += QStringLiteral ("    T: %1, Edge: %2 -> %3\n").arg (fmtName (e->triangle ())).arg (fmtName (e->v1 ())).arg (fmtName (e->v2 ()));
+        }
+        else if (badCount == maxMessages)
+        {
+            str += "    ...\n";
+        }
         badCount++;
     }
     if (badCount == 0)
