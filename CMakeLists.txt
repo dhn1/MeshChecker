@@ -1,6 +1,14 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.29)
 
 project (MeshChecker LANGUAGES CXX VERSION 0.7.8)
+
+file(STRINGS "/etc/os-release" RESULTS REGEX "^ID=(.*)")
+set (DISTRO "${CMAKE_MATCH_1}")
+message (STATUS "Linux distro: ${DISTRO}")
+
+if ("${DISTRO}" STREQUAL "linuxmint")
+    set(CMAKE_INSTALL_RPATH "/usr/local/qt6.11.0/lib")
+endif ()
 
 find_program(CCACHE_FOUND ccache)
 if(CCACHE_FOUND)
@@ -50,8 +58,6 @@ else()
     add_compile_options (-Werror=return-type)
     add_compile_options (-lm -mavx)
 endif()
-
-set(CMAKE_INSTALL_RPATH "/usr/local/qt6.11.0/lib")
 
 #add_compile_options (-gsplit-dwarf)
 add_link_options($<$<CONFIG:RELEASE>:-s>)
@@ -103,6 +109,12 @@ install (
 #cpack stuff
 include(InstallRequiredSystemLibraries)
 
+if ("${DISTRO}" STREQUAL "fedora")
+    set (CPACK_GENERATOR "RPM")
+else()
+    set (CPACK_GENERATOR "DEB")
+endif ()
+
 #set (CPACK_PACKAGE_NAME "${PROJECT_NAME}")
 set (CPACK_PACKAGE_DESCRIPTION_SUMMARY "${PROJECT_NAME} - 3d triangular mesh checker")
 set (CPACK_PACKAGE_VENDOR "David Netherwood")
@@ -110,9 +122,16 @@ set (CPACK_PACKAGE_VERSION_MAJOR "${PROJECT_VERSION_MAJOR}")
 set (CPACK_PACKAGE_VERSION_MINOR "${PROJECT_VERSION_MINOR}")
 set (CPACK_PACKAGE_VERSION_PATCH "${PROJECT_VERSION_PATCH}")
 set (CPACK_PACKAGE_CONTACT "david_netherwood@hotmail.com")
-set (CPACK_GENERATOR "DEB")
+
 #set (CPACK_DEBIAN_PACKAGE_DEPENDS "libqt6gui6, libqt6core6, libqt6concurrent6, libqt6xml6, libzip4,  libqt6svg6, ${SCULPTLIB_DEP_NAME} (>= 0.16.0)")
 set (CPACK_DEBIAN_PACKAGE_DEPENDS "homebrewqtcore6.11.0, ${SCULPTLIB_DEP_NAME} (>=0.16.1)")
+
+set (CPACK_DEBIAN_PACKAGE_DEPENDS "libqt6gui6, libqt6core6, libqt6concurrent6, libqt6xml6, libzip4,  libqt6svg6, ${SCULPTLIB_DEP_NAME} (>= 0.14.12)")
 set (CPACK_PACKAGE_FILE_NAME ${PROJECT_NAME})
+
+set (CPACK_RPM_PACKAGE_ARCHITECTURE "x86_64")
+set (CPACK_RPM_PACKAGE_REQUIRES "${SCULPTLIB_DEP_NAME} >= 0.16.02")
+set (CPACK_RPM_PACKAGE_GROUP "Applications/Engineering")
+set (CPACK_RPM_PACKAGE_RELEASE "1")
 
 include(CPack)
