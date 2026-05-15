@@ -123,7 +123,7 @@ static void record (const FileResult& fileResult)
                 {
                     continue;
                 }
-                auto old = o.value (result.name ()).toDouble ();
+                auto old = o.value (result.name ()).toInt();
                 auto diff = result.badCount () - old;
 
                 diffSum[check2idx (result.check ())] += diff;

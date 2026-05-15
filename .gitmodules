@@ -2,3 +2,7 @@
 	path = libSculpt
 	url = ../libsculpt.git
 	branch = trunk
+[submodule "libTest"]
+	path = libTest
+	url = https://github.com/dhn1/libTest
+	branch = trunk

@@ -80,7 +80,7 @@ add_subdirectory (libSculpt)
 add_subdirectory (BadMeshes)
 add_subdirectory (Tester)
 add_subdirectory (libMeshChecker)
-add_subdirectory (libtest)
+add_subdirectory (libTest)
 
 add_executable (${PROJECT_NAME}
     main.cpp
