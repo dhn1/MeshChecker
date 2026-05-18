@@ -964,7 +964,7 @@ CheckResult MeshChecker::checkPockets ()
     }
     if (badCount == 0)
     {
-        return {CheckPockets, true, QStringLiteral ("   No pockets found\n"), badCount};
+        return {CheckPockets, true, QStringLiteral ("  No pockets found\n"), badCount};
     }
     if (badCount >= maxMessages)
     {
