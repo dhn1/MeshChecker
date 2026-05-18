@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.29)
 
-project (MeshChecker LANGUAGES CXX VERSION 0.7.8)
+project (MeshChecker LANGUAGES CXX VERSION 0.7.9)
 
 file(STRINGS "/etc/os-release" RESULTS REGEX "^ID=(.*)")
 set (DISTRO "${CMAKE_MATCH_1}")

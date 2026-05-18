@@ -253,7 +253,7 @@ static void reportBasic (const FileResult& result)
 
     if (verbosity & Summary)
     {
-        out << "  SUMMARY:\n";
+        out << "\n  SUMMARY:\n";
     }
     QLocale const locale;
     for (const auto& res : result.checkResults ())
