@@ -918,7 +918,7 @@ CheckResult MeshChecker::checkAnnotations ()
     if (badCount)
     {
         ret.push_front (QStringLiteral ("  %1 duplicate triangle annotations\n").arg (badCount));
-        return {CheckDuplicateAnnotations, false, ret, badCount};
+        return {CheckDuplicateAnnotations, true, ret, badCount};
     }
     return {CheckDuplicateAnnotations, true, QStringLiteral ("  No duplicate triangle annotations\n"), badCount};
 }
