@@ -775,9 +775,18 @@ CheckResult MeshChecker::checkTriangleOverlap ()
             return a.area > b.area;
         });
 
+        int idx = -1;
         for (const auto& overlap : overlaps)
         {
-            ret.push_back (QStringLiteral ("    Overlap: %1 and %2 (%3sq)\n").arg (fmtName (overlap.first), fmtName (overlap.second)).arg (overlap.area));
+            idx++;
+            if (idx < maxMessages)
+            {
+                ret.push_back (QStringLiteral ("    Overlap: %1 and %2 (%3sq)\n").arg (fmtName (overlap.first), fmtName (overlap.second)).arg (overlap.area));
+            }
+            else if (idx == maxMessages)
+            {
+                ret.push_back (QStringLiteral ("    ...\n"));
+            }
             if (m_callback)
             {
                 m_callback (CheckTriangleOverlap, m_mesh, overlap.first, overlap.second);
@@ -905,8 +914,15 @@ CheckResult MeshChecker::checkAnnotations ()
             if (hash.contains (t->annotation ()))
             {
                 auto tt = hash.value (t->annotation ());
+                if (badCount < maxMessages)
+                {
+                    ret += QStringLiteral ("    T: %1 & %2  (\"%3\")\n").arg (fmtName (t), fmtName (tt), t->annotation ());
+                }
+                else if (badCount == maxMessages)
+                {
+                    ret += QStringLiteral ("    ...\n");
+                }
                 badCount++;
-                ret += QStringLiteral ("    T: %1 & %2  (\"%3\")\n").arg (fmtName (t), fmtName (tt), t->annotation ());
             }
             else
             {
