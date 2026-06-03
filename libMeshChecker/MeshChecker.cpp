@@ -17,6 +17,7 @@
 
 #include "globals.h"
 
+// Statics
 MeshChecker::CheckList MeshChecker::m_checkList;
 bool MeshChecker::m_viewerHyperlinks;
 bool MeshChecker::m_allowOverusedEdges;
@@ -465,7 +466,7 @@ CheckResult MeshChecker::checkOverusedHalfEdges ()
     QString ret;
     int badCount = 0;
 
-    if (m_allowOverusedEdges)
+    if (!m_allowOverusedEdges)
     {
         const auto& edgeByEdge = getEdges ()->edgeByEdge ();
 
@@ -649,15 +650,7 @@ CheckResult MeshChecker::checkTriangleOverlap ()
                             const auto t1 = HalfEdge::create (t, 0);
                             const auto t2 = HalfEdge::create (t, 0);
 
-                             intersect = test (c0, t0) ||
-                                        test (c0, t1) ||
-                                        test (c0, t2) ||
-                                        test (c1, t0) ||
-                                        test (c1, t1) ||
-                                        test (c1, t2) ||
-                                        test (c2, t0) ||
-                                        test (c2, t1) ||
-                                        test (c2, t2);
+                            intersect = test (c0, t0) || test (c0, t1) || test (c0, t2) || test (c1, t0) || test (c1, t1) || test (c1, t2) || test (c2, t0) || test (c2, t1) || test (c2, t2);
 
                             if (!intersect)
                             {

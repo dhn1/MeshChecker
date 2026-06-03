@@ -22,11 +22,11 @@ static bool genReport{};
 static QStringList suffixes{"nethers", "stl", "obj", "3mf"};
 
 static bool ok = true;
-static int flags = CheckNothing;
+static uint flags = CheckNothing;
 static int fileCount = 0;
 static int failCount = 0;
 static bool failOnly = false;
-static enum { None, Record, Compare } recordMode{None};
+static enum : uint8_t { None, Record, Compare } recordMode{None};
 static int summaryResult[64] = {};
 static int diffSum[64] = {};
 static constexpr int NO_VERBOSITY_LEVELS = 4;
@@ -74,7 +74,7 @@ static int check2idx (Checks check)
     auto t = (unsigned int)check;
     while (t)
     {
-        t >>= 1;
+        t >>= 1U;
         idx++;
     }
     return idx;
@@ -104,7 +104,7 @@ static void record (const FileResult& fileResult)
     case Compare:
         {
             const QFileInfo fi (fileResult.path ());
-            if (fi.lastModified ().secsTo (QDateTime::currentDateTime ()) > 40 * 60)
+            if (fi.lastModified ().secsTo (QDateTime::currentDateTime ()) > 40LL * 60LL)
             {
                 qDebug ().noquote ().nospace () << "Out of date file? \"" << fileResult.path () << "\"";
             }
@@ -123,7 +123,7 @@ static void record (const FileResult& fileResult)
                 {
                     continue;
                 }
-                auto old = o.value (result.name ()).toInt();
+                auto old = o.value (result.name ()).toInt ();
                 auto diff = result.badCount () - old;
 
                 diffSum[check2idx (result.check ())] += diff;
@@ -408,7 +408,7 @@ static void rootFiles (const QString& path)
 static void summarise ()
 {
     out << QStringLiteral ("\n  Overall Summary: %1 failed out of %2 (%3% passed)\n").arg (failCount).arg (fileCount).arg (100 * (fileCount - failCount) / fileCount);
-    int t = 1;
+    uint t = 1;
     int idx = 0;
     QLocale const locale;
     do
@@ -423,7 +423,7 @@ static void summarise ()
                 out << "    " << name << QString (padding - name.length (), QChar ('.')) << ": " << locale.toString (summaryResult[check2idx (check)]) << "\n";
             }
         }
-        t <<= 1;
+        t <<= 1U;
         idx++;
     } while (idx < 64);
 }
@@ -439,7 +439,7 @@ static void summariseMd ()
     md << "\n|Check|Result|\n";
     md << "|---|---|\n";
 
-    int t = 1;
+    uint t = 1;
     int idx = 0;
     QLocale const locale;
     do
@@ -462,7 +462,7 @@ static void summariseMd ()
                 }
             }
         }
-        t <<= 1;
+        t <<= 1U;
         idx++;
     } while (idx < 64);
 }
@@ -630,7 +630,7 @@ int main (int argc, char** argv)
             md << "Reporting only failed files.\n\n";
         }
         md << "Running checks:\n";
-        int t = 1;
+        uint t = 1;
         do
         {
             if (t & flags)
@@ -638,7 +638,7 @@ int main (int argc, char** argv)
                 auto check = (Checks)(flags & t);
                 md << "* " << MeshChecker::checkName (check) << " - " << MeshChecker::description (check) << "\n";
             }
-            t <<= 1;
+            t <<= 1U;
         } while (t);
         md << "\n";
     }
@@ -694,7 +694,7 @@ int main (int argc, char** argv)
                    .arg (diffNo (fileCount - recording.value (QStringLiteral ("fileCount")).toInt ()))
                    .arg (failCount)
                    .arg (diffNo (failCount - recording.value (QStringLiteral ("fails")).toInt ()));
-        int t = 1;
+        uint t = 1;
         int idx = 0;
         do
         {
@@ -713,7 +713,7 @@ int main (int argc, char** argv)
                     out << "  " << name << QString (padding - name.length (), QChar ('.')) << ": " << summaryResult[idx] << "\n";
                 }
             }
-            t <<= 1;
+            t <<= 1U;
             idx++;
         } while (idx < 64);
     }
