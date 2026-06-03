@@ -623,7 +623,7 @@ CheckResult MeshChecker::checkTriangleOverlap ()
                 {
                     auto p = candidate->plane ();
 
-                    Segment segOfIntersection;
+                    SegmentPtr segOfIntersection;
 
                     if (p.isValid ())
                     {
@@ -631,20 +631,33 @@ CheckResult MeshChecker::checkTriangleOverlap ()
                     }
                     bool intersect = false;
 
-                    auto test = [] (const HalfEdge& he1, const HalfEdge& he2) -> bool {
+                    auto test = [] (const HalfEdgePtr& he1, const HalfEdgePtr& he2) -> bool {
                         auto res = intersectionOfLines3DMk2 (he1, he2);
                         return res.type == IntersectionOfLines3DMk2Result::Cross;
                     };
 
-                    if (!segOfIntersection.isValid ())
+                    if (!segOfIntersection || !segOfIntersection->isValid ())
                     {
                         // No intersection of planes - must be parallel or the same plane, or same plane inverted
                         if (plane.equal (p))
                         {
                             // Coplanar Ts
-                            intersect = test (HalfEdge (candidate, 0), HalfEdge (t, 0)) || test (HalfEdge (candidate, 0), HalfEdge (t, 1)) || test (HalfEdge (candidate, 0), HalfEdge (t, 2)) || test (HalfEdge (candidate, 1), HalfEdge (t, 0)) ||
-                                        test (HalfEdge (candidate, 1), HalfEdge (t, 1)) || test (HalfEdge (candidate, 1), HalfEdge (t, 2)) || test (HalfEdge (candidate, 2), HalfEdge (t, 0)) || test (HalfEdge (candidate, 2), HalfEdge (t, 1)) ||
-                                        test (HalfEdge (candidate, 2), HalfEdge (t, 2));
+                            const auto c0 = HalfEdge::create (candidate, 0);
+                            const auto c1 = HalfEdge::create (candidate, 1);
+                            const auto c2 = HalfEdge::create (candidate, 2);
+                            const auto t0 = HalfEdge::create (t, 0);
+                            const auto t1 = HalfEdge::create (t, 0);
+                            const auto t2 = HalfEdge::create (t, 0);
+
+                             intersect = test (c0, t0) ||
+                                        test (c0, t1) ||
+                                        test (c0, t2) ||
+                                        test (c1, t0) ||
+                                        test (c1, t1) ||
+                                        test (c1, t2) ||
+                                        test (c2, t0) ||
+                                        test (c2, t1) ||
+                                        test (c2, t2);
 
                             if (!intersect)
                             {
@@ -661,7 +674,7 @@ CheckResult MeshChecker::checkTriangleOverlap ()
                         bool resolved = false;
                         for (int e = 0; e < 3; e++)
                         {
-                            auto tres = intersectionOfLines3D (segOfIntersection, HalfEdge (t, e));
+                            auto tres = intersectionOfLines3D (segOfIntersection, HalfEdge::create (t, e));
                             //qDebug () << "target" << tres.toString ();
                             if (tres.intersects1 () == IntersectionOfLinesResult3D::Colinear)
                             {
@@ -688,7 +701,7 @@ CheckResult MeshChecker::checkTriangleOverlap ()
                                     tts.push_back (tres.t1);
                                 }
                             }
-                            auto cres = intersectionOfLines3D (segOfIntersection, HalfEdge (candidate, e));
+                            auto cres = intersectionOfLines3D (segOfIntersection, HalfEdge::create (candidate, e));
                             //qDebug () << "candidate" << cres.toString ();
                             if (cres.intersects1 () == IntersectionOfLinesResult3D::Colinear)
                             {
