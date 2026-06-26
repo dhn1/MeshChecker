@@ -78,6 +78,15 @@ QString MeshChecker::fmtName (const VertexPtr& v)
     return v->name (false);
 }
 
+QString MeshChecker::fmtName (const HolePtr& hole)
+{
+    if (m_viewerHyperlinks)
+    {
+        return QStringLiteral ("![%1](/H/%2)").arg (hole->id ()).arg (hole->hash ());
+    }
+    return QStringLiteral ("%1").arg (hole->id ());
+}
+
 const MeshChecker::CheckList& MeshChecker::checkList ()
 {
     if (m_checkList.isEmpty ())
@@ -257,7 +266,7 @@ CheckResult MeshChecker::checkHoles ()
         if (idx < maxMessages)
         {
             auto area = hole->area ();
-            r += QStringLiteral ("    Hole: (") + QString::number (area) + QStringLiteral ("sq)\n");
+            r += QStringLiteral ("    Hole: %1 (%2sq)\n").arg (fmtName (hole)).arg(area);
         }
         else if (idx == maxMessages)
         {
@@ -686,17 +695,16 @@ CheckResult MeshChecker::checkTriangleOverlap ()
                             if (tres.vertexOfIntersection && 0.0 < tres.t2 && tres.t2 < 1.0)
                             {
                                 auto res = t->containsWithDetails (tres.vertexOfIntersection);
-                                switch (res)
+                                switch (res & Triangle::BasicHitMask)
                                 {
-                                case Triangle::TriangleContainsResult::External:
-                                case Triangle::TriangleContainsResult::Edge0:
-                                case Triangle::TriangleContainsResult::Edge1:
-                                case Triangle::TriangleContainsResult::Edge2:
-                                case Triangle::TriangleContainsResult::Vertex0:
-                                case Triangle::TriangleContainsResult::Vertex1:
-                                case Triangle::TriangleContainsResult::Vertex2:
-                                case Triangle::TriangleContainsResult::VertexAny:
-                                    // Nothing
+                                case Triangle::External:
+                                case Triangle::Edge0Hit:
+                                case Triangle::Edge1Hit:
+                                case Triangle::Edge2Hit:
+                                case Triangle::Vertex0Hit:
+                                case Triangle::Vertex1Hit:
+                                case Triangle::Vertex2Hit:
+                                     // Nothing
                                     break;
                                 case Triangle::TriangleContainsResult::Contained:
                                     tts.push_back (tres.t1);

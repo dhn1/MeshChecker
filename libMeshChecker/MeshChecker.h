@@ -1,6 +1,7 @@
 #ifndef MESHCHECKER_H
 #define MESHCHECKER_H
 
+#include <HalfEdges/Hole.h>
 #include <TriangleOctTree/TriangleOctTree.h>
 #include <Types.h>
 
@@ -76,6 +77,7 @@ private:
 
     QString fmtName (const TrianglePtr& t);
     QString fmtName (const VertexPtr& t);
+    QString fmtName (const HolePtr& hole);
     void genMetaData ();
 };
 
