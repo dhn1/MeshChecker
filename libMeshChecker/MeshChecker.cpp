@@ -250,12 +250,20 @@ CheckResult MeshChecker::checkHoles ()
 
     r = QStringLiteral ("  %1 Open holes found\n").arg (holes.count ());
 
-    //int idx = -1;
+    int idx = -1;
     for (const auto& hole : std::as_const (holes))
     {
-        //idx++;
-        auto area = hole->area ();
-        r += QStringLiteral ("    Hole: (") + QString::number (area) + QStringLiteral ("sq)\n");
+        idx++;
+        if (idx < maxMessages)
+        {
+            auto area = hole->area ();
+            r += QStringLiteral ("    Hole: (") + QString::number (area) + QStringLiteral ("sq)\n");
+        }
+        else if (idx == maxMessages)
+        {
+            r += QStringLiteral ("    ...\n");
+            break;
+        }
     }
     return {CheckHoles, holes.isEmpty (), r, (int)holes.count ()};
 }
@@ -560,11 +568,11 @@ CheckResult MeshChecker::checkInfo ()
 
             ret += QStringLiteral ("      comp %4: %1 triangles, %2 vertices, %3 half edges\n").arg (locale.toString (comp->tcount ())).arg (locale.toString (vcount)).arg (locale.toString (ecount)).arg (idx++);
 
-            if (comp->count () < 10)
+            if (comp->count () < maxMessages)
             {
                 for (const auto& t : *comp)
                 {
-                    ret += QStringLiteral ("        T: %1\n").arg (t->name ());
+                    ret += QStringLiteral ("        T: %1\n").arg ( fmtName (t));
                 }
             }
         }
