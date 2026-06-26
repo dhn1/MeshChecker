@@ -992,7 +992,7 @@ CheckResult MeshChecker::checkPockets ()
     {
         ts << "    ...\n";
     }
-    log.push_front (QStringLiteral ("Found %1 pockets\n").arg (badCount));
+    log.push_front (QStringLiteral ("  Found %1 pockets\n").arg (badCount));
     return {CheckPockets, true, log, badCount};
 }
 
