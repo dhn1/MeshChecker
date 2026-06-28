@@ -27,7 +27,7 @@ static TestRes overlap01 ()
     mesh->push_back (other);
 
     MeshChecker mc (mesh);
-    auto res = mc.checkTriangleOverlap ();
+    auto res = mc.checkOverlappingTriangles ();
 
     VERIFY (res.badCount ()== 0)
 
@@ -50,7 +50,7 @@ static TestRes overlap02 ()
     Document::write (mesh, outputFileName (gTestName, "nethers"));
 
     MeshChecker mc (mesh);
-    auto res = mc.checkTriangleOverlap ();
+    auto res = mc.checkOverlappingTriangles ();
 
     VERIFY (res.badCount () == 0)
 
@@ -78,7 +78,7 @@ static TestRes overlap03 ()
     Document::write (mesh, outputFileName (gTestName, "nethers"));
 
     MeshChecker mc (mesh);
-    auto res = mc.checkTriangleOverlap ();
+    auto res = mc.checkOverlappingTriangles ();
 
     VERIFY (res.badCount () == 0)
 
@@ -102,7 +102,7 @@ static TestRes pentratingT ()
     Document::write (mesh, outputFileName (gTestName, "nethers"));
 
     MeshChecker mc (mesh);
-    auto res = mc.checkTriangleOverlap ();
+    auto res = mc.checkOverlappingTriangles ();
 
     VERIFY (res.badCount () == 1)
 
@@ -130,7 +130,7 @@ static TestRes overlap05 ()
     Document::write (mesh, outputFileName (gTestName, "nethers"));
 
     MeshChecker mc (mesh);
-    auto res = mc.checkTriangleOverlap ();
+    auto res = mc.checkOverlappingTriangles ();
 
     VERIFY (res.badCount () == 1)
 
@@ -159,7 +159,7 @@ static TestRes overlap06 ()
     Document::write (mesh, outputFileName (gTestName, "nethers"));
 
     MeshChecker mc (mesh);
-    auto res = mc.checkTriangleOverlap ();
+    auto res = mc.checkOverlappingTriangles ();
 
     VERIFY (res.badCount () == 0)
 
@@ -185,7 +185,7 @@ static TestRes sharedEdgeNoneOverlap ()
     Document::write (mesh, outputFileName (gTestName, "nethers"));
 
     MeshChecker mc (mesh);
-    auto res = mc.checkTriangleOverlap ();
+    auto res = mc.checkOverlappingTriangles ();
 
     VERIFY (res.badCount () == 0)
 
@@ -210,7 +210,7 @@ static TestRes duplicates ()
     Document::write (mesh, outputFileName (gTestName, "nethers"));
 
     MeshChecker mc (mesh);
-    auto res = mc.checkTriangleOverlap ();
+    auto res = mc.checkOverlappingTriangles ();
 
     VERIFY (res.badCount () == 1)
 
@@ -235,7 +235,7 @@ static TestRes sharedEdgeOverlappingContained ()
     Document::write (mesh, outputFileName (gTestName, "nethers"));
 
     MeshChecker mc (mesh);
-    auto res = mc.checkTriangleOverlap ();
+    auto res = mc.checkOverlappingTriangles ();
 
     VERIFY (res.badCount () == 1)
 
@@ -261,7 +261,7 @@ static TestRes sharedEdgeOverlappingContaning ()
     Document::write (mesh, outputFileName (gTestName, "nethers"));
 
     MeshChecker mc (mesh);
-    auto res = mc.checkTriangleOverlap ();
+    auto res = mc.checkOverlappingTriangles ();
 
     VERIFY (res.badCount () == 1)
 
@@ -285,7 +285,7 @@ static TestRes useCase01 ()
     Document::write (mesh, outputFileName (gTestName, "nethers"));
 
     MeshChecker mc (mesh);
-    auto res = mc.checkTriangleOverlap ();
+    auto res = mc.checkOverlappingTriangles ();
 
     VERIFY (res.badCount () == 0)
 
@@ -308,7 +308,7 @@ static TestRes useCase02 ()
     Document::write (mesh, outputFileName (gTestName, "nethers"));
 
     MeshChecker mc (mesh);
-    auto res = mc.checkTriangleOverlap ();
+    auto res = mc.checkOverlappingTriangles ();
 
     VERIFY (res.badCount () == 0)
 
@@ -333,7 +333,7 @@ static TestRes useCase03 ()
     Document::write (mesh, outputFileName (gTestName, "nethers"));
 
     MeshChecker mc (mesh);
-    auto res = mc.checkTriangleOverlap ();
+    auto res = mc.checkOverlappingTriangles ();
 
     VERIFY (res.badCount () == 0)
 
@@ -358,7 +358,7 @@ static TestRes useCase04 ()
     Document::write (mesh, outputFileName (gTestName, "nethers"));
 
     MeshChecker mc (mesh);
-    auto res = mc.checkTriangleOverlap ();
+    auto res = mc.checkOverlappingTriangles ();
 
     VERIFY (res.badCount () == 0)
 
@@ -383,7 +383,7 @@ static TestRes useCase05 ()
     Document::write (mesh, outputFileName (gTestName, "nethers"));
 
     MeshChecker mc (mesh);
-    auto res = mc.checkTriangleOverlap ();
+    auto res = mc.checkOverlappingTriangles ();
 
     VERIFY (res.badCount () == 0)
 
@@ -408,7 +408,7 @@ static TestRes useCase06 ()
     Document::write (mesh, outputFileName (gTestName, "nethers"));
 
     MeshChecker mc (mesh);
-    auto res = mc.checkTriangleOverlap ();
+    auto res = mc.checkOverlappingTriangles ();
 
     VERIFY (res.badCount () == 0)
 
@@ -433,7 +433,7 @@ static TestRes useCase07 ()
     Document::write (mesh, outputFileName (gTestName, "nethers"));
 
     MeshChecker mc (mesh);
-    auto res = mc.checkTriangleOverlap ();
+    auto res = mc.checkOverlappingTriangles ();
 
     VERIFY (res.badCount () == 0)
 
@@ -458,7 +458,7 @@ static TestRes useCase08 ()
     Document::write (mesh, outputFileName (gTestName, "nethers"));
 
     MeshChecker mc (mesh);
-    auto res = mc.checkTriangleOverlap ();
+    auto res = mc.checkOverlappingTriangles ();
 
     VERIFY (res.badCount () == 0)
 
@@ -483,7 +483,7 @@ static TestRes useCase09 ()
     Document::write (mesh, outputFileName (gTestName, "nethers"));
 
     MeshChecker mc (mesh);
-    auto res = mc.checkTriangleOverlap ();
+    auto res = mc.checkOverlappingTriangles ();
 
     VERIFY (res.badCount () == 0)
 
@@ -520,12 +520,12 @@ static TestRes sharedEdge01 ()
     Document::write (mesh, outputFileName (gTestName, "nethers"));
 
     MeshChecker mc (mesh);
-    auto res = mc.checkTriangleOverlap ();
+    auto res = mc.checkOverlappingTriangles ();
 
     VERIFY (res.badCount () == 0)
 
     target->reverse ();
-    res = mc.checkTriangleOverlap ();
+    res = mc.checkOverlappingTriangles ();
 
     VERIFY (res.badCount () == 0)
 
@@ -562,12 +562,12 @@ static TestRes sharedEdge02 ()
     Document::write (mesh, outputFileName (gTestName, "nethers"));
 
     MeshChecker mc (mesh);
-    auto res = mc.checkTriangleOverlap ();
+    auto res = mc.checkOverlappingTriangles ();
 
     VERIFY (res.badCount () == 0)
 
     target->reverse ();
-    res = mc.checkTriangleOverlap ();
+    res = mc.checkOverlappingTriangles ();
 
     VERIFY (res.badCount () == 0)
 
@@ -596,12 +596,12 @@ static TestRes sharedEdge03 ()
     Document::write (mesh, outputFileName (gTestName, "nethers"));
 
     MeshChecker mc (mesh);
-    auto res = mc.checkTriangleOverlap ();
+    auto res = mc.checkOverlappingTriangles ();
 
     VERIFY (res.badCount () == 1)
 
     target->reverse ();
-    res = mc.checkTriangleOverlap ();
+    res = mc.checkOverlappingTriangles ();
 
     VERIFY (res.badCount () == 1)
 
@@ -627,16 +627,16 @@ static TestRes useCase10 ()
     Document::write (mesh, outputFileName (gTestName, "nethers"));
 
     MeshChecker mc (mesh);
-    auto res = mc.checkTriangleOverlap ();
+    auto res = mc.checkOverlappingTriangles ();
 
     VERIFY (res.badCount () == 0)
 
     mesh->push_back (mesh->takeFirst ());
-    res = mc.checkTriangleOverlap ();
+    res = mc.checkOverlappingTriangles ();
 
     VERIFY (res.badCount () == 0)
     t1->reverse ();
-    res = mc.checkTriangleOverlap ();
+    res = mc.checkOverlappingTriangles ();
 
     VERIFY (res.badCount () == 0)
 
@@ -663,17 +663,17 @@ static TestRes useCase11 ()
     Document::write (mesh, outputFileName (gTestName, "nethers"));
 
     MeshChecker mc (mesh);
-    auto res = mc.checkTriangleOverlap ();
+    auto res = mc.checkOverlappingTriangles ();
 
     VERIFY (res.badCount () == 0)
 
     mesh->push_back (mesh->takeFirst ());
-    res = mc.checkTriangleOverlap ();
+    res = mc.checkOverlappingTriangles ();
 
     VERIFY (res.badCount () == 0)
 
     t1->reverse ();
-    res = mc.checkTriangleOverlap ();
+    res = mc.checkOverlappingTriangles ();
 
     VERIFY (res.badCount () == 0)
 
@@ -698,17 +698,17 @@ static TestRes useCase12 ()
     Document::write (mesh, outputFileName (gTestName, "nethers"));
 
     MeshChecker mc (mesh);
-    auto res = mc.checkTriangleOverlap ();
+    auto res = mc.checkOverlappingTriangles ();
 
     VERIFY (res.badCount () == 0)
 
     mesh->push_back (mesh->takeFirst ());
-    res = mc.checkTriangleOverlap ();
+    res = mc.checkOverlappingTriangles ();
 
     VERIFY (res.badCount () == 0)
 
     t1->reverse ();
-    res = mc.checkTriangleOverlap ();
+    res = mc.checkOverlappingTriangles ();
     VERIFY (res.badCount () == 0)
     return Passed;
 }
@@ -734,17 +734,17 @@ static TestRes useCase13 ()
     doc.write (outputFileName (gTestName, "nethers"));
 
     MeshChecker mc (mesh);
-    auto res = mc.checkTriangleOverlap ();
+    auto res = mc.checkOverlappingTriangles ();
 
     VERIFY (res.badCount () == 0)
 
     mesh->push_back (mesh->takeFirst ());
-    res = mc.checkTriangleOverlap ();
+    res = mc.checkOverlappingTriangles ();
 
     VERIFY (res.badCount () == 0)
 
     t1->reverse ();
-    res = mc.checkTriangleOverlap ();
+    res = mc.checkOverlappingTriangles ();
     VERIFY (res.badCount () == 0)
     return Passed;
 }
@@ -765,7 +765,7 @@ static TestRes overlapTestCase01 ()
     Document::write (mesh, outputFileName (gTestName, "nethers"));
 
     MeshChecker mc (mesh);
-    auto res = mc.checkTriangleOverlap ();
+    auto res = mc.checkOverlappingTriangles ();
 
     VERIFY (res.badCount () == 1)
 
@@ -788,7 +788,7 @@ static TestRes overlapTestCase02 ()
     Document::write (mesh, outputFileName (gTestName, "nethers"));
 
     MeshChecker mc (mesh);
-    auto res = mc.checkTriangleOverlap ();
+    auto res = mc.checkOverlappingTriangles ();
 
     VERIFY (res.badCount () == 0)
 

@@ -98,7 +98,7 @@ const MeshChecker::CheckList& MeshChecker::checkList ()
         m_checkList.push_back ({CheckHoles, &MeshChecker::checkHoles});
         m_checkList.push_back ({CheckReversedTriangles, &MeshChecker::checkReversedTriangles});
         m_checkList.push_back ({CheckDuplicateVertices, &MeshChecker::checkDuplicateVertices});
-        m_checkList.push_back ({CheckTriangleOverlap, &MeshChecker::checkTriangleOverlap});
+        m_checkList.push_back ({CheckOverlappingTriangles, &MeshChecker::checkOverlappingTriangles});
         m_checkList.push_back ({CheckDeleted, &MeshChecker::checkDeleted});
         m_checkList.push_back ({CheckVertexLowRefs, &MeshChecker::checkVertexRefs});
         m_checkList.push_back ({CheckUnviableTriangles, &MeshChecker::checkUnviableTriangles});
@@ -612,7 +612,7 @@ CheckResult MeshChecker::checkDuplicateVertices ()
     return {CheckDuplicateVertices, true, QStringLiteral ("  No duplicate vertices\n"), badCount};
 }
 
-CheckResult MeshChecker::checkTriangleOverlap ()
+CheckResult MeshChecker::checkOverlappingTriangles ()
 {
     QString ret;
     QList<double> tts;
@@ -811,7 +811,7 @@ CheckResult MeshChecker::checkTriangleOverlap ()
             }
             if (m_callback)
             {
-                m_callback (CheckTriangleOverlap, m_mesh, overlap.first, overlap.second);
+                m_callback (CheckOverlappingTriangles, m_mesh, overlap.first, overlap.second);
             }
 #if 0
             {
@@ -830,7 +830,7 @@ CheckResult MeshChecker::checkTriangleOverlap ()
     {
         ret += QStringLiteral ("  No triangle overlap\n");
     }
-    return {CheckTriangleOverlap, maxArea < 0.01, ret, (int)overlaps.count ()};
+    return {CheckOverlappingTriangles, maxArea < 0.01, ret, (int)overlaps.count ()};
 }
 
 CheckResult MeshChecker::checkUnviableTriangles ()
@@ -1032,8 +1032,8 @@ QString MeshChecker::checkName (Checks check)
         return QStringLiteral ("DuplicateVertices");
     case CheckOpenEdges:
         return QStringLiteral ("OpenEdges");
-    case CheckTriangleOverlap:
-        return QStringLiteral ("OverlapTriangles");
+    case CheckOverlappingTriangles:
+        return QStringLiteral ("OverlapingTriangles");
     case CheckUnviableTriangles:
         return QStringLiteral ("UnviableTriangles");
     case CheckOverusedHalfEdges:
@@ -1084,7 +1084,7 @@ QString MeshChecker::description (Checks check)
         return QStringLiteral ("Check for duplicate vertices");
     case CheckOpenEdges:
         return QStringLiteral ("Check for open edges");
-    case CheckTriangleOverlap:
+    case CheckOverlappingTriangles:
         return QStringLiteral ("Check for overlapping triangles");
     case CheckUnviableTriangles:
         return QStringLiteral ("Check for triangles for expressively small heights and edges");
@@ -1132,7 +1132,7 @@ bool MeshChecker::failable (Checks check)
     case CheckReversedTriangles:
     case CheckDuplicateVertices:
     case CheckOpenEdges:
-    case CheckTriangleOverlap:
+    case CheckOverlappingTriangles:
     case CheckOverusedHalfEdges:
     case CheckDeleted:
     case CheckVertexLowRefs:

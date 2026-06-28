@@ -23,7 +23,7 @@ enum Checks {
     CheckReversedTriangles      = 1 << 5,
     CheckDuplicateVertices      = 1 << 6,
     CheckOpenEdges              = 1 << 7,
-    CheckTriangleOverlap        = 1 << 8,
+    CheckOverlappingTriangles   = 1 << 8,
     CheckUnviableTriangles      = 1 << 9,
     CheckFlatTriangles          = 1 << 10,
     CheckOverusedHalfEdges      = 1 << 11,
@@ -35,10 +35,10 @@ enum Checks {
     CheckBadlyFormedTriangles   = 1 << 17,
     CheckPockets                = 1 << 18,
 
-    CmpDefault = CheckHoles | CheckDuplicateTriangles | CheckShortEdges | CheckReversedTriangles | CheckDuplicateVertices | CheckOpenEdges | CheckTriangleOverlap | CheckUnviableTriangles | CheckOverusedHalfEdges | CheckFlatTriangles | CheckDeleted | CheckVertexLowRefs | CheckDuplicateAnnotations | CheckBadlyFormedTriangles | CheckPockets,
-    Default = CheckHoles | CheckDuplicateTriangles | CheckShortEdges | CheckReversedTriangles | CheckDuplicateVertices | CheckOpenEdges | CheckTriangleOverlap | CheckUnviableTriangles | CheckOverusedHalfEdges | CheckFlatTriangles | CheckDeleted | CheckVertexLowRefs | CheckDuplicateAnnotations | CheckBadlyFormedTriangles | CheckInfo | CheckPockets,
-    All = CheckHoles | CheckDuplicateTriangles | CheckShortEdges | CheckInfo | CheckReversedTriangles | CheckDuplicateVertices | CheckOpenEdges | CheckTriangleOverlap | CheckUnviableTriangles | CheckOverusedHalfEdges | CheckFlatTriangles | CheckDeleted | CheckVertexLowRefs | CheckTCount | CheckDuplicateAnnotations | CheckComponents | CheckBadlyFormedTriangles| CheckPockets,
-    Critical = CheckHoles | CheckDuplicateTriangles | CheckReversedTriangles | CheckDuplicateVertices | CheckOpenEdges | CheckTriangleOverlap | CheckOverusedHalfEdges | CheckDeleted | CheckVertexLowRefs | CheckBadlyFormedTriangles | CheckPockets,
+    CmpDefault = CheckHoles | CheckDuplicateTriangles | CheckShortEdges | CheckReversedTriangles | CheckDuplicateVertices | CheckOpenEdges | CheckOverlappingTriangles | CheckUnviableTriangles | CheckOverusedHalfEdges | CheckFlatTriangles | CheckDeleted | CheckVertexLowRefs | CheckDuplicateAnnotations | CheckBadlyFormedTriangles | CheckPockets,
+    Default = CheckHoles | CheckDuplicateTriangles | CheckShortEdges | CheckReversedTriangles | CheckDuplicateVertices | CheckOpenEdges | CheckOverlappingTriangles | CheckUnviableTriangles | CheckOverusedHalfEdges | CheckFlatTriangles | CheckDeleted | CheckVertexLowRefs | CheckDuplicateAnnotations | CheckBadlyFormedTriangles | CheckInfo | CheckPockets,
+    All = CheckHoles | CheckDuplicateTriangles | CheckShortEdges | CheckInfo | CheckReversedTriangles | CheckDuplicateVertices | CheckOpenEdges | CheckOverlappingTriangles | CheckUnviableTriangles | CheckOverusedHalfEdges | CheckFlatTriangles | CheckDeleted | CheckVertexLowRefs | CheckTCount | CheckDuplicateAnnotations | CheckComponents | CheckBadlyFormedTriangles| CheckPockets,
+    Critical = CheckHoles | CheckDuplicateTriangles | CheckReversedTriangles | CheckDuplicateVertices | CheckOpenEdges | CheckOverlappingTriangles | CheckOverusedHalfEdges | CheckDeleted | CheckVertexLowRefs | CheckBadlyFormedTriangles | CheckPockets,
 };
 
 constexpr int padding = 20;

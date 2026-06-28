@@ -45,7 +45,7 @@ public:
     CheckResult checkDuplicateVertices ();
     CheckResult checkOpenEdges ();
     CheckResult checkHalfEdgeOverlap ();
-    CheckResult checkTriangleOverlap ();
+    CheckResult checkOverlappingTriangles ();
     CheckResult checkUnviableTriangles ();
     CheckResult checkOverusedHalfEdges ();
     CheckResult checkFlatTriangles ();
