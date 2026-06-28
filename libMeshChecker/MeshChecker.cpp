@@ -657,7 +657,7 @@ CheckResult MeshChecker::checkOverlappingTriangles ()
                     if (!segOfIntersection || !segOfIntersection->isValid ())
                     {
                         // No intersection of planes - must be parallel or the same plane, or same plane inverted
-                        if (plane.equal (p))
+                        if (plane.equalAndSameDirection (p))
                         {
                             // Coplanar Ts
                             const auto c0 = HalfEdge::create (candidate, 0);
@@ -756,7 +756,6 @@ CheckResult MeshChecker::checkOverlappingTriangles ()
                         }
                     }
                 }
-                // TODO: what if there is no common intersection of planes (empty T or co-planar Ts);
             }
         }
     }
