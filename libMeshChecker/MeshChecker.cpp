@@ -914,7 +914,7 @@ CheckResult MeshChecker::checkBadlyFormedTriangles ()
 CheckResult MeshChecker::checkTCount ()
 {
     auto cnt = m_mesh->tcount ();
-    return {CheckTCount, cnt > 0, cnt == 0 ? "Empty" : "", cnt};
+    return {CheckTCount, cnt > 0, cnt == 0 ? "  Empty model!\n" : "", cnt};
 }
 
 CheckResult MeshChecker::checkComponents ()
@@ -1119,13 +1119,13 @@ bool MeshChecker::failable (Checks check)
     case CheckInfo:
     case CheckUnviableTriangles:
     case CheckFlatTriangles:
-    case CheckTCount:
     case CheckComponents:
     case CheckBadlyFormedTriangles:
     case CheckDuplicateAnnotations:
     case CheckPockets:
         return false;
 
+    case CheckTCount:
     case CheckHoles:
     case CheckDuplicateTriangles:
     case CheckReversedTriangles:
