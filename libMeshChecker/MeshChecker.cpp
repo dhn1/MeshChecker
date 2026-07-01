@@ -22,7 +22,7 @@ MeshChecker::CheckList MeshChecker::m_checkList;
 bool MeshChecker::m_viewerHyperlinks;
 bool MeshChecker::m_allowOverusedEdges;
 
-constexpr int maxMessages = 20;
+int MeshChecker::m_maxMessages = 20;
 
 MeshChecker::MeshChecker ()
 {
@@ -176,7 +176,7 @@ CheckResult MeshChecker::checkVertexRefs ()
             }
             if (count < 6)
             {
-                if (badCount < maxMessages)
+                if (badCount < m_maxMessages)
                 {
                     str += QStringLiteral ("    %1 referenced by half edges only %2 times\n").arg (fmtName (v)).arg (count);
                 }
@@ -188,7 +188,7 @@ CheckResult MeshChecker::checkVertexRefs ()
     {
         str.push_front (QStringLiteral ("  %1 low ref vertices found\n").arg (badCount));
 
-        if (badCount > maxMessages)
+        if (badCount > m_maxMessages)
         {
             str.push_back (QStringLiteral ("    ...\n"));
         }
@@ -229,11 +229,11 @@ CheckResult MeshChecker::checkOpenEdges ()
 
     for (const auto& e : edges->openEdges ())
     {
-        if (badCount < maxMessages)
+        if (badCount < m_maxMessages)
         {
             str += QStringLiteral ("    T: %1, Edge: %2 -> %3\n").arg (fmtName (e->triangle ())).arg (fmtName (e->v1 ())).arg (fmtName (e->v2 ()));
         }
-        else if (badCount == maxMessages)
+        else if (badCount == m_maxMessages)
         {
             str += "    ...\n";
         }
@@ -263,12 +263,12 @@ CheckResult MeshChecker::checkHoles ()
     for (const auto& hole : std::as_const (holes))
     {
         idx++;
-        if (idx < maxMessages)
+        if (idx < m_maxMessages)
         {
             auto area = hole->area ();
             r += QStringLiteral ("    Hole: %1 (%2sq)\n").arg (fmtName (hole)).arg(area);
         }
-        else if (idx == maxMessages)
+        else if (idx == m_maxMessages)
         {
             r += QStringLiteral ("    ...\n");
             break;
@@ -374,7 +374,7 @@ CheckResult MeshChecker::checkShortEdges ()
             {
                 foundShortEdge++;
 
-                if (warnCount < maxMessages)
+                if (warnCount < m_maxMessages)
                 {
                     warnCount++;
                     if (edge->pair ())
@@ -388,7 +388,7 @@ CheckResult MeshChecker::checkShortEdges ()
                                fmtName (edge->triangle ()) + QByteArrayLiteral (" and None\n");
                     }
                 }
-                else if (warnCount == maxMessages)
+                else if (warnCount == m_maxMessages)
                 {
                     ret += "    ...\n";
                     warnCount++;
@@ -577,7 +577,7 @@ CheckResult MeshChecker::checkInfo ()
 
             ret += QStringLiteral ("      comp %4: %1 triangles, %2 vertices, %3 half edges\n").arg (locale.toString (comp->tcount ())).arg (locale.toString (vcount)).arg (locale.toString (ecount)).arg (idx++);
 
-            if (comp->count () < maxMessages)
+            if (comp->count () < m_maxMessages)
             {
                 for (const auto& t : *comp)
                 {
@@ -800,11 +800,11 @@ CheckResult MeshChecker::checkOverlappingTriangles ()
         for (const auto& overlap : overlaps)
         {
             idx++;
-            if (idx < maxMessages)
+            if (idx < m_maxMessages)
             {
                 ret.push_back (QStringLiteral ("    Overlap: %1 and %2 (%3sq)\n").arg (fmtName (overlap.first), fmtName (overlap.second)).arg (overlap.area));
             }
-            else if (idx == maxMessages)
+            else if (idx == m_maxMessages)
             {
                 ret.push_back (QStringLiteral ("    ...\n"));
             }
@@ -840,11 +840,11 @@ CheckResult MeshChecker::checkUnviableTriangles ()
     {
         if (!t->isViable ())
         {
-            if (badCount < maxMessages)
+            if (badCount < m_maxMessages)
             {
                 ret += QStringLiteral ("    T: %1\n").arg (fmtName (t));
             }
-            if (badCount == maxMessages)
+            if (badCount == m_maxMessages)
             {
                 ret += QStringLiteral ("    ...\n");
             }
@@ -867,12 +867,12 @@ CheckResult MeshChecker::checkFlatTriangles ()
     {
         if (t->isFlat ())
         {
-            if (badCount < maxMessages)
+            if (badCount < m_maxMessages)
             {
                 badCount++;
                 ret += QStringLiteral ("    T: %1\n").arg (fmtName (t));
             }
-            else if (badCount == maxMessages)
+            else if (badCount == m_maxMessages)
             {
                 ret += QStringLiteral ("    ...\n");
                 badCount++;
@@ -935,11 +935,11 @@ CheckResult MeshChecker::checkAnnotations ()
             if (hash.contains (t->annotation ()))
             {
                 auto tt = hash.value (t->annotation ());
-                if (badCount < maxMessages)
+                if (badCount < m_maxMessages)
                 {
                     ret += QStringLiteral ("    T: %1 & %2  (\"%3\")\n").arg (fmtName (t), fmtName (tt), t->annotation ());
                 }
-                else if (badCount == maxMessages)
+                else if (badCount == m_maxMessages)
                 {
                     ret += QStringLiteral ("    ...\n");
                 }
@@ -989,7 +989,7 @@ CheckResult MeshChecker::checkPockets ()
                         }
                         notedHash.insert (hash);
                         badCount++;
-                        if (badCount < maxMessages)
+                        if (badCount < m_maxMessages)
                         {
                             ts << "    T: " << fmtName (t) << " - T: " << fmtName (edge->pair ()->triangle ()) << '\n';
                             break;
@@ -1003,7 +1003,7 @@ CheckResult MeshChecker::checkPockets ()
     {
         return {CheckPockets, true, QStringLiteral ("  No pockets found\n"), badCount};
     }
-    if (badCount >= maxMessages)
+    if (badCount >= m_maxMessages)
     {
         ts << "    ...\n";
     }
@@ -1141,4 +1141,9 @@ bool MeshChecker::failable (Checks check)
         Q_ASSERT (false);
         return true;
     }
+}
+
+void MeshChecker::setListLimit(int value)
+{
+    m_maxMessages = value < 0 ? 0x7fffffff : value;
 }

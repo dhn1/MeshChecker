@@ -26,6 +26,7 @@ public:
     static QString optionName (Checks check);
     static QString description (Checks check);
     static bool failable (Checks check);
+    static void setListLimit (int value);
 
     MeshChecker ();
     MeshChecker (const MeshPtr& mesh, const QString& path = {});
@@ -74,6 +75,7 @@ private:
 
     static bool m_viewerHyperlinks;
     static CheckList m_checkList;
+    static int m_maxMessages;
 
     QString fmtName (const TrianglePtr& t);
     QString fmtName (const VertexPtr& t);

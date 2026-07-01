@@ -504,6 +504,7 @@ int main (int argc, char** argv)
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("mark-islands"), QStringLiteral ("Mark islands with colours and save file as .nether type.")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("hyperlinks"), QStringLiteral ("Produce markdown text with hyperlinks")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("multi-use-edges"), QStringLiteral ("Allow edges to be used in more than just a pair")));
+    parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("list-limit"), QStringLiteral ("Allow edges to be used in more than just a pair"), QStringLiteral ("limit")));
 
     //parser.setSingleDashWordOptionMode (QCommandLineParser::ParseAsLongOptions);
     const auto& checkList = MeshChecker::checkList ();
@@ -519,6 +520,10 @@ int main (int argc, char** argv)
     MeshChecker::setViewerHyperlinks (parser.isSet (QStringLiteral ("hyperlinks")));
     MeshChecker::setAllowOverusedEdges (parser.isSet (QStringLiteral ("multi-use-edges")));
 
+    if (parser.isSet ("list-limit"))
+    {
+        MeshChecker::setListLimit (parser.value ("list-limit").toInt ());
+    }
     if (parser.isSet (QStringLiteral ("compare")))
     {
         if (parser.isSet (QStringLiteral ("record")))
