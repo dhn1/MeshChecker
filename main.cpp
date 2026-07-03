@@ -349,7 +349,7 @@ static void processFile (const QString& path)
             auto holes = hes->holes ();
             for (const auto& hole : std::as_const (holes))
             {
-                if (hole->isIsland ())
+                if (hole->testFlag (Hole::Island))
                 {
                     hole->colourHole (cols.at (colIdx++));
                     colIdx %= cols.size ();

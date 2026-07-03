@@ -231,7 +231,7 @@ CheckResult MeshChecker::checkOpenEdges ()
     {
         if (badCount < m_maxMessages)
         {
-            str += QStringLiteral ("    T: %1, Edge: %2 -> %3\n").arg (fmtName (e->triangle ())).arg (fmtName (e->v1 ())).arg (fmtName (e->v2 ()));
+            str += QStringLiteral ("    T: %1, Edge: %2 -> %3\n").arg (fmtName (e->triangle ()), fmtName (e->v1 ()), fmtName (e->v2 ()));
         }
         else if (badCount == m_maxMessages)
         {
@@ -266,7 +266,7 @@ CheckResult MeshChecker::checkHoles ()
         if (idx < m_maxMessages)
         {
             auto area = hole->area ();
-            r += QStringLiteral ("    Hole: %1 (%2sq)\n").arg (fmtName (hole)).arg(area);
+            r += QStringLiteral ("    Hole: %1 (%2sq)\n").arg (fmtName (hole)).arg (area);
         }
         else if (idx == m_maxMessages)
         {
@@ -562,11 +562,11 @@ CheckResult MeshChecker::checkInfo ()
     const auto comps = m_mesh->splitComponents (edges);
     if (comps.count () < 2)
     {
-        ret += QStringLiteral ("    %1 triangles, %2 vertices, %3 half edges\n").arg (locale.toString (m_mesh->tcount ())).arg (locale.toString (vcount)).arg (locale.toString (ecount));
+        ret += QStringLiteral ("    %1 triangles, %2 vertices, %3 half edges\n").arg (locale.toString (m_mesh->tcount ()), locale.toString (vcount), locale.toString (ecount));
     }
     else
     {
-        ret += QStringLiteral ("    %4 components, %1 triangles, %2 vertices, %3 half edges\n").arg (locale.toString (m_mesh->tcount ())).arg (locale.toString (vcount)).arg (locale.toString (ecount)).arg (comps.count ());
+        ret += QStringLiteral ("    %4 components, %1 triangles, %2 vertices, %3 half edges\n").arg (locale.toString (m_mesh->tcount ()), locale.toString (vcount), locale.toString (ecount)).arg (comps.count ());
 
         int idx = 0;
         for (const auto& comp : comps)
@@ -575,13 +575,13 @@ CheckResult MeshChecker::checkInfo ()
             auto edges = HalfEdges::create (comp);
             auto ecount = comp->halfEdgeList ().count ();
 
-            ret += QStringLiteral ("      comp %4: %1 triangles, %2 vertices, %3 half edges\n").arg (locale.toString (comp->tcount ())).arg (locale.toString (vcount)).arg (locale.toString (ecount)).arg (idx++);
+            ret += QStringLiteral ("      comp %4: %1 triangles, %2 vertices, %3 half edges\n").arg (locale.toString (comp->tcount ()), locale.toString (vcount), locale.toString (ecount)).arg (idx++);
 
             if (comp->count () < m_maxMessages)
             {
                 for (const auto& t : *comp)
                 {
-                    ret += QStringLiteral ("        T: %1\n").arg ( fmtName (t));
+                    ret += QStringLiteral ("        T: %1\n").arg (fmtName (t));
                 }
             }
         }
@@ -601,7 +601,7 @@ CheckResult MeshChecker::checkDuplicateVertices ()
         if (res != v)
         {
             badCount++;
-            ret += QStringLiteral ("    %1 and %2\n").arg (fmtName (v)).arg (fmtName (res));
+            ret += QStringLiteral ("    %1 and %2\n").arg (fmtName (v), fmtName (res));
         }
     }
     if (badCount)
@@ -657,7 +657,7 @@ CheckResult MeshChecker::checkOverlappingTriangles ()
                     if (!segOfIntersection || !segOfIntersection->isValid ())
                     {
                         // No intersection of planes - must be parallel or the same plane, or same plane inverted
-                        if (plane.equalAndSameDirection (p))
+                        if (plane.equal (p))
                         {
                             // Coplanar Ts
                             const auto c0 = HalfEdge::create (candidate, 0);
@@ -704,7 +704,7 @@ CheckResult MeshChecker::checkOverlappingTriangles ()
                                 case Triangle::Vertex0Hit:
                                 case Triangle::Vertex1Hit:
                                 case Triangle::Vertex2Hit:
-                                     // Nothing
+                                    // Nothing
                                     break;
                                 case Triangle::TriangleContainsResult::Contained:
                                     tts.push_back (tres.t1);
@@ -962,7 +962,7 @@ CheckResult MeshChecker::checkAnnotations ()
 
 CheckResult MeshChecker::checkPockets ()
 {
-    m_edges->matchHalfEdges (true);
+    m_edges->matchHalfEdges ();
 
     QString log;
     QTextStream ts (&log);
@@ -1143,7 +1143,7 @@ bool MeshChecker::failable (Checks check)
     }
 }
 
-void MeshChecker::setListLimit(int value)
+void MeshChecker::setListLimit (int value)
 {
     m_maxMessages = value < 0 ? 0x7fffffff : value;
 }
