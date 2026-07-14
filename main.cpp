@@ -1,6 +1,7 @@
 #include <ColourFactory.h>
 #include <Mesh.h>
 #include <libSculptVersion.h>
+#include <libSculptVersionStatic.h>
 
 #include <QCommandLineParser>
 #include <QDir>
@@ -477,7 +478,7 @@ int main (int argc, char** argv)
 #endif
 
     QCoreApplication::setApplicationName (QStringLiteral ("MeshChecker"));
-    QCoreApplication::setApplicationVersion (QStringLiteral (VERSION) + QStringLiteral (" (libSculpt ") + libSculptVersion () + QStringLiteral (")"));
+    QCoreApplication::setApplicationVersion (QStringLiteral (VERSION) + QStringLiteral (" (libSculpt build %1, in use %2)").arg (LIB_SCULPT_VERSION).arg (libSculptVersion ()));
     QCoreApplication::setOrganizationName (QStringLiteral ("Netherwood Industries"));
 
     QCommandLineParser parser;
@@ -502,7 +503,7 @@ int main (int argc, char** argv)
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("folderFilter") << QStringLiteral ("ff"), QStringLiteral ("Only look in subfolders with given name."), QStringLiteral ("folder name")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("mark"), QStringLiteral ("Mark bad triangles with colour and save file as .nether type.")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("mark-islands"), QStringLiteral ("Mark islands with colours and save file as .nether type.")));
-    parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("hyperlinks"), QStringLiteral ("Produce markdown text with hyperlinks")));
+    parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("hyperlinks"), QStringLiteral ("Produce markdown text with hyper-links")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("multi-use-edges"), QStringLiteral ("Allow edges to be used in more than just a pair")));
     parser.addOption (QCommandLineOption (QStringList () << QStringLiteral ("list-limit"), QStringLiteral ("Allow edges to be used in more than just a pair"), QStringLiteral ("limit")));
 
