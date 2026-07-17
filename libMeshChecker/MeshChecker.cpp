@@ -1032,7 +1032,7 @@ QString MeshChecker::checkName (Checks check)
     case CheckOpenEdges:
         return QStringLiteral ("OpenEdges");
     case CheckOverlappingTriangles:
-        return QStringLiteral ("OverlapingTriangles");
+        return QStringLiteral ("OverlappingTriangles");
     case CheckUnviableTriangles:
         return QStringLiteral ("UnviableTriangles");
     case CheckOverusedHalfEdges:
