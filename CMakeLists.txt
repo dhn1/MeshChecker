@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.29)
 
-project (MeshChecker LANGUAGES CXX VERSION 0.8.2)
+project (MeshChecker LANGUAGES CXX VERSION 0.8.3)
 
 set (CMAKE_CXX_STANDARD 20)
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -127,14 +127,14 @@ set (CPACK_PACKAGE_VERSION_MINOR "${PROJECT_VERSION_MINOR}")
 set (CPACK_PACKAGE_VERSION_PATCH "${PROJECT_VERSION_PATCH}")
 set (CPACK_PACKAGE_CONTACT "david_netherwood@hotmail.com")
 
-#set (CPACK_DEBIAN_PACKAGE_DEPENDS "libqt6gui6, libqt6core6, libqt6concurrent6, libqt6xml6, libzip4,  libqt6svg6, ${SCULPTLIB_DEP_NAME} (>= 0.17.0)")
+#set (CPACK_DEBIAN_PACKAGE_DEPENDS "libqt6gui6, libqt6core6, libqt6concurrent6, libqt6xml6, libzip4,  libqt6svg6, ${SCULPTLIB_DEP_NAME} (>= 0.17.2)")
 set (CPACK_DEBIAN_PACKAGE_DEPENDS "homebrewqtcore6.11.0, ${SCULPTLIB_DEP_NAME} (>=0.16.1)")
 
-#set (CPACK_DEBIAN_PACKAGE_DEPENDS "libqt6gui6, libqt6core6, libqt6concurrent6, libqt6xml6, libzip4,  libqt6svg6, ${SCULPTLIB_DEP_NAME} (>= 0.17.0)")
+#set (CPACK_DEBIAN_PACKAGE_DEPENDS "libqt6gui6, libqt6core6, libqt6concurrent6, libqt6xml6, libzip4,  libqt6svg6, ${SCULPTLIB_DEP_NAME} (>= 0.17.2)")
 set (CPACK_PACKAGE_FILE_NAME ${PROJECT_NAME})
 
 set (CPACK_RPM_PACKAGE_ARCHITECTURE "x86_64")
-set (CPACK_RPM_PACKAGE_REQUIRES "${SCULPTLIB_DEP_NAME} >= 0.17.0")
+set (CPACK_RPM_PACKAGE_REQUIRES "${SCULPTLIB_DEP_NAME} >= 0.17.2")
 set (CPACK_RPM_PACKAGE_GROUP "Applications/Engineering")
 set (CPACK_RPM_PACKAGE_RELEASE "2")
 
