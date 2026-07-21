@@ -96,7 +96,7 @@ const MeshChecker::CheckList& MeshChecker::checkList ()
         m_checkList.push_back ({CheckOverusedHalfEdges, &MeshChecker::checkOverusedHalfEdges});
         m_checkList.push_back ({CheckOpenEdges, &MeshChecker::checkOpenEdges});
         m_checkList.push_back ({CheckHoles, &MeshChecker::checkHoles});
-        m_checkList.push_back ({CheckReversedTriangles, &MeshChecker::checkReversedTriangles});
+        m_checkList.push_back ({CheckReversedEdges, &MeshChecker::checkReversedTriangles});
         m_checkList.push_back ({CheckDuplicateVertices, &MeshChecker::checkDuplicateVertices});
         m_checkList.push_back ({CheckOverlappingTriangles, &MeshChecker::checkOverlappingTriangles});
         m_checkList.push_back ({CheckDeleted, &MeshChecker::checkDeleted});
@@ -430,52 +430,105 @@ CheckResult MeshChecker::checkShortEdges ()
 CheckResult MeshChecker::checkReversedTriangles ()
 {
     QString ret;
+    const auto& edges = getEdges ();
+    edges->matchHalfEdges ();
+    typedef  QList<QPair<HalfEdgePtr, HalfEdgePtr>> EdgeEdgeList;
+    EdgeEdgeList badEdges;
+    int badCount = 0;
+    EdgeByEdge opensByEdge;
 
-    QList<TrianglePtr> reversedTriangles;
-    const auto hash = getEdges ()->edgeByEdge ();
-
-    for (const auto& t : *m_mesh)
+    for (const auto& edge : edges->openEdges ())
     {
-        for (int ee = 0; ee < 3; ee++)
+        opensByEdge.insert ({edge}, edge);
+    }
+
+    for (const auto& key : edges->problemEdgeKeys ())
+    {
+        for (auto edge : edges->edgeByEdge ().values (key))
         {
-            auto const & hedge = t->halfEdge (ee);
+            opensByEdge.insert ({edge}, edge);
+        }
+    }
 
-            auto values = hash.values ({hedge});
-            //Q_ASSERT (values.count () == 1 || values.count() == 2);
-
-            if (values.count () == 2)
+    auto process =[&badEdges] (EdgeByEdge::ConstIterator start,  EdgeByEdge::ConstIterator end) {
+        if (std::distance (start, end) >= 2)
+        {
+            for (auto it2 = start ; it2 != end; it2++)
             {
-                if (values.at (0)->v1 () == values.at (1)->v1 ())
+                const auto& e1 = it2.value ();
+                for (auto it3 = ++it2 ; it3 != end ; it3++)
                 {
-                    reversedTriangles << hedge->triangle ();
+                    const auto& e2 = it3.value ();
+                    if (e1->v1() == e2->v1 ())
+                    {
+                        if (e1->id () < e2->id ())
+                        {
+                        badEdges.push_back ({e1, e2});
+                        }
+                        else
+                        {
+                            badEdges.push_back ({e2, e1});
+                        }
+                    }
                 }
             }
         }
+    };
+
+    {
+        auto it = opensByEdge.constBegin ();
+        HalfEdgeKey lastKey;
+        auto lastIt = it;
+        while (it != opensByEdge.constEnd ())
+        {
+            if (lastKey != it.key ())
+            {
+                process (lastIt, it);
+                lastKey = it.key ();
+                lastIt = it;
+            }
+            it++;
+        }
+
+        process (lastIt, opensByEdge.constEnd ());
     }
 
-    std::sort (reversedTriangles.begin (), reversedTriangles.end (), [] (const TrianglePtr& a, const TrianglePtr& b) {
-        return a->id () < b->id ();
+    std::sort (badEdges.begin (), badEdges.end (), [] (const auto &a, const auto&b){
+        return a.first->id () < b.first->id ();
     });
 
-    int badCount = 0;
-    for (int i = 0; i < reversedTriangles.size ();)
-    {
-        const auto& t = reversedTriangles.at (i);
-        auto count = reversedTriangles.count (t);
-        if (count == 3)
+    auto report = [this, & ret] (EdgeEdgeList::ConstIterator start,  EdgeEdgeList::ConstIterator end) {
+        QString str;
+        for (auto it = start ; it < end; it++)
         {
-            ret += QStringLiteral ("    triangle: %1\n").arg (fmtName (t));
-            badCount++;
+            str += QStringLiteral ("%1:%2 ").arg (fmtName (it->first->triangle ())).arg(it->first->edge ());
         }
-        i += count;
+        ret += str;
+    };
+
+    uint lastEdgeId = -1;
+    auto it = badEdges.constBegin ();
+    auto lastIt = it;
+    while (it != badEdges.constEnd ())
+    {
+        if (lastEdgeId != it->first->id ())
+        {
+            if (it != lastIt)
+            {
+                report (lastIt, it);
+            }
+            lastIt = it;
+            lastEdgeId = it->first->id ();
+        }
     }
+
     if (badCount)
     {
-        ret.push_front (QStringLiteral ("  %1 reversed triangles\n").arg (badCount));
-        return {CheckReversedTriangles, false, ret, badCount};
+        ret.push_front (QStringLiteral ("  %1 reversed edges\n").arg (badCount));
+        return {CheckReversedEdges, false, ret, badCount};
     }
-    ret += QStringLiteral ("  No reversed triangles\n");
-    return {CheckReversedTriangles, true, ret, badCount};
+    ret += QStringLiteral ("  No reversed edges\n");
+    return {CheckReversedEdges, true, ret, badCount};
 }
 
 CheckResult MeshChecker::checkOverusedHalfEdges ()
@@ -1025,8 +1078,8 @@ QString MeshChecker::checkName (Checks check)
         return QStringLiteral ("ShortEdges");
     case CheckInfo:
         return QStringLiteral ("Info");
-    case CheckReversedTriangles:
-        return QStringLiteral ("ReversedTriangles");
+    case CheckReversedEdges:
+        return QStringLiteral ("ReversedEdges");
     case CheckDuplicateVertices:
         return QStringLiteral ("DuplicateVertices");
     case CheckOpenEdges:
@@ -1077,8 +1130,8 @@ QString MeshChecker::description (Checks check)
         return QStringLiteral ("Check for short edges");
     case CheckInfo:
         return QStringLiteral ("Show basic stats");
-    case CheckReversedTriangles:
-        return QStringLiteral ("Check for triangles who's edges are in the same direction as its neighbours - i.e. the triangle is reversed");
+    case CheckReversedEdges:
+        return QStringLiteral ("Check for edges who's edges are in the same direction as its neighbours - i.e. the triangle is reversed");
     case CheckDuplicateVertices:
         return QStringLiteral ("Check for duplicate vertices");
     case CheckOpenEdges:
@@ -1128,7 +1181,7 @@ bool MeshChecker::failable (Checks check)
     case CheckTCount:
     case CheckHoles:
     case CheckDuplicateTriangles:
-    case CheckReversedTriangles:
+    case CheckReversedEdges:
     case CheckDuplicateVertices:
     case CheckOpenEdges:
     case CheckOverlappingTriangles:
