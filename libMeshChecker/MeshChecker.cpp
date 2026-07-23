@@ -226,6 +226,7 @@ CheckResult MeshChecker::checkOpenEdges ()
 
     auto edges = getEdges ();
     int badCount = 0;
+    edges->matchHalfEdges ();
 
     for (const auto& e : edges->openEdges ())
     {
