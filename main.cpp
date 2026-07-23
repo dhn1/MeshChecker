@@ -104,10 +104,11 @@ static void record (const FileResult& fileResult)
 
     case Compare:
         {
+            QLocale locale;
             const QFileInfo fi (fileResult.path ());
-            if (fi.lastModified ().secsTo (QDateTime::currentDateTime ()) > 40LL * 60LL)
+            if (fi.lastModified ().secsTo (QDateTime::currentDateTime ()) > 15LL * 60LL)
             {
-                qDebug ().noquote ().nospace () << "Out of date file? \"" << fileResult.path () << "\"";
+                qDebug ().noquote ().nospace () << "Out of date file? \"" << fileResult.path () << "\" " << locale.toString (fi.lastModified (), "mm:hh:s d MMM yy");
             }
             bool changes = false;
             auto file = recordingFiles.value (fileResult.path ()).toObject ();
@@ -694,7 +695,9 @@ int main (int argc, char** argv)
         for (const auto& file : std::as_const (fileList))
         {
             out << "Missing file: \"" << file << "\"\n";
+            ok = false;
         }
+
         out << QStringLiteral ("\nOverall changes: files: %1 (%2), fails: %3 (%4)\n")
                    .arg (fileCount)
                    .arg (diffNo (fileCount - recording.value (QStringLiteral ("fileCount")).toInt ()))
