@@ -649,10 +649,16 @@ CheckResult MeshChecker::checkOverlappingTriangles ()
                         segOfIntersection = plane.intersection (p, 0.00000000000001);
                     }
                     bool intersect = false;
+                    const CartesianPlane* bestPlane{};
 
-                    auto test = [] (const HalfEdgePtr& he1, const HalfEdgePtr& he2) -> bool {
-                        auto res = intersectionOfLines3DMk2 (he1, he2);
-                        return res.type == IntersectionOfLines3DMk2Result::Cross;
+                    auto test = [&bestPlane] (const HalfEdgePtr& he1, const HalfEdgePtr& he2) -> int {
+                        Q_ASSERT (bestPlane);
+                        auto res = intersectionOfLinesInPlane (*bestPlane, he1, he2);
+                        if (res.significantCrossover ())
+                        {
+                            return 1;
+                        }
+                        return 0;
                     };
 
                     if (!segOfIntersection || !segOfIntersection->isValid ())
@@ -660,20 +666,27 @@ CheckResult MeshChecker::checkOverlappingTriangles ()
                         // No intersection of planes - must be parallel or the same plane, or same plane inverted
                         if (plane.equal (p))
                         {
-                            // Coplanar Ts
-                            const auto c0 = HalfEdge::create (candidate, 0);
-                            const auto c1 = HalfEdge::create (candidate, 1);
-                            const auto c2 = HalfEdge::create (candidate, 2);
-                            const auto t0 = HalfEdge::create (t, 0);
-                            const auto t1 = HalfEdge::create (t, 0);
-                            const auto t2 = HalfEdge::create (t, 0);
-
-                            intersect = test (c0, t0) || test (c0, t1) || test (c0, t2) || test (c1, t0) || test (c1, t1) || test (c1, t2) || test (c2, t0) || test (c2, t1) || test (c2, t2);
-
-                            if (!intersect)
+                            if (plane.equalAndSameDirection (p))
                             {
-                                auto res = t->containsWithDetails (candidate->centroid ());
-                                intersect = res == Triangle::TriangleContainsResult::Contained;
+                                // Coplanar Ts
+                                const auto& c0 = candidate->halfEdge (0);
+                                const auto& c1 = candidate->halfEdge (1);
+                                const auto& c2 = candidate->halfEdge (2);
+                                const auto& t0 = t->halfEdge (0);
+                                const auto& t1 = t->halfEdge (1);
+                                const auto& t2 = t->halfEdge (2);
+
+                                bestPlane = &plane.bestPlane ().first;
+
+                                intersect = test (c0, t0) || test (c0, t1) || test (c0, t2) ||
+                                            test (c1, t0) || test (c1, t1) || test (c1, t2) ||
+                                            test (c2, t0) || test (c2, t1) || test (c2, t2);
+
+                                if (!intersect)
+                                {
+                                    auto res = t->containsWithDetails (candidate->centroid ());
+                                    intersect = res == Triangle::TriangleContainsResult::Contained;
+                                }
                             }
                         }
                     }
