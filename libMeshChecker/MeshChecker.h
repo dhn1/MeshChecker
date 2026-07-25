@@ -81,6 +81,7 @@ private:
     QString fmtName (const VertexPtr& t);
     QString fmtName (const HolePtr& hole);
     void genMetaData ();
+    bool checkNoneCoplanarOverlap (const TrianglePtr& t, const TrianglePtr& candidate, const SegmentPtr& segOfIntersection);
 };
 
 #endif  // MESHCHECKER_H

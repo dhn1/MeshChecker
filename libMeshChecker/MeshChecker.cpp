@@ -613,6 +613,106 @@ CheckResult MeshChecker::checkDuplicateVertices ()
     return {CheckDuplicateVertices, true, QStringLiteral ("  No duplicate vertices\n"), badCount};
 }
 
+namespace MeshCheckerNS {
+
+struct Intersection
+{
+    Intersection (double t1, double t2) : m_edgeT (t1), m_segmentOfIntersectionT (t2) {}
+    double m_edgeT;  // TODO: Don't seem to need this
+    double m_segmentOfIntersectionT;
+};
+
+struct Intersections : public QList<Intersection*>
+{
+    ~Intersections () { qDeleteAll (*this); }
+    void sortT2 ()
+    {
+        std::sort (begin (), end (), [] (const Intersection* a, const Intersection* b) -> bool {
+            return a->m_segmentOfIntersectionT < b->m_segmentOfIntersectionT;
+        });
+    }
+    double minT () const { return at (0)->m_segmentOfIntersectionT; }
+    double maxT () const { return at (size () - 1)->m_segmentOfIntersectionT; }
+    void dedup ()
+    {
+        for (int i = 0; i < count () - 1; i++)
+        {
+            if (std::abs (at (i)->m_segmentOfIntersectionT - at (i + 1)->m_segmentOfIntersectionT) < 0.001)
+            {
+                delete at (i);
+                removeAt (i);
+                i--;
+            }
+        }
+    }
+};
+}  // namespace MeshCheckerNS
+
+bool MeshChecker::checkNoneCoplanarOverlap (const TrianglePtr& target, const TrianglePtr& other, const SegmentPtr& segOfIntersection)
+{
+    using namespace MeshCheckerNS;
+    Intersections tts;
+    Intersections cts;
+
+    auto m = Mesh::create ();
+    m->push_back (target);
+    m->push_back (other);
+
+    DocumentNethers doc (m);
+    doc.add (segOfIntersection);
+    doc.write ("/tmp/3d/x.nethers");
+
+    auto inter = [&segOfIntersection] (const TrianglePtr& t) -> Intersections {
+        Intersections ret;
+
+        for (int e = 0; e < 3; e++)
+        {
+            //qDebug () << t->vertexAt (e)->magnitude(t->vertexAt ((e + 1) % 3));
+            auto res = intersectionOfLines3D (t->vertexAt (e), t->vertexAt ((e + 1) % 3), segOfIntersection->start (), segOfIntersection->end ());
+            if (std::isnan (res.t1) || std::isnan (res.t2))
+            {
+                // coplanar
+                qDeleteAll (ret);
+                ret.clear ();
+                return ret;
+            }
+            if (0 <= res.t1 && res.t1 <= 1.0)
+            {
+                //auto v = m_vertexPool->vertex (res.vertexOfIntersection);
+                ret.append (new Intersection{res.t1, res.t2});
+            }
+        }
+        return ret;
+    };
+
+    auto targetIntersections = inter (target);
+    if (targetIntersections.count () < 2)
+    {
+        return false;
+    }
+    auto otherIntersections = inter (other);
+    if (otherIntersections.count () < 2)
+    {
+        return false;
+    }
+
+    targetIntersections.sortT2 ();
+    otherIntersections.sortT2 ();
+    targetIntersections.dedup ();
+    otherIntersections.dedup ();
+    if (otherIntersections.count () < 2 || targetIntersections.count () < 2)
+    {
+        return false;
+    }
+
+    // Is there an intersection?
+    if (targetIntersections.maxT () <= otherIntersections.minT () || targetIntersections.minT () >= otherIntersections.maxT ())
+    {
+        return false;
+    }
+    return true;
+}
+
 CheckResult MeshChecker::checkOverlappingTriangles ()
 {
     QString ret;
@@ -678,9 +778,7 @@ CheckResult MeshChecker::checkOverlappingTriangles ()
 
                                 bestPlane = &plane.bestPlane ().first;
 
-                                intersect = test (c0, t0) || test (c0, t1) || test (c0, t2) ||
-                                            test (c1, t0) || test (c1, t1) || test (c1, t2) ||
-                                            test (c2, t0) || test (c2, t1) || test (c2, t2);
+                                intersect = test (c0, t0) || test (c0, t1) || test (c0, t2) || test (c1, t0) || test (c1, t1) || test (c1, t2) || test (c2, t0) || test (c2, t1) || test (c2, t2);
 
                                 if (!intersect)
                                 {
@@ -692,70 +790,7 @@ CheckResult MeshChecker::checkOverlappingTriangles ()
                     }
                     else
                     {
-                        tts.clear ();
-                        cts.clear ();
-
-                        bool resolved = false;
-                        for (int e = 0; e < 3; e++)
-                        {
-                            auto tres = intersectionOfLines3D (segOfIntersection, HalfEdge::create (t, e));
-                            //qDebug () << "target" << tres.toString ();
-                            if (tres.intersects1 () == IntersectionOfLinesResult3D::Colinear)
-                            {
-                                // Ts are not in the same plane, but share this one shares and edge with out plane intersect - cannot overlap
-                                resolved = true;
-                                break;
-                            }
-                            if (tres.vertexOfIntersection && 0.0 < tres.t2 && tres.t2 < 1.0)
-                            {
-                                auto res = t->containsWithDetails (tres.vertexOfIntersection);
-                                switch (res & Triangle::BasicHitMask)
-                                {
-                                case Triangle::External:
-                                case Triangle::Edge0Hit:
-                                case Triangle::Edge1Hit:
-                                case Triangle::Edge2Hit:
-                                case Triangle::Vertex0Hit:
-                                case Triangle::Vertex1Hit:
-                                case Triangle::Vertex2Hit:
-                                    // Nothing
-                                    break;
-                                case Triangle::TriangleContainsResult::Contained:
-                                    tts.push_back (tres.t1);
-                                }
-                            }
-                            auto cres = intersectionOfLines3D (segOfIntersection, HalfEdge::create (candidate, e));
-                            //qDebug () << "candidate" << cres.toString ();
-                            if (cres.intersects1 () == IntersectionOfLinesResult3D::Colinear)
-                            {
-                                // Ts are no in the same plane, but this one shares and edge with out plane intersect - cannot overlap
-                                resolved = true;
-                                break;
-                            }
-                            if (cres.vertexOfIntersection && 0.0 < cres.t2 && cres.t2 < 1.0)
-                            {
-                                if (candidate->contains (cres.vertexOfIntersection))
-                                {
-                                    cts.push_back (cres.t1);
-                                }
-                            }
-                        }
-                        if (!resolved && !tts.empty () && !cts.empty ())
-                        {
-                            std::sort (tts.begin (), tts.end ());
-                            std::sort (cts.begin (), cts.end ());
-                            constexpr double E = 0.00000000001;
-
-                            // qDebug() << tts.constFirst() << tts.constLast() <<  tts.constFirst() - tts.constLast();
-                            // qDebug() << cts.constFirst() << cts.constLast() <<  cts.constFirst() - cts.constLast();
-                            intersect = !(cts.constLast () < tts.constFirst () + E || cts.constFirst () > tts.constLast () - E);
-
-                            if (std::abs (cts.constFirst () - cts.constLast ()) < E || std::abs (tts.constFirst () - tts.constLast ()) < E)
-                            {
-                                // Must be tip touch - which is ok
-                                intersect = false;
-                            }
-                        }
+                        intersect = checkNoneCoplanarOverlap (t, candidate, segOfIntersection);
                     }
 
                     if (intersect)
@@ -773,6 +808,7 @@ CheckResult MeshChecker::checkOverlappingTriangles ()
             }
         }
     }
+
     if (!overlaps.isEmpty ())
     {
         std::sort (overlaps.begin (), overlaps.end (), [] (const auto& a, const auto& b) -> bool {

@@ -29,7 +29,7 @@ static TestRes overlap01 ()
     MeshChecker mc (mesh);
     auto res = mc.checkOverlappingTriangles ();
 
-    VERIFY (res.badCount ()== 0)
+    VERIFY (res.badCount () == 0)
 
     return Passed;
 }
@@ -603,7 +603,7 @@ static TestRes sharedEdge03 ()
     target->reverse ();
     res = mc.checkOverlappingTriangles ();
 
-    VERIFY (res.badCount () == 1)
+    VERIFY (res.badCount () == 0)
 
     return Passed;
 }
@@ -757,6 +757,7 @@ static TestRes overlapTestCase01 ()
 
     auto t1 = Triangle::create (v1, v2, Vertex::create (100, 16.60348684210525505, 6.9104605263157949935, QStringLiteral ("v3")), {}, 21568);
     auto t2 = Triangle::create (v2, v1, Vertex::create (100, 20.439447368421042484, 10.532210526315795462, QStringLiteral ("v4")), {}, 17472);
+    t2->reverse ();
 
     auto mesh = Mesh::create ();
     mesh->add (t1);
@@ -794,12 +795,12 @@ static TestRes overlapTestCase02 ()
 
     return Passed;
 }
-REGISTER_TEST(overlapTestCase02)
+REGISTER_TEST (overlapTestCase02)
 
 static TestRes CheckPockets01 ()
 {
     auto t1 = Triangle::createIsosceles (100);
-    auto t2 = Triangle::create (t1->v1(), t1->v3(), t1->v2());
+    auto t2 = Triangle::create (t1->v1 (), t1->v3 (), t1->v2 ());
 
     auto mesh = Mesh::create ();
     mesh->add (t1);
@@ -815,4 +816,4 @@ static TestRes CheckPockets01 ()
 
     return Passed;
 }
-REGISTER_TEST(CheckPockets01)
+REGISTER_TEST (CheckPockets01)

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.29)
 
-project (MeshChecker LANGUAGES CXX VERSION 0.8.4)
+project (MeshChecker LANGUAGES CXX VERSION 0.8.5)
 
 set (CMAKE_CXX_STANDARD 20)
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -139,3 +139,5 @@ set (CPACK_RPM_PACKAGE_GROUP "Applications/Engineering")
 set (CPACK_RPM_PACKAGE_RELEASE "2")
 
 include(CPack)
+
+configure_file(leak.supp ${CMAKE_BINARY_DIR}/bin/leak.supp COPYONLY)
