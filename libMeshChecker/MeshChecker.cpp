@@ -658,10 +658,6 @@ bool MeshChecker::checkNoneCoplanarOverlap (const TrianglePtr& target, const Tri
     m->push_back (target);
     m->push_back (other);
 
-    DocumentNethers doc (m);
-    doc.add (segOfIntersection);
-    doc.write ("/tmp/3d/x.nethers");
-
     auto inter = [&segOfIntersection] (const TrianglePtr& t) -> Intersections {
         Intersections ret;
 
@@ -706,7 +702,8 @@ bool MeshChecker::checkNoneCoplanarOverlap (const TrianglePtr& target, const Tri
     }
 
     // Is there an intersection?
-    if (targetIntersections.maxT () <= otherIntersections.minT () || targetIntersections.minT () >= otherIntersections.maxT ())
+    constexpr double E = 0.00000001;
+    if (targetIntersections.maxT () <= otherIntersections.minT () + E || targetIntersections.minT () >= otherIntersections.maxT () - E)
     {
         return false;
     }
@@ -718,11 +715,13 @@ CheckResult MeshChecker::checkOverlappingTriangles ()
     QString ret;
     QList<double> tts;
     QList<double> cts;
+    bool hasOneOrMorePenetrations = false;
 
     struct OverlapPair
     {
         TrianglePtr first;
         TrianglePtr second;
+        bool coplainar;
         double area{};
     };
     QList<OverlapPair> overlaps;
@@ -797,11 +796,11 @@ CheckResult MeshChecker::checkOverlappingTriangles ()
                     {
                         if (t->id () < candidate->id ())
                         {
-                            overlaps.push_back ({t, candidate});
+                            overlaps.push_back ({t, candidate, !segOfIntersection});
                         }
                         else
                         {
-                            overlaps.push_back ({candidate, t});
+                            overlaps.push_back ({candidate, t, !segOfIntersection});
                         }
                     }
                 }
@@ -825,20 +824,27 @@ CheckResult MeshChecker::checkOverlappingTriangles ()
 
         for (auto& overlap : overlaps)
         {
-            PolygonCorefiner pcr;
-            try
+            if (overlap.coplainar)
             {
-                pcr.corefine (overlap.first->toPolygon (), overlap.second->toPolygon ());
-
-                auto res = pcr.boolIntersection ();
-                if (!res.isEmpty ())
+                PolygonCorefiner pcr;
+                try
                 {
-                    overlap.area = res.constFirst ().area ();
-                    maxArea = std::max (maxArea, overlap.area);
+                    pcr.corefine (overlap.first->toPolygon (), overlap.second->toPolygon ());
+
+                    auto res = pcr.boolIntersection ();
+                    if (!res.isEmpty ())
+                    {
+                        overlap.area = res.constFirst ().area ();
+                        maxArea = std::max (maxArea, overlap.area);
+                    }
+                }
+                catch (...)
+                {
                 }
             }
-            catch (...)
+            else
             {
+                hasOneOrMorePenetrations = true;
             }
         }
 
@@ -852,7 +858,14 @@ CheckResult MeshChecker::checkOverlappingTriangles ()
             idx++;
             if (idx < m_maxMessages)
             {
-                ret.push_back (QStringLiteral ("    Overlap: %1 and %2 (%3sq)\n").arg (fmtName (overlap.first), fmtName (overlap.second)).arg (overlap.area));
+                if (overlap.coplainar)
+                {
+                    ret.push_back (QStringLiteral ("    Overlap: %1 and %2 (%3sq)\n").arg (fmtName (overlap.first), fmtName (overlap.second)).arg (overlap.area));
+                }
+                else
+                {
+                    ret.push_back (QStringLiteral ("    Overlap: %1 and %2 (penetrated)\n").arg (fmtName (overlap.first), fmtName (overlap.second)));
+                }
             }
             else if (idx == m_maxMessages)
             {
@@ -879,7 +892,7 @@ CheckResult MeshChecker::checkOverlappingTriangles ()
     {
         ret += QStringLiteral ("  No triangle overlap\n");
     }
-    return {CheckOverlappingTriangles, maxArea < 0.01, ret, (int)overlaps.count ()};
+    return {CheckOverlappingTriangles, maxArea < 0.01 || hasOneOrMorePenetrations, ret, (int)overlaps.count ()};
 }
 
 CheckResult MeshChecker::checkUnviableTriangles ()

@@ -750,6 +750,45 @@ static TestRes useCase13 ()
 }
 REGISTER_TEST (useCase13)
 
+static TestRes useCase14 ()
+{
+    auto vp = VertexPool::create ();
+    auto t1 = Triangle::create (Vertex::create (-12.711733992707291208, 110, 24.948182677274310493), Vertex::create (-10.43960403491962019, 109.91999999999998749, 25.203433646907914323),
+        Vertex::create (-12.384860832894819538, 109.91999999999998749, 24.306657979858687924), "T1", 0);
+
+    auto t2 = Triangle::create (Vertex::create (-12.130626153040672932, 109.68000000000000682, 23.807694326313196598), Vertex::create (-14.253760845451077799, 109.91999999999998749, 23.260023683579643006),
+        Vertex::create (-12.384860832894819538, 109.91999999999998749, 24.306657979858687924), "T2", 0);
+    vp->update (t1);
+    vp->update (t2);
+
+    auto mesh = Mesh::create ();
+    mesh->colourise ();
+    mesh->push_back (t1);
+    mesh->push_back (t2);
+
+    auto segOfIntersection = t1->plane ().intersection (t2->plane ());
+    DocumentNethers doc (mesh);
+    doc.add (Segment::create (segOfIntersection));
+    doc.write (outputFileName (gTestName, "nethers"));
+
+    MeshChecker mc (mesh);
+    auto res = mc.checkOverlappingTriangles ();
+
+    VERIFY (res.badCount () == 0)
+
+    mesh->push_back (mesh->takeFirst ());
+    res = mc.checkOverlappingTriangles ();
+
+    VERIFY (res.badCount () == 0)
+
+    t1->reverse ();
+    res = mc.checkOverlappingTriangles ();
+    VERIFY (res.badCount () == 0)
+
+    return Passed;
+}
+REGISTER_TEST (useCase14)
+
 static TestRes overlapTestCase01 ()
 {
     auto v1 = Vertex::create (100, 16.428717105263153542, 6.5815460526315847645, QStringLiteral ("v1"));
